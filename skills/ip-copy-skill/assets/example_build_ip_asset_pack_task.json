@@ -1,0 +1,16 @@
+{
+  "mode": "build_ip_asset_pack",
+  "ip_id": "huangquan_fandian",
+  "title": "黄泉饭店",
+  "style_preset": "realistic_short_drama",
+  "source_text": "林缺在雨夜回到黄泉饭店，老板的菜单账本放在柜台上。牛头员工端着托盘从厨房出来，手里还拿着菜刀。苏澜背着生存背包来到酒店门口，用探测器确认大厅里的异常能量。饭店大厅忽然变成阎王殿，黑色锁链垂下，红色幽光照亮服务台。",
+  "creative_direction": {
+    "tone": "暗黑经营、真实短剧、诡异复苏",
+    "asset_goal": "生成多角色设定图和场景全景参考",
+    "audience": "短剧和视频生成工作流"
+  },
+  "max_characters": 6,
+  "max_scenes": 4,
+  "visual_text_language": "zh-CN",
+  "output_dir": "OUTPUT_DIR_HERE"
+}

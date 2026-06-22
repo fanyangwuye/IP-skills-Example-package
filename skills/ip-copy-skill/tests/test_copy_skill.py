@@ -1,5 +1,6 @@
 import os
 import sys
+import tempfile
 from datetime import date
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
@@ -102,49 +103,101 @@ def test_bp_bad_index():
 
 
 def test_build_blueprint_handoff(tmp_path=None):
-    output_dir = os.path.join(os.getcwd(), "tmp_copy_skill_test")
-    os.makedirs(output_dir, exist_ok=True)
-    task = {
-        "mode": "build_blueprint",
-        "ip_id": "demo_ip",
-        "target": "short_drama",
-        "commercial_use": True,
-        "title": "Rainy Convenience Store",
-        "total_duration_sec": 30,
-        "scene_cards": [
-            {
-                "visual": "Rainy street outside a convenience store, heroine seen from behind under neon.",
-                "voiceover": "That night, the rain felt like it could hide the whole city.",
-                "asset_goal": {"type": "hero portrait", "purpose": "opening key frame"},
+    with tempfile.TemporaryDirectory() as output_dir:
+        task = {
+            "mode": "build_blueprint",
+            "ip_id": "demo_ip",
+            "target": "short_drama",
+            "commercial_use": True,
+            "title": "Rainy Convenience Store",
+            "total_duration_sec": 30,
+            "scene_cards": [
+                {
+                    "visual": "Rainy street outside a convenience store, heroine seen from behind under neon.",
+                    "voiceover": "That night, the rain felt like it could hide the whole city.",
+                    "asset_goal": {"type": "hero portrait", "purpose": "opening key frame"},
+                },
+                {
+                    "visual": "Inside the store, cold and warm light split two figures across the shelf.",
+                    "voiceover": "I did not expect to meet him there.",
+                    "asset_goal": {"type": "two-character scene", "purpose": "tension beat"},
+                },
+                {
+                    "visual": "They walk out together as the rain thins and the sky starts to lift.",
+                    "voiceover": "Some meetings are already an answer by themselves.",
+                    "asset_goal": {"type": "ending scene", "purpose": "release beat"},
+                },
+            ],
+            "character_sheet": {
+                "character_profile": {
+                    "identity": {"name": "Lin Yue"},
+                },
+                "identity_anchors": ["same face"],
+                "continuity_rules": ["keep identity stable"],
+                "interaction_state": {"locked_traits": ["face"]},
             },
-            {
-                "visual": "Inside the store, cold and warm light split two figures across the shelf.",
-                "voiceover": "I did not expect to meet him there.",
-                "asset_goal": {"type": "two-character scene", "purpose": "tension beat"},
-            },
-            {
-                "visual": "They walk out together as the rain thins and the sky starts to lift.",
-                "voiceover": "Some meetings are already an answer by themselves.",
-                "asset_goal": {"type": "ending scene", "purpose": "release beat"},
-            },
-        ],
-        "character_sheet": {
-            "character_profile": {
-                "identity": {"name": "Lin Yue"},
-            },
-            "identity_anchors": ["same face"],
-            "continuity_rules": ["keep identity stable"],
-            "interaction_state": {"locked_traits": ["face"]},
-        },
-        "license_path": os.path.join(os.path.dirname(__file__), "..", "references", "licenses", "demo_ip.json"),
-        "output_dir": output_dir,
-    }
-    result = run_task(task)
-    assert result["status"] == "success"
-    blueprint = result["handoff"]["blueprint"]
-    ok, errors = validate_blueprint(blueprint)
-    assert ok, errors
-    assert len(result["handoff"]["image_handoff"]["image_tasks"]) == 3
+            "license_path": os.path.join(os.path.dirname(__file__), "..", "references", "licenses", "demo_ip.json"),
+            "output_dir": output_dir,
+        }
+        result = run_task(task)
+        assert result["status"] == "success"
+        blueprint = result["handoff"]["blueprint"]
+        ok, errors = validate_blueprint(blueprint)
+        assert ok, errors
+        assert len(result["handoff"]["image_handoff"]["image_tasks"]) == 3
+
+
+def test_build_ip_asset_pack_from_source_text():
+    with tempfile.TemporaryDirectory() as output_dir:
+        task = {
+            "mode": "build_ip_asset_pack",
+            "ip_id": "huangquan_demo",
+            "title": "黄泉饭店",
+            "source_text": (
+                "林缺在雨夜回到黄泉饭店，老板的菜单账本放在柜台上。"
+                "牛头员工端着托盘从厨房出来，手里还拿着菜刀。"
+                "苏澜背着生存背包来到酒店门口，用探测器确认大厅里的异常能量。"
+            ),
+            "output_dir": output_dir,
+        }
+        result = run_task(task)
+        assert result["status"] == "success"
+        pack = result["handoff"]["ip_asset_pack"]
+        assert pack["mode"] == "ip_asset_pack"
+        assert pack["visual_text_language"] == "zh-CN"
+        names = [item["character_profile"]["identity"]["name"] for item in pack["characters"]]
+        assert len(names) >= 3
+        assert "林缺" in names
+        assert "牛头" in names
+        assert "苏澜" in names
+        assert len(pack["scenes"]) >= 2
+        assert any(scene["size"] == "21:9" and scene["resolution"] == "4K" for scene in pack["scenes"])
+        assert os.path.exists(os.path.join(output_dir, "ip_asset_pack.json"))
+
+
+def test_build_ip_asset_pack_keeps_explicit_multi_characters():
+    with tempfile.TemporaryDirectory() as output_dir:
+        task = {
+            "mode": "build_ip_asset_pack",
+            "ip_id": "ensemble_demo",
+            "title": "群像测试",
+            "source_text": "三人小队进入废墟基地。",
+            "characters": [
+                {"name": "队长", "role": "小队负责人", "props": [{"name": "地图", "use": "行动规划"}]},
+                {"name": "工程师", "role": "设备维护者", "props": [{"name": "工具箱", "use": "维修设备"}]},
+                {"name": "向导", "role": "路线引导者"},
+            ],
+            "scenes": [
+                {"name": "废墟基地入口", "description": "三人小队进入废墟基地入口"}
+            ],
+            "output_dir": output_dir,
+        }
+        result = run_task(task)
+        pack = result["handoff"]["ip_asset_pack"]
+        names = [item["character_profile"]["identity"]["name"] for item in pack["characters"]]
+        assert names == ["队长", "工程师", "向导"]
+        assert pack["characters"][0]["props"][0]["name"] == "地图"
+        assert pack["scenes"][0]["name"] == "废墟基地入口"
 
 
 if __name__ == "__main__":
@@ -153,4 +206,3 @@ if __name__ == "__main__":
             fn()
             print(f"PASS {name}")
     print("all passed")
-

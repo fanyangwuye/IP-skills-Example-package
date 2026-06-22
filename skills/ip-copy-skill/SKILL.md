@@ -10,6 +10,7 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 - Validate whether an IP adaptation request is allowed
 - Turn structured scene cards into a downstream-safe blueprint
 - Organize character, scene, and asset direction so the image skill can work from it
+- Convert source copy into a multi-character `ip_asset_pack` for character sheets, props, and panorama scenes
 - Build a minimal content brain layer before image generation
 
 ## Tool Boundaries
@@ -43,11 +44,19 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 1. Accept a character sheet and optional asset bundle
 2. Package them into a downstream handoff for the image skill
 
+### Flow D: IP Asset Pack Build
+
+1. Accept source copy plus optional explicit character and scene cards
+2. Extract or preserve multiple important characters, not only the protagonist
+3. Bind obvious props to matching characters
+4. Extract scene candidates as 720 panorama environment references
+5. Return a `mode=ip_asset_pack` JSON object for `ip-image-skill`
+
 ## Scripts
 
 - `scripts/license_gate.py`: deterministic license validation
 - `scripts/blueprint_validate.py`: deterministic blueprint validation
-- `scripts/copy_skill.py`: task entrypoint and handoff builder
+- `scripts/copy_skill.py`: task entrypoint, blueprint builder, handoff builder, and IP asset pack builder
 
 ## References
 
@@ -59,3 +68,8 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 - Agent module usage: call `run_task(task_dict)` from `scripts/copy_skill.py`
 - JSON task usage: `python copy_skill.py --task path/to/task.json`
 
+## Multi-Character Rule
+
+When building `ip_asset_pack`, do not collapse the cast into only the protagonist.
+Preserve every explicit `characters` entry.
+If only `source_text` is provided, extract multiple important named roles, title roles, creature roles, employees, allies, antagonists, and scene-driving figures when present.
