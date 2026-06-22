@@ -1,0 +1,19 @@
+{
+  "mode": "prepare_video_generation",
+  "provider": "offline",
+  "video_handoff": "VIDEO_HANDOFF_JSON_HERE",
+  "shot_index": 1,
+  "prompt_kind": "seedance",
+  "generation_mode": "image_to_video",
+  "reference_images": [
+    {
+      "path": "PATH_TO_CHARACTER_OR_SCENE_REFERENCE.png",
+      "role": "face_or_scene"
+    }
+  ],
+  "aspect_ratio": "9:16",
+  "resolution": "1080p",
+  "duration_sec": 5,
+  "output_filename": "shot_001.mp4",
+  "output_dir": "OUTPUT_DIR_HERE"
+}

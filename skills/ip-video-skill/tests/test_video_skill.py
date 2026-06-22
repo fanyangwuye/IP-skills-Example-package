@@ -6,6 +6,8 @@ import tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 from continuity import build_continuity_bible  # noqa: E402
+from config import VideoProviderConfig  # noqa: E402
+from video_provider import prepare_video_generation_request  # noqa: E402
 from video_handoff import build_video_handoff  # noqa: E402
 from video_skill import run_task  # noqa: E402
 
@@ -145,6 +147,82 @@ def test_run_task_writes_video_handoff_json():
             saved = json.load(fh)
         assert saved["source_title"] == "黄泉饭店"
         assert len(saved["edit_decision_list"]["timeline"]) == 2
+
+
+def test_prepare_video_generation_request_offline():
+    handoff = build_video_handoff(_task())
+    config = VideoProviderConfig(
+        provider="offline",
+        api_key="",
+        api_base="",
+        output_root="",
+        default_model="offline-preview",
+        default_aspect_ratio="9:16",
+        default_resolution="1080p",
+    )
+    request = prepare_video_generation_request(
+        {
+            "mode": "prepare_video_generation",
+            "video_handoff": handoff,
+            "shot_index": 2,
+            "prompt_kind": "seedance",
+        },
+        config,
+    )
+    assert request["provider"] == "offline"
+    assert request["shot_id"] == "shot_002"
+    assert request["mode"] == "image_to_video"
+    assert "空间连续性" in request["prompt"]
+    assert request["transport"]["type"] == "dry_run"
+    assert request["reference_binding"]["scene_lock"]
+
+
+def test_prepare_video_generation_request_jimeng_cli_shape():
+    handoff = build_video_handoff(_task())
+    config = VideoProviderConfig(
+        provider="jimeng_cli",
+        api_key="",
+        api_base="",
+        output_root="",
+        default_model="jimeng-test",
+        default_aspect_ratio="9:16",
+        default_resolution="1080p",
+    )
+    request = prepare_video_generation_request(
+        {
+            "video_handoff": handoff,
+            "shot_id": "shot_001",
+            "reference_images": [{"path": "lin_que.png", "role": "face"}],
+            "duration_sec": 5,
+            "output_filename": "shot_001.mp4",
+        },
+        config,
+    )
+    assert request["provider"] == "jimeng_cli"
+    assert request["mode"] == "image_to_video"
+    assert request["transport"]["type"] == "cli"
+    assert request["transport"]["executable"] == "jimeng"
+    assert "--duration" in request["transport"]["args"]
+
+
+def test_run_task_prepare_video_generation_writes_json():
+    with tempfile.TemporaryDirectory() as output_dir:
+        handoff = build_video_handoff(_task())
+        result = run_task(
+            {
+                "mode": "prepare_video_generation",
+                "video_handoff": handoff,
+                "shot_index": 1,
+                "output_dir": output_dir,
+            }
+        )
+        assert result["status"] == "success"
+        out_path = result["artifacts"][0]["path"]
+        assert os.path.exists(out_path)
+        with open(out_path, "r", encoding="utf-8") as fh:
+            saved = json.load(fh)
+        assert saved["provider"] == "offline"
+        assert saved["shot_id"] == "shot_001"
 
 
 if __name__ == "__main__":

@@ -4,12 +4,16 @@ import os
 from typing import Dict
 
 try:
+    from .config import load_video_provider_config
     from .continuity import build_continuity_bible
     from .shot_plan import build_i2v_prompts, build_shot_plan, build_t2v_prompts
+    from .video_provider import prepare_video_generation_request, run_video_generation
     from .video_handoff import build_edit_decision_list, build_video_handoff
 except ImportError:
+    from config import load_video_provider_config
     from continuity import build_continuity_bible
     from shot_plan import build_i2v_prompts, build_shot_plan, build_t2v_prompts
+    from video_provider import prepare_video_generation_request, run_video_generation
     from video_handoff import build_edit_decision_list, build_video_handoff
 
 
@@ -61,9 +65,24 @@ def run_task(task: Dict) -> Dict:
         _write_json(path, edl)
         return _result(mode, {"edit_decision_list": edl}, path, "edit_decision_list")
 
+    if mode == "prepare_video_generation":
+        config = load_video_provider_config()
+        request = prepare_video_generation_request(task, config)
+        path = os.path.join(output_dir, task.get("provider_request_filename", "video_provider_request.json"))
+        _write_json(path, request)
+        return _result(mode, {"provider_request": request}, path, "video_provider_request")
+
+    if mode == "run_video_generation":
+        config = load_video_provider_config()
+        result = run_video_generation(task, config)
+        path = os.path.join(output_dir, task.get("provider_manifest_filename", "video_provider_manifest.json"))
+        _write_json(path, result)
+        return _result(mode, {"provider_result": result}, path, "video_provider_manifest")
+
     raise ValueError(
         "mode must be one of: build_continuity_bible, build_video_handoff, build_shot_plan, "
-        "build_i2v_prompts, build_t2v_prompts, build_edit_decision_list"
+        "build_i2v_prompts, build_t2v_prompts, build_edit_decision_list, "
+        "prepare_video_generation, run_video_generation"
     )
 
 

@@ -61,3 +61,21 @@ Provider adapters must preserve:
 - `axis`
 - `screen_direction`
 - `eyeline`
+
+## Provider Request Flow
+
+Use this flow before any paid video generation:
+
+1. Build `video_handoff`.
+2. Pick one `shot_id` or `shot_index`.
+3. Run `prepare_video_generation`.
+4. Inspect `provider_request.prompt`, `reference_images`, `continuity_state`, and `transport`.
+5. Generate only one short test shot after the provider adapter is confirmed.
+
+Supported provider request shapes:
+
+- `offline` / `dry_run`: returns request JSON only.
+- `jimeng_cli`: returns a CLI transport placeholder with executable, args, and `stdin_json`.
+- `poyo_video`: returns an HTTP transport placeholder with URL, headers shape, and JSON payload.
+
+Do not run full-episode batches until single-shot face, costume, scene, lighting, axis, and eyeline consistency is verified.

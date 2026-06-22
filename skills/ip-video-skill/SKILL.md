@@ -16,8 +16,10 @@ Build the offline video structure layer for IP workflows:
 - `build_t2v_prompts`: create text-to-video prompts when no usable image reference exists.
 - `seedance_prompts`: create timed Chinese prompts with performance, camera, light, sound, realism, and retry guidance.
 - `build_edit_decision_list`: create a first-pass EDL for later assembly.
+- `prepare_video_generation`: convert one locked shot into a provider-specific request without calling the provider.
+- `run_video_generation`: dry-run provider execution; live provider calls are intentionally blocked until an adapter is implemented and verified.
 
-This phase is local only. Do not call live video APIs from this skill until a provider adapter is added.
+This phase is local only by default. Do not call live video APIs unless a provider adapter explicitly implements and tests that provider.
 
 ## Continuity First
 
@@ -85,13 +87,44 @@ result = run_task({
 
 Every shot is safe to pass to a provider adapter later because continuity is already explicit.
 
+## Provider Layer
+
+`provider` means the concrete video service adapter. Examples:
+
+- `offline` / `dry_run`: prepare requests only; no external call.
+- `jimeng_cli`: prepare a CLI-shaped request for a future official Jimeng/即梦 command.
+- `poyo_video`: prepare an HTTP-shaped request for a future PoYo video endpoint.
+
+Use `prepare_video_generation` to inspect a single-shot provider request before spending credits. Provider requests preserve:
+
+- prompt
+- negative prompt
+- reference images
+- reference binding
+- continuity state
+- visual lock
+- axis, screen direction, and eyeline
+- retry advice
+
+Environment variables:
+
+- `VIDEO_PROVIDER=offline|dry_run|jimeng_cli|poyo_video`
+- `VIDEO_API_KEY`
+- `VIDEO_API_BASE`
+- `VIDEO_OUTPUT_ROOT`
+- `VIDEO_DEFAULT_MODEL`
+- `VIDEO_DEFAULT_ASPECT_RATIO=9:16`
+- `VIDEO_DEFAULT_RESOLUTION=1080p`
+
 ## Resources
 
 - `scripts/continuity.py`: continuity bible builder
 - `scripts/shot_plan.py`: shot/storyboard/prompt builder
 - `scripts/prompt_quality.py`: prompt quality layers for performance, camera, light, sound, realism, constraints, and retry advice
+- `scripts/video_provider.py`: provider request builder and dry-run execution boundary
 - `scripts/video_handoff.py`: handoff and EDL builder
 - `scripts/video_skill.py`: agent-facing task entrypoint
 - `scripts/ffmpeg_assembly.py`: phase-3 placeholder for local assembly helpers
 - `references/workflows.md`: provider-agnostic workflow and consistency rules
 - `assets/example_build_video_handoff_task.json`: offline example
+- `assets/example_prepare_video_generation_task.json`: single-shot provider request example
