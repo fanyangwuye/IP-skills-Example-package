@@ -40,6 +40,16 @@ python -m pip install -r requirements.txt
 
 Host agents such as OpenClaw, Claude, or Codex should be configured to read the relevant `SKILL.md` files under `skills/` and run the Python entrypoints described there.
 
+## Setup Doctor
+
+Check local provider setup without spending credits:
+
+```bash
+python scripts/setup_doctor.py
+```
+
+See `docs/provider_setup.md` for PoYo key setup, Dreamina CLI setup, and ffmpeg notes.
+
 ## Environment
 
 Copy `.env.example` to your local environment manager or shell configuration. Do not commit real keys.
@@ -78,6 +88,8 @@ VIDEO_DEFAULT_ASPECT_RATIO=9:16
 VIDEO_DEFAULT_RESOLUTION=1080p
 ```
 
+`POYO_API_KEY` can be used as a shared key fallback for image, music, and future video providers.
+
 ## Quick Checks
 
 Run local tests without spending image-generation credits:
@@ -89,5 +101,6 @@ python skills/ip-image-skill/tests/test_split_grid.py
 python skills/ip-copy-skill/tests/test_copy_skill.py
 python skills/ip-music-skill/tests/test_music_skill.py
 python skills/ip-video-skill/tests/test_video_skill.py
+python tests/test_setup_doctor.py
 python tests/test_copy_to_image_bridge.py
 ```
