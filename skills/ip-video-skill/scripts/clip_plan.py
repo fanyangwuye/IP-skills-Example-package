@@ -1,5 +1,10 @@
 from typing import Dict, List, Optional
 
+try:
+    from .martial_arts import build_martial_arts_layer, is_martial_arts_scene, martial_arts_text
+except ImportError:
+    from martial_arts import build_martial_arts_layer, is_martial_arts_scene, martial_arts_text
+
 
 def build_clip_plan(task: Dict, shots: List[Dict], continuity_bible: Dict) -> List[Dict]:
     target_duration = _positive_float(task.get("target_clip_duration_sec") or task.get("clip_duration_sec"), 15.0)
@@ -34,6 +39,7 @@ def build_clip_prompts(clips: List[Dict]) -> List[Dict]:
             "reference_binding": clip["reference_binding"],
             "video_reference_images": clip["video_reference_images"],
             "space_anchor_refs": clip["space_anchor_refs"],
+            "martial_arts_layer": clip.get("martial_arts_layer", {}),
             "previous_clip_end_frame": clip.get("previous_clip_end_frame"),
             "continuity_state": clip["continuity_state"],
             "retry_advice": clip["retry_advice"],
@@ -59,6 +65,11 @@ def _build_clip(index: int, shots: List[Dict], task: Dict, bible: Dict) -> Dict:
     reference_binding = _merge_reference_binding(shots)
     video_refs = _video_reference_images(task, scene_ids, characters)
     space_refs = _space_anchor_refs(task, scene_ids, bible)
+    martial_arts_layer = build_martial_arts_layer(
+        "；".join(shot.get("visual", "") for shot in shots),
+        _clip_storyboard_card(shots),
+        continuity_state,
+    ) if any(is_martial_arts_scene(shot.get("visual", ""), shot.get("storyboard_card", {}).get("action_scene_type", "")) for shot in shots) else {}
 
     return {
         "clip_id": clip_id,
@@ -72,12 +83,13 @@ def _build_clip(index: int, shots: List[Dict], task: Dict, bible: Dict) -> Dict:
         "reference_binding": reference_binding,
         "video_reference_images": video_refs,
         "space_anchor_refs": space_refs,
+        "martial_arts_layer": martial_arts_layer,
         "previous_clip_end_frame": _previous_clip_end_frame(task, index, clip_id),
         "continuity_state": continuity_state,
-        "clip_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs),
-        "i2v_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs),
-        "seedance_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs),
-        "t2v_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs),
+        "clip_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs, martial_arts_layer),
+        "i2v_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs, martial_arts_layer),
+        "seedance_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs, martial_arts_layer),
+        "t2v_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs, martial_arts_layer),
         "negative_prompt": _merge_negative_prompt(shots),
         "retry_advice": _dedupe([item for shot in shots for item in (shot.get("retry_advice") or [])]),
         "quality_checks": _clip_quality_checks(),
@@ -108,6 +120,7 @@ def _clip_prompt(
     continuity_state: Dict,
     video_refs: List[Dict],
     space_refs: List[Dict],
+    martial_arts_layer: Dict,
 ) -> str:
     shot_lines = []
     for order, shot in enumerate(shots, start=1):
@@ -121,6 +134,7 @@ def _clip_prompt(
         f"结束状态：{continuity_state.get('current_end_state')}。"
         f"视频生成参考：{video_ref_note}。"
         f"空间锚点：{space_ref_note}；全景图用于校准空间布局、地标和光源方向，默认不要作为直接生成画面。"
+        f"{_optional_sentence('武戏调度', martial_arts_text(martial_arts_layer))}"
         "保持同一角色脸、发型、服饰、道具、场景布局、光影色调和屏幕方向；片段内部动作连续，不要跳切、不要重置空间。"
         "声音只保留现场环境声与拟音，例如风声、雨声、脚步、衣料摩擦、呼吸、门响和道具轻响；禁止背景音乐、歌曲、音乐铺底。"
         "画面禁止字幕、伪文字、水印、片头片尾、标题卡和解释性文字。"
@@ -243,6 +257,7 @@ def _clip_quality_checks() -> List[str]:
         "720 全景图是否保留在 space_anchor_refs，且未被默认当作直接生成画面",
         "视频声音是否只保留环境声和拟音，且没有背景音乐或歌曲",
         "画面是否没有字幕、伪文字、水印、片头片尾和标题卡",
+        "武戏段落是否看清起势、距离、一次攻防、重心变化和收势落点",
         "角色脸、发型、服饰、道具、空间布局和光源方向是否跨 clip 一致",
     ]
 
@@ -264,3 +279,20 @@ def _dedupe(items: List) -> List:
             result.append(item)
             seen.add(key)
     return result
+
+
+def _clip_storyboard_card(shots: List[Dict]) -> Dict:
+    first_card = shots[0].get("storyboard_card") or {}
+    characters = []
+    for shot in shots:
+        characters.extend(shot.get("characters") or [])
+    return {
+        "characters_present": _dedupe(characters),
+        "axis": first_card.get("axis", {}),
+        "screen_direction": first_card.get("screen_direction", {}),
+        "eyeline": first_card.get("eyeline", {}),
+    }
+
+
+def _optional_sentence(label: str, value: str) -> str:
+    return f"{label}：{value}。" if value else ""

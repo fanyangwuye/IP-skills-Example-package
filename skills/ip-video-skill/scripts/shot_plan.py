@@ -2,6 +2,7 @@ from typing import Dict, List
 
 try:
     from .continuity import choose_scene_id, find_character_ids_in_text
+    from .martial_arts import is_martial_arts_scene
     from .prompt_quality import (
         build_negative_prompt,
         build_prompt_profile,
@@ -12,6 +13,7 @@ try:
     )
 except ImportError:
     from continuity import choose_scene_id, find_character_ids_in_text
+    from martial_arts import is_martial_arts_scene
     from prompt_quality import (
         build_negative_prompt,
         build_prompt_profile,
@@ -107,8 +109,9 @@ def _build_shot(index: int, segment: Dict, bible: Dict, previous_end_state: str)
         },
         "timing": timing,
     }
-    prompt_profile = build_prompt_profile(index, visual, storyboard_card, continuity_state, visual_lock)
     action_scene = _is_action_scene(visual)
+    storyboard_card["action_scene_type"] = "martial_arts" if is_martial_arts_scene(visual) else ("action" if action_scene else "")
+    prompt_profile = build_prompt_profile(index, visual, storyboard_card, continuity_state, visual_lock)
 
     return {
         "shot_id": segment.get("shot_id") or f"shot_{index:03d}",
@@ -261,7 +264,7 @@ def _blocking_distance(character_ids: List[str]) -> str:
 
 
 def _is_action_scene(visual: str) -> bool:
-    return any(word in visual for word in ["刀", "剑", "拳", "打", "冲", "追", "逃", "撞", "压制", "反击"])
+    return is_martial_arts_scene(visual) or any(word in visual for word in ["打", "冲", "追", "逃", "撞", "压制", "反击"])
 
 
 def _quality_checks(multichar: bool) -> List[str]:

@@ -30,6 +30,16 @@ Use this before any prompt writing.
 - Do not put dialogue subtitles, title cards, fake UI, decorative text, or watermarks inside panels.
 - Treat storyboard sheets as planning references, not final video frames.
 
+## Martial-Arts Enhancement
+
+- Trigger this layer when a clip clearly contains martial-arts language such as 武戏, 武侠, 剑, 刀光, 拔刀, 格挡, 轻功, 招式, 交手, or 缠斗.
+- Structure the action as: starting stance -> clear distance -> one attack-defense beat -> reaction pause -> ending pose.
+- Make footwork, body weight shift, weapon/limb path, and opponent reaction visible.
+- Prefer stable wide/medium framing before close action; do not use chaotic shake or fast cuts to hide unclear movement.
+- Use impact feedback such as cloth movement, footsteps, water splash, dust, weapon sound, breath pause, and body recoil.
+- Keep it safe and publishable: no blood, gore, wound close-up, broken limb, realistic injury display, attack labels, arrows, speed lines, UI overlays, subtitles, or title cards.
+- In storyboard design sheets, use three panels for martial-arts clips: 起势, 交锋, 收势.
+
 ## Clip Continuity Rules
 
 - Generate video at the `clip_plan` level by default; use shot-level requests only for troubleshooting.
@@ -95,7 +105,8 @@ Use this flow before any paid video generation:
 5. Run `prepare_video_generation`.
 6. Inspect `provider_request.prompt`, `reference_images`, `video_reference_images`, `space_anchor_refs`, `continuity_state`, and `transport`.
 7. Confirm the prompt says ambient sound/foley only and forbids BGM, songs, subtitles, title cards, fake text, and watermarks.
-8. Generate only one short I2V test clip after the provider adapter is confirmed.
+8. For martial-arts clips, confirm the prompt includes `武戏调度` and only one readable attack-defense beat.
+9. Generate only one short I2V test clip after the provider adapter is confirmed.
 
 Supported provider request shapes:
 

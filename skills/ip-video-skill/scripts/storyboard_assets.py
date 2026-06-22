@@ -12,6 +12,12 @@ STORYBOARD_DESIGN_REQUIREMENTS = [
     "if production labels are needed, place only short Simplified Chinese labels outside the image panels",
 ]
 
+MARTIAL_ARTS_STORYBOARD_REQUIREMENTS = [
+    "for martial arts clips, show clear starting stance, one readable attack-defense beat, and ending pose",
+    "show distance, footwork, body weight shift, weapon or limb path, and reaction beat",
+    "no blood, gore, wound close-up, broken limb, speed lines, attack labels, arrows, numbers, or UI overlays",
+]
+
 
 def build_storyboard_image_tasks(task: Dict, clips: List[Dict], continuity_bible: Dict) -> List[Dict]:
     output_dir = task.get("storyboard_output_dir") or task.get("output_dir") or ""
@@ -45,6 +51,7 @@ def _build_storyboard_task(clip: Dict, continuity_bible: Dict, output_dir: str, 
             "main_action": continuity_state.get("main_action_transition", ""),
             "end_state": continuity_state.get("current_end_state", ""),
             "visual": clip.get("visual", ""),
+            "martial_arts_layer": clip.get("martial_arts_layer", {}),
         },
         "scene": clip.get("visual", ""),
         "camera": "three-panel storyboard sheet: start frame, main action frame, end frame; stable cinematic perspective",
@@ -59,7 +66,7 @@ def _build_storyboard_task(clip: Dict, continuity_bible: Dict, output_dir: str, 
             "clip_id": clip_id,
             "duration_sec": timing.get("duration_sec"),
         },
-        "asset_requirements": list(STORYBOARD_DESIGN_REQUIREMENTS),
+        "asset_requirements": _asset_requirements(clip),
         "reference_binding": clip.get("reference_binding", {}),
         "video_reference_images": clip.get("video_reference_images", []),
         "space_anchor_refs": clip.get("space_anchor_refs", []),
@@ -87,6 +94,13 @@ def _build_storyboard_task(clip: Dict, continuity_bible: Dict, output_dir: str, 
 
 def task_size(common: Dict) -> str:
     return common.get("storyboard_size", "16:9")
+
+
+def _asset_requirements(clip: Dict) -> List[str]:
+    requirements = list(STORYBOARD_DESIGN_REQUIREMENTS)
+    if clip.get("martial_arts_layer"):
+        requirements.extend(MARTIAL_ARTS_STORYBOARD_REQUIREMENTS)
+    return requirements
 
 
 def _common_fields(task: Dict) -> Dict:

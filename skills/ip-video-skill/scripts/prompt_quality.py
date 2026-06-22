@@ -1,5 +1,10 @@
 from typing import Dict, List
 
+try:
+    from .martial_arts import build_martial_arts_layer, is_martial_arts_scene, martial_arts_text
+except ImportError:
+    from martial_arts import build_martial_arts_layer, is_martial_arts_scene, martial_arts_text
+
 
 def build_prompt_profile(index: int, visual: str, storyboard_card: Dict, continuity_state: Dict, visual_lock: Dict) -> Dict:
     duration = _duration_text(storyboard_card)
@@ -7,10 +12,16 @@ def build_prompt_profile(index: int, visual: str, storyboard_card: Dict, continu
     scene = visual_lock.get("scene") or {}
     style = visual_lock.get("style") or {}
     characters = visual_lock.get("characters") or {}
+    martial_arts_layer = (
+        build_martial_arts_layer(visual, storyboard_card, continuity_state)
+        if is_martial_arts_scene(visual, storyboard_card.get("action_scene_type", ""))
+        else {}
+    )
     return {
         "duration": duration,
         "narrative_intent": storyboard_card.get("story_function", "推进剧情"),
         "action_flow": _action_flow(visual, continuity_state),
+        "martial_arts_layer": martial_arts_layer,
         "performance_control": _performance_control(emotion, characters),
         "camera_control": _camera_control(storyboard_card, emotion),
         "spatial_continuity": _spatial_continuity(storyboard_card, continuity_state),
@@ -30,6 +41,7 @@ def compose_i2v_prompt(visual: str, profile: Dict, reference_binding: Dict) -> s
             f"叙事目标：{profile['narrative_intent']}。",
             f"画面内容：{visual}",
             f"动作流程：{profile['action_flow']}",
+            _optional_line("武戏调度", martial_arts_text(profile.get("martial_arts_layer") or {})),
             f"表演控制：{profile['performance_control']}",
             f"镜头控制：{profile['camera_control']}",
             f"空间连续性：{profile['spatial_continuity']}",
@@ -50,6 +62,7 @@ def compose_t2v_prompt(visual: str, profile: Dict, visual_lock: Dict) -> str:
             f"叙事目标：{profile['narrative_intent']}。",
             f"画面内容：{visual}",
             f"动作流程：{profile['action_flow']}",
+            _optional_line("武戏调度", martial_arts_text(profile.get("martial_arts_layer") or {})),
             f"角色锁定：{_character_lock_text(visual_lock.get('characters') or {})}",
             f"场景锁定：{_scene_lock_text(visual_lock.get('scene') or {})}",
             f"表演控制：{profile['performance_control']}",
@@ -68,6 +81,7 @@ def compose_seedance_prompt(visual: str, profile: Dict, reference_binding: Dict)
         [
             f"[镜头 | {profile['duration']}]",
             f"画面内容：{visual}",
+            _optional_line("武戏调度", martial_arts_text(profile.get("martial_arts_layer") or {})),
             f"表演控制：{profile['performance_control']}",
             f"镜头控制：{profile['camera_control']}",
             f"空间连续性：{profile['spatial_continuity']}",
@@ -103,7 +117,18 @@ def build_negative_prompt(multichar: bool, action_scene: bool = False) -> str:
     if multichar:
         items.extend(["不要越轴", "不要屏幕方向翻转", "不要视线同向错位", "不要人物距离瞬移"])
     if action_scene:
-        items.extend(["无血腥", "无伤口特写", "无暴力血浆", "动作风格化且非写实伤害展示"])
+        items.extend(
+            [
+                "无血腥",
+                "无伤口特写",
+                "无暴力血浆",
+                "动作风格化且非写实伤害展示",
+                "不要招式文字",
+                "不要动作轨迹线",
+                "不要漫画速度线",
+                "不要肢体断裂",
+            ]
+        )
     return "；".join(items)
 
 
@@ -221,6 +246,8 @@ def _retry_advice(storyboard_card: Dict) -> List[str]:
     ]
     if "handheld" in storyboard_card.get("camera_motion", ""):
         advice.append("如果手持太晃，改成可控低幅跟拍，命中点或情绪点短暂停留。")
+    if storyboard_card.get("action_scene_type") == "martial_arts":
+        advice.append("如果武戏动作糊成一团，改成起势、一次攻防、收势三拍，并用中景稳定拍清距离。")
     return advice
 
 
@@ -242,6 +269,10 @@ def _binding_text(reference_binding: Dict) -> str:
         f"锁景={reference_binding.get('scene_lock', '')}；"
         f"锁风格={reference_binding.get('style_lock', '')}。"
     )
+
+
+def _optional_line(label: str, value: str) -> str:
+    return f"{label}：{value}" if value else ""
 
 
 def _character_lock_text(characters: Dict) -> str:

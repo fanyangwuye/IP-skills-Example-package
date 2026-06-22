@@ -85,6 +85,29 @@ def _task():
     }
 
 
+def _martial_task():
+    task = copy.deepcopy(_task())
+    task["title"] = "青衫剑客"
+    task["blueprint"]["segments"] = [
+        {
+            "index": 1,
+            "start_sec": 0,
+            "end_sec": 6,
+            "visual": "青衫剑客在雨夜石桥上拔剑起势，对手横刀逼近，双方短暂对峙。",
+            "voiceover": "雨声压住呼吸，剑光先动。",
+        },
+        {
+            "index": 2,
+            "start_sec": 6,
+            "end_sec": 12,
+            "visual": "青衫剑客侧身闪避后横剑格挡，一次清晰反击逼退对手，收势停在桥边。",
+            "voiceover": "一招之后，胜负未分。",
+        },
+    ]
+    task["target_clip_duration_sec"] = 12
+    return task
+
+
 def test_build_continuity_bible_outputs_locks():
     bible = build_continuity_bible(_task())
     assert bible["source_title"] == "黄泉饭店"
@@ -157,6 +180,22 @@ def test_prompts_include_quality_layers_and_retry_advice():
     assert "不要塑料皮肤" in shot["negative_prompt"]
     assert any("脸漂移" in item for item in shot["retry_advice"])
     assert handoff["seedance_prompts"][1]["prompt"] == shot["seedance_prompt"]
+
+
+def test_martial_arts_layer_enhances_shot_clip_and_storyboard():
+    handoff = build_video_handoff(_martial_task())
+    shot = handoff["shots"][0]
+    clip = handoff["clip_plan"][0]
+    storyboard_task = handoff["storyboard_image_tasks"][0]
+    assert shot["storyboard_card"]["action_scene_type"] == "martial_arts"
+    assert shot["prompt_profile"]["martial_arts_layer"]["scene_type"] == "martial_arts"
+    assert "武戏调度" in shot["i2v_prompt"]
+    assert "起势亮明距离" in shot["i2v_prompt"]
+    assert "不要招式文字" in shot["negative_prompt"]
+    assert clip["martial_arts_layer"]["scene_type"] == "martial_arts"
+    assert "武戏调度" in clip["clip_prompt"]
+    assert storyboard_task["storyboard_profile"]["martial_arts_layer"]["scene_type"] == "martial_arts"
+    assert any("starting stance" in item for item in storyboard_task["asset_requirements"])
 
 
 def test_video_prompts_preserve_ambient_sound_and_forbid_bgm_subtitles():

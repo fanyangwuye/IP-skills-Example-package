@@ -14,6 +14,7 @@ Build the offline video structure layer for IP workflows:
 - `build_shot_plan`: create continuity-aware storyboard cards.
 - `build_clip_plan`: group shots into 5-15 second continuity clips so generation is not split into too many tiny fragments.
 - `storyboard_image_tasks`: create image-generation tasks for clip-level storyboard content design sheets.
+- `martial_arts_layer`: enhance martial-arts/action clips with readable combat beats, distance, footwork, weight shift, impact feedback, and safe visual constraints.
 - `build_i2v_prompts`: create image-to-video prompts from locked references.
 - `build_t2v_prompts`: create text-to-video prompts when no usable image reference exists.
 - `seedance_prompts`: create timed Chinese prompts with performance, camera, light, sound, realism, and retry guidance.
@@ -47,6 +48,7 @@ For actual video generation, prefer clip-level generation over tiny shot-level g
 - Preserve panorama scene images as `space_anchor_refs` for spatial overview and human consistency checks.
 - Use normal perspective scene references as `video_reference_images` for model input.
 - Generate storyboard content design sheets when visual planning is needed; each sheet should show start state, main action beat, and end state for one clip.
+- For martial-arts clips, keep the action readable: starting stance, distance, one attack-defense beat, reaction pause, and ending pose. Do not hide action with chaotic camera motion.
 - Test real IP video with image-to-video only after generating character and scene reference images; text-to-video is only useful for provider connectivity checks, not IP consistency.
 - For clip 2+, pass the previous clip's extracted last frame as `previous_clip_end_frame`; provider requests should map it to the first-frame slot when supported.
 - Do not discard panorama assets; they remain useful for layout, landmark, and light-direction anchoring.
@@ -147,6 +149,7 @@ Default video resolution is `480p` to keep test clips low-cost. Raise to `720p` 
 - `scripts/shot_plan.py`: shot/storyboard/prompt builder
 - `scripts/clip_plan.py`: clip grouping, clip prompts, video reference images, space anchors, and previous-frame handoff
 - `scripts/storyboard_assets.py`: clip-level storyboard design sheet image task builder
+- `scripts/martial_arts.py`: martial-arts scene detector and combat prompt layer
 - `scripts/prompt_quality.py`: prompt quality layers for performance, camera, light, sound, realism, constraints, and retry advice
 - `scripts/video_provider.py`: provider request builder and dry-run execution boundary
 - `scripts/poyo_video_client.py`: PoYo Seedance 2 submit, status polling, upload, and download client
