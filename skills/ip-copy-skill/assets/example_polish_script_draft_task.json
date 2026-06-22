@@ -1,0 +1,77 @@
+{
+  "mode": "polish_script_draft",
+  "polish_style": "悬疑诡异、短剧强冲突、中文短对白",
+  "polish_intensity": "medium",
+  "script_draft": {
+    "title": "黄泉饭店",
+    "format": "vertical short drama",
+    "target": "short_drama",
+    "tone": "悬疑诡异、强钩子、短剧节奏",
+    "total_duration_sec": 18,
+    "constraints": [
+      "输出中文对白",
+      "避免血腥描写，用氛围和悬念替代直白暴力"
+    ],
+    "characters": [
+      {
+        "name": "林缺",
+        "role": "黄泉饭店老板"
+      },
+      {
+        "name": "牛头",
+        "role": "怪物员工"
+      },
+      {
+        "name": "苏澜",
+        "role": "异常调查者"
+      }
+    ],
+    "scenes": [
+      {
+        "scene_no": 1,
+        "start_sec": 0,
+        "end_sec": 9,
+        "location": "黄泉饭店大厅",
+        "visual": "饭店大厅突然变成阎王殿，红色幽光照亮服务台。",
+        "voiceover": "饭店大厅突然变成阎王殿",
+        "dialogue": [
+          {
+            "speaker": "林缺",
+            "line": "这里不对劲。"
+          },
+          {
+            "speaker": "牛头",
+            "line": "现在才发现，已经晚了。"
+          }
+        ],
+        "asset_goal": {
+          "type": "adapted scene key frame",
+          "scene": "黄泉饭店大厅"
+        }
+      },
+      {
+        "scene_no": 2,
+        "start_sec": 9,
+        "end_sec": 18,
+        "location": "黄泉饭店大厅",
+        "visual": "菜单账本自动翻开，苏澜的探测器显示能量暴涨。",
+        "voiceover": "林缺发现菜单账本能改变饭店规则",
+        "dialogue": [
+          {
+            "speaker": "林缺",
+            "line": "规则不是用来遵守的，是用来被我改写的。"
+          },
+          {
+            "speaker": "苏澜",
+            "line": "你到底是谁？"
+          }
+        ],
+        "asset_goal": {
+          "type": "adapted scene key frame",
+          "scene": "黄泉饭店大厅"
+        }
+      }
+    ]
+  },
+  "output_dir": "OUTPUT_DIR_HERE"
+}

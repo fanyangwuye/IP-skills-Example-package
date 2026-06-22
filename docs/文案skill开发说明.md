@@ -19,6 +19,7 @@
 - 互动式二创状态沉淀
 - adaptation_state → scene_cards
 - scene_cards / adaptation_state → script_draft
+- script_draft → polished_script
 - scene cards → blueprint
 - character_sheet / asset_bundle / image_tasks handoff
 - source_text / characters / scenes → ip_asset_pack
@@ -95,3 +96,16 @@
 
 它的定位是“可控剧本骨架”，不是最终文学化对白。
 后续如果接写作模型，应基于 `script_draft` 做对白润色、冲突强化、节奏压缩，而不是绕过结构直接自由发挥。
+
+## 对白润色与冲突强化
+
+`polish_script_draft` 用来在结构不变的前提下优化脚本草稿：
+
+- 保留原始场次、时间线、资产目标
+- 保留原对白到 `original_dialogue`
+- 生成更短剧化的 `polished_dialogue`
+- 用短句、反问、压力点增强对白
+- 为每场增加 `conflict_notes`
+- 标注 `beat_function`，例如 `hook`、`escalation`、`reversal`、`cliffhanger`
+
+这一步仍然是确定性润色，不替代大模型精修。它的价值是给后续写作模型一个稳定的修改方向，避免模型随意改结构、改场次、改资产目标。

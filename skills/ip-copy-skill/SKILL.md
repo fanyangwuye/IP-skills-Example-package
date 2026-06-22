@@ -14,6 +14,7 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 - Run interactive adaptation planning across conversation turns
 - Build adaptation scene cards for downstream blueprint creation
 - Build structured short-drama script drafts from scene cards or adaptation state
+- Polish script drafts with deterministic dialogue tightening and conflict notes
 - Build a minimal content brain layer before image generation
 
 ## Tool Boundaries
@@ -63,6 +64,14 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 3. Return a structured `script_draft` with scenes, action, voiceover, dialogue, subtitles, music cues, timing, and asset goals
 4. Use this as a deterministic script scaffold before optional model-based prose/dialogue polishing
 
+### Flow B4: Script Polish
+
+1. Accept a `script_draft`, or build one from the current task
+2. Preserve scene order, timing, and asset goals
+3. Keep original dialogue under `original_dialogue`
+4. Write tightened Chinese short-drama dialogue into `polished_dialogue` and `dialogue`
+5. Add `conflict_notes` and `beat_function` for downstream review or model polishing
+
 ### Flow C: Character/Image Handoff
 
 1. Accept a character sheet and optional asset bundle
@@ -80,7 +89,7 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 
 - `scripts/license_gate.py`: deterministic license validation
 - `scripts/blueprint_validate.py`: deterministic blueprint validation
-- `scripts/copy_skill.py`: task entrypoint, interactive adaptation state, scene card builder, script draft builder, blueprint builder, handoff builder, and IP asset pack builder
+- `scripts/copy_skill.py`: task entrypoint, interactive adaptation state, scene card builder, script draft builder, script polish helper, blueprint builder, handoff builder, and IP asset pack builder
 
 ## References
 

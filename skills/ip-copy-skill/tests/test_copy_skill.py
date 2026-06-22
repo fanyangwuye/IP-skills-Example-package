@@ -331,6 +331,72 @@ def test_build_script_draft_from_adaptation_state():
         assert script["handoff"]["scene_cards"]
 
 
+def test_polish_script_draft_preserves_structure_and_strengthens_dialogue():
+    with tempfile.TemporaryDirectory() as output_dir:
+        script_draft = {
+            "title": "黄泉饭店",
+            "tone": "悬疑诡异、强钩子",
+            "total_duration_sec": 16,
+            "constraints": ["输出中文对白"],
+            "characters": [{"name": "林缺"}, {"name": "牛头"}],
+            "scenes": [
+                {
+                    "scene_no": 1,
+                    "start_sec": 0,
+                    "end_sec": 8,
+                    "visual": "黄泉饭店大厅突然变暗。",
+                    "voiceover": "饭店大厅突然变暗",
+                    "dialogue": [{"speaker": "林缺", "line": "这里不对劲。"}],
+                    "asset_goal": {"type": "adapted scene key frame"},
+                },
+                {
+                    "scene_no": 2,
+                    "start_sec": 8,
+                    "end_sec": 16,
+                    "visual": "红色幽光照亮服务台。",
+                    "voiceover": "红色幽光里，真正的客人还没有现身",
+                    "dialogue": [{"speaker": "林缺", "line": "可真正的答案还没有出现，红色幽光里，真正的客人还没有现身"}],
+                    "asset_goal": {"type": "adapted scene key frame"},
+                },
+            ],
+        }
+        result = run_task(
+            {
+                "mode": "polish_script_draft",
+                "script_draft": script_draft,
+                "polish_intensity": "medium",
+                "output_dir": output_dir,
+            }
+        )
+        polished = result["handoff"]["polished_script"]
+        assert len(polished["scenes"]) == 2
+        assert polished["scenes"][0]["original_dialogue"][0]["line"] == "这里不对劲。"
+        assert polished["scenes"][0]["dialogue"][0]["line"] != "这里不对劲。"
+        assert "conflict_notes" in polished["scenes"][0]
+        assert polished["scenes"][-1]["beat_function"] == "cliffhanger"
+        assert polished["handoff"]["polished_for_script"] is True
+        assert os.path.exists(os.path.join(output_dir, "polished_script.json"))
+
+
+def test_polish_script_draft_can_build_from_state():
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                "mode": "polish_script_draft",
+                "title": "黄泉饭店",
+                "source_text": "林缺回到黄泉饭店。牛头出现。苏澜发现异常。",
+                "conversation_turns": [{"role": "user", "content": "竖屏短剧，悬疑诡异，中文对白。"}],
+                "n_scene_cards": 3,
+                "total_duration_sec": 30,
+                "output_dir": output_dir,
+            }
+        )
+        polished = result["handoff"]["polished_script"]
+        assert len(polished["scenes"]) == 3
+        assert polished["polish"]["rules"]
+        assert polished["scenes"][0]["dialogue"]
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_") and callable(fn):

@@ -26,13 +26,15 @@ def run_task(task: Dict) -> Dict:
         return _run_build_adaptation_scene_cards(task, output_dir)
     if mode == "build_script_draft":
         return _run_build_script_draft(task, output_dir)
+    if mode == "polish_script_draft":
+        return _run_polish_script_draft(task, output_dir)
     if mode == "build_ip_asset_pack":
         return _run_build_ip_asset_pack(task, output_dir)
     if mode == "build_character_handoff":
         return _run_build_character_handoff(task, output_dir)
     if mode == "build_blueprint":
         return _run_build_blueprint(task, output_dir)
-    raise ValueError("mode must be one of: check_license, build_blueprint, build_character_handoff, build_ip_asset_pack, update_adaptation_state, build_adaptation_scene_cards, build_script_draft")
+    raise ValueError("mode must be one of: check_license, build_blueprint, build_character_handoff, build_ip_asset_pack, update_adaptation_state, build_adaptation_scene_cards, build_script_draft, polish_script_draft")
 
 
 def _run_check_license(task: Dict) -> Dict:
@@ -137,6 +139,33 @@ def _run_build_script_draft(task: Dict, output_dir: str) -> Dict:
             "script_draft": script,
         },
         "logs": [f"built script draft with {len(script['scenes'])} scenes"],
+    }
+
+
+def _run_polish_script_draft(task: Dict, output_dir: str) -> Dict:
+    script = task.get("script_draft") or {}
+    if not script:
+        draft_result = _run_build_script_draft(task, output_dir)
+        script = draft_result["handoff"]["script_draft"]
+    polished = _polish_script_draft(script, task)
+    out_path = os.path.join(output_dir, task.get("polished_script_filename", "polished_script.json"))
+    _write_json(out_path, polished)
+    return {
+        "status": "success",
+        "skill": "ip-copy-skill",
+        "mode": "polish_script_draft",
+        "task_id": task.get("task_id", "polish_script_draft"),
+        "artifacts": [
+            {
+                "type": "json",
+                "path": out_path,
+                "meta": {"kind": "polished_script"},
+            }
+        ],
+        "handoff": {
+            "polished_script": polished,
+        },
+        "logs": [f"polished script draft with {len(polished['scenes'])} scenes"],
     }
 
 
@@ -453,6 +482,137 @@ def _build_script_draft(scene_cards: List[Dict], state: Dict, task: Dict) -> Dic
             "can_build_blueprint": True,
         },
     }
+
+
+def _polish_script_draft(script: Dict, task: Dict) -> Dict:
+    polished = copy_dict(script)
+    intensity = str(task.get("polish_intensity", "medium")).strip().lower()
+    style = task.get("polish_style") or polished.get("tone") or "短剧强冲突"
+    constraints = list(polished.get("constraints") or [])
+    constraints.extend(task.get("constraints") or [])
+    scenes = []
+    for index, scene in enumerate(polished.get("scenes") or [], start=1):
+        upgraded = copy_dict(scene)
+        original_dialogue = scene.get("dialogue") or []
+        upgraded["original_dialogue"] = original_dialogue
+        upgraded["polished_dialogue"] = _polish_dialogue_lines(
+            original_dialogue,
+            scene,
+            index,
+            len(polished.get("scenes") or []),
+            intensity,
+        )
+        upgraded["dialogue"] = upgraded["polished_dialogue"]
+        upgraded["voiceover"] = _polish_voiceover(scene.get("voiceover", ""), index, len(polished.get("scenes") or []))
+        upgraded["subtitle"] = _subtitle_from_dialogue_or_voiceover(upgraded["polished_dialogue"], upgraded["voiceover"])
+        upgraded["conflict_notes"] = _conflict_notes(scene, index, len(polished.get("scenes") or []), style)
+        upgraded["beat_function"] = _beat_function(index, len(polished.get("scenes") or []))
+        scenes.append(upgraded)
+
+    polished["scenes"] = scenes
+    polished["polish"] = {
+        "style": style,
+        "intensity": intensity,
+        "rules": [
+            "对白短句化",
+            "每场至少保留一个压力点或反问",
+            "结尾保留悬念钩子",
+            "不改变原脚本场次、时间线和资产目标",
+        ],
+    }
+    polished["constraints"] = _dedupe_list(constraints)
+    polished["handoff"] = copy_dict(polished.get("handoff") or {})
+    polished["handoff"]["can_build_blueprint"] = True
+    polished["handoff"]["polished_for_script"] = True
+    return polished
+
+
+def _polish_dialogue_lines(dialogue: List[Dict], scene: Dict, index: int, total: int, intensity: str) -> List[Dict]:
+    if not dialogue:
+        dialogue = [{"speaker": "主角", "line": scene.get("voiceover", "继续。")}]
+    polished = []
+    for line_index, item in enumerate(dialogue):
+        speaker = item.get("speaker", "角色")
+        line = _tighten_line(item.get("line", ""))
+        line = _add_pressure_if_needed(line, index, total, intensity, line_index)
+        polished.append({"speaker": speaker, "line": line})
+
+    if index == 1 and len(polished) == 1:
+        polished.append({"speaker": "对手", "line": "你已经进来了。"})
+    if index == total and not any("？" in item["line"] or "还没" in item["line"] for item in polished):
+        polished.append({"speaker": polished[0]["speaker"], "line": "真正的客人，还没到。"})
+    return polished[:3]
+
+
+def _tighten_line(line: str) -> str:
+    text = str(line or "").strip()
+    replacements = {
+        "一开始，": "",
+        "无法解释的危机": "不该出现的东西",
+        "现在才发现，已经晚了。": "晚了。",
+        "你到底是谁？": "你不是普通人。",
+    }
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    text = text.strip(" ，。；")
+    if len(text) > 22:
+        text = text[:22].rstrip("，。；、 ") + "。"
+    if text and text[-1] not in "。！？":
+        text += "。"
+    return text or "继续。"
+
+
+def _add_pressure_if_needed(line: str, index: int, total: int, intensity: str, line_index: int) -> str:
+    if "？" in line or "!" in line or "！" in line:
+        return line
+    if intensity == "low":
+        return line
+    if "晚了" in line or "已经" in line:
+        return line
+    if index == 1 and line_index == 0 and len(line) <= 12:
+        return line.rstrip("。") + "，你听见了吗？"
+    if index == total and line_index == 0:
+        return line.rstrip("。") + "，还没结束。"
+    return line
+
+
+def _polish_voiceover(voiceover: str, index: int, total: int) -> str:
+    text = str(voiceover or "").strip()
+    if index == 1 and "开场" not in text:
+        text = "开场三秒，危机先到。 " + text
+    if index == total and "真正" not in text and "还没有" not in text:
+        text = text.rstrip("。") + "，真正的危机还没有露面。"
+    return text
+
+
+def _subtitle_from_dialogue_or_voiceover(dialogue: List[Dict], voiceover: str) -> str:
+    if dialogue:
+        return " / ".join(item.get("line", "") for item in dialogue[:2] if item.get("line"))
+    return voiceover
+
+
+def _conflict_notes(scene: Dict, index: int, total: int, style: str) -> List[str]:
+    notes = []
+    if index == 1:
+        notes.append("开场先给危机，不先解释世界观")
+    if scene.get("dialogue"):
+        notes.append("对白保持短句，优先制造压力和反问")
+    if "规则" in scene.get("voiceover", "") or "改变" in scene.get("voiceover", ""):
+        notes.append("强化主角掌控规则的反转感")
+    if index == total:
+        notes.append("结尾留未解悬念，驱动下一集")
+    notes.append(f"风格基准：{style}")
+    return notes
+
+
+def _beat_function(index: int, total: int) -> str:
+    if index == 1:
+        return "hook"
+    if index == total:
+        return "cliffhanger"
+    if index >= max(total - 1, 1):
+        return "reversal"
+    return "escalation"
 
 
 def _dialogue_from_card(card: Dict, characters: List[Dict], index: int) -> List[Dict]:
