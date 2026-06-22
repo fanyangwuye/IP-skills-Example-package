@@ -4,21 +4,25 @@ try:
     from .clip_plan import build_clip_plan, build_clip_prompts
     from .continuity import build_continuity_bible
     from .shot_plan import build_i2v_prompts, build_shot_plan, build_t2v_prompts
+    from .storyboard_assets import build_storyboard_image_tasks
 except ImportError:
     from clip_plan import build_clip_plan, build_clip_prompts
     from continuity import build_continuity_bible
     from shot_plan import build_i2v_prompts, build_shot_plan, build_t2v_prompts
+    from storyboard_assets import build_storyboard_image_tasks
 
 
 def build_video_handoff(task: Dict) -> Dict:
     bible = build_continuity_bible(task)
     shots = build_shot_plan(task, bible)
     clips = build_clip_plan(task, shots, bible)
+    storyboard_image_tasks = build_storyboard_image_tasks(task, clips, bible)
     return {
         "source_title": bible.get("source_title", task.get("title", "")),
         "continuity_bible": bible,
         "shots": shots,
         "clip_plan": clips,
+        "storyboard_image_tasks": storyboard_image_tasks,
         "i2v_prompts": build_i2v_prompts(shots),
         "t2v_prompts": build_t2v_prompts(shots),
         "seedance_prompts": build_seedance_prompts(shots),

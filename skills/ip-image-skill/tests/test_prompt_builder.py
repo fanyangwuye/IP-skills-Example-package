@@ -127,6 +127,34 @@ def test_build_task_prompt_for_character_sheet_structure():
     assert "Interaction state:" in prompt
 
 
+def test_build_task_prompt_for_storyboard_design_sheet():
+    task = {
+        "mode": "text_to_image",
+        "creation_stage": "storyboard_content_design",
+        "asset_kind": "storyboard_content_design_sheet",
+        "storyboard_profile": {
+            "clip_id": "clip_001",
+            "start_state": "角色站在柜台后",
+            "main_action": "角色抬头看向厨房门",
+            "end_state": "两人隔着柜台对视",
+        },
+        "continuity_state": {
+            "current_start_state": "起始状态",
+            "current_end_state": "结束状态",
+        },
+        "reference_binding": {"scene_lock": "huangquan_hall:scene"},
+        "video_reference_images": [{"filename": "huangquan_hall_video_scene_reference.jpg"}],
+        "space_anchor_refs": [{"filename": "huangquan_hall_720_panorama.jpg"}],
+    }
+    prompt = build_task_prompt(task)
+    assert "Storyboard profile:" in prompt
+    assert "clip_001" in prompt
+    assert "Continuity state:" in prompt
+    assert "Reference binding:" in prompt
+    assert "Video reference images:" in prompt
+    assert "Space anchor refs:" in prompt
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_") and callable(fn):

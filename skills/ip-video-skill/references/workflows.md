@@ -17,8 +17,18 @@ Use this before any prompt writing.
 4. Carry `previous_end_state -> current_start_state -> current_end_state` through every shot.
 5. Group shots into `clip_plan` entries, usually 5-15 seconds each, so video generation is not split into too many tiny fragments.
 6. Keep panorama scene images in `space_anchor_refs` for spatial overview; use normal perspective scene images in `video_reference_images` for model generation.
-7. Create `i2v_prompt`, `t2v_prompt`, `seedance_prompt`, and `clip_prompts`.
-8. Create an EDL for later ffmpeg/provider assembly.
+7. Create `storyboard_image_tasks` when clip-level visual planning images are needed.
+8. Create `i2v_prompt`, `t2v_prompt`, `seedance_prompt`, and `clip_prompts`.
+9. Create an EDL for later ffmpeg/provider assembly.
+
+## Storyboard Content Design Sheets
+
+- Use character design sheets to lock identity and normal scene references to lock the environment.
+- Generate one storyboard content design sheet per clip when the user wants visual planning before video generation.
+- Each sheet should contain three panels: start state, main action beat, end state.
+- Keep production labels short, Chinese by default, and outside panel image areas.
+- Do not put dialogue subtitles, title cards, fake UI, decorative text, or watermarks inside panels.
+- Treat storyboard sheets as planning references, not final video frames.
 
 ## Clip Continuity Rules
 
@@ -80,11 +90,12 @@ Use this flow before any paid video generation:
 
 1. Build or generate the image assets first: character design refs and normal perspective scene refs. Keep 720 panoramas as space anchors.
 2. Build `video_handoff`.
-3. Prefer one `clip_id` or `clip_index` for normal generation; use `shot_id` or `shot_index` only for troubleshooting.
-4. Run `prepare_video_generation`.
-5. Inspect `provider_request.prompt`, `reference_images`, `video_reference_images`, `space_anchor_refs`, `continuity_state`, and `transport`.
-6. Confirm the prompt says ambient sound/foley only and forbids BGM, songs, subtitles, title cards, fake text, and watermarks.
-7. Generate only one short I2V test clip after the provider adapter is confirmed.
+3. Optionally run image generation on `storyboard_image_tasks[0]` to create a clip storyboard content design sheet.
+4. Prefer one `clip_id` or `clip_index` for normal generation; use `shot_id` or `shot_index` only for troubleshooting.
+5. Run `prepare_video_generation`.
+6. Inspect `provider_request.prompt`, `reference_images`, `video_reference_images`, `space_anchor_refs`, `continuity_state`, and `transport`.
+7. Confirm the prompt says ambient sound/foley only and forbids BGM, songs, subtitles, title cards, fake text, and watermarks.
+8. Generate only one short I2V test clip after the provider adapter is confirmed.
 
 Supported provider request shapes:
 

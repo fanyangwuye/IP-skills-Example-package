@@ -12,6 +12,7 @@ description: "Generate IP visual assets, split grid images into single tiles, an
 - Iteratively refine a single image through conversational interaction
 - Generate a consistent starter asset bundle for one locked character
 - Generate multi-character IP asset packs with clean character sheets, props, 720 panorama scene assets, and normal video scene references
+- Generate storyboard content design sheets from video handoff tasks
 - Split a 4 / 9 / 16 grid image into single images
 - Enhance an existing image or split tiles while keeping the source file untouched
 
@@ -51,6 +52,7 @@ Supported Flow A task styles:
 - Structured `character_create` tasks built from a reusable character sheet
 - Structured `character_asset_bundle` tasks that expand one character sheet into multiple asset outputs
 - Structured `ip_asset_pack` tasks that expand multiple characters, props, and scenes into production assets
+- Structured `storyboard_content_design_sheet` tasks from video `storyboard_image_tasks`
 
 ### Flow C: Single Image Conversational Refinement
 
@@ -75,6 +77,14 @@ Supported Flow A task styles:
 4. Generate scene assets as wide 720-style panorama references with seamless left-right edge instructions
 5. Also generate a normal perspective `video_scene_reference` for video pipelines, keeping stable entrances, landmarks, light direction, and foreground/midground/background layers
 6. Return the full asset pack for downstream image and video workflows
+
+### Flow F: Storyboard Content Design Sheet
+
+1. Load a `storyboard_image_tasks` item from `ip-video-skill`.
+2. Generate a 3-panel storyboard design sheet for one clip: start state, main action beat, end state.
+3. Keep character, costume, props, scene layout, light direction, and palette consistent with the continuity bible.
+4. Keep Chinese production labels short and outside the image panels.
+5. Do not create dialogue subtitles, title cards, watermarks, fake UI, or decorative text inside panels.
 
 ### Flow B: Grid Split And Enhance
 
@@ -141,6 +151,7 @@ Recommended task fields for richer image creation:
 - `style_reference_paths`
 - `reference_image_urls`
 - `asset_kind`
+- `storyboard_profile`
 - `creative_goal`
 - `character_name`
 - `character_brief`
@@ -150,6 +161,10 @@ Recommended task fields for richer image creation:
 - `characters`
 - `identity_anchors`
 - `continuity_rules`
+- `continuity_state`
+- `reference_binding`
+- `video_reference_images`
+- `space_anchor_refs`
 - `asset_target`
 - `interaction_state`
 - `asset_bundle`

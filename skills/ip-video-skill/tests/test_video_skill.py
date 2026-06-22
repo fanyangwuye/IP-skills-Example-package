@@ -100,6 +100,7 @@ def test_build_video_handoff_has_required_shot_fields():
     handoff = build_video_handoff(_task())
     assert len(handoff["shots"]) == 2
     assert len(handoff["clip_plan"]) == 1
+    assert len(handoff["storyboard_image_tasks"]) == 1
     assert handoff["clip_prompts"][0]["clip_id"] == "clip_001"
     assert handoff["clip_plan"][0]["video_reference_images"]
     assert handoff["clip_plan"][0]["space_anchor_refs"]
@@ -115,6 +116,23 @@ def test_build_video_handoff_has_required_shot_fields():
         assert shot["negative_prompt"]
         assert shot["retry_advice"]
         assert shot["quality_checks"]
+
+
+def test_storyboard_image_task_for_clip_design_sheet():
+    handoff = build_video_handoff(_task())
+    task = handoff["storyboard_image_tasks"][0]
+    assert task["mode"] == "text_to_image"
+    assert task["asset_kind"] == "storyboard_content_design_sheet"
+    assert task["filename"] == "clip_001_storyboard_design_sheet.jpg"
+    assert task["visual_text_language"] == "zh-CN"
+    assert "storyboard_profile" in task
+    assert task["storyboard_profile"]["clip_id"] == "clip_001"
+    assert "start_state" in task["storyboard_profile"]
+    assert "main_action" in task["storyboard_profile"]
+    assert "end_state" in task["storyboard_profile"]
+    assert task["video_reference_images"]
+    assert task["space_anchor_refs"]
+    assert any("no dialogue subtitles" in item for item in task["asset_requirements"])
 
 
 def test_multi_character_shot_has_axis_screen_direction_and_eyeline():

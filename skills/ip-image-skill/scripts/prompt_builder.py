@@ -199,6 +199,10 @@ def build_task_prompt(task: Dict, style_card: Optional[Dict] = None) -> str:
     if _has_content(scene_profile):
         parts.append("Scene profile: " + _format_structure(scene_profile))
 
+    storyboard_profile = task.get("storyboard_profile") or {}
+    if _has_content(storyboard_profile):
+        parts.append("Storyboard profile: " + _format_structure(storyboard_profile))
+
     gpt_image_2_spec = task.get("gpt_image_2_spec") or {}
     if _has_content(gpt_image_2_spec):
         parts.append("GPT Image 2 output spec: " + _format_structure(gpt_image_2_spec))
@@ -214,6 +218,22 @@ def build_task_prompt(task: Dict, style_card: Optional[Dict] = None) -> str:
     continuity_rules = task.get("continuity_rules") or []
     if _has_content(continuity_rules):
         parts.append("Continuity rules: " + _format_structure(continuity_rules))
+
+    continuity_state = task.get("continuity_state") or {}
+    if _has_content(continuity_state):
+        parts.append("Continuity state: " + _format_structure(continuity_state))
+
+    reference_binding = task.get("reference_binding") or {}
+    if _has_content(reference_binding):
+        parts.append("Reference binding: " + _format_structure(reference_binding))
+
+    video_reference_images = task.get("video_reference_images") or []
+    if _has_content(video_reference_images):
+        parts.append("Video reference images: " + _format_structure(video_reference_images))
+
+    space_anchor_refs = task.get("space_anchor_refs") or []
+    if _has_content(space_anchor_refs):
+        parts.append("Space anchor refs: " + _format_structure(space_anchor_refs))
 
     asset_target = task.get("asset_target") or {}
     if _has_content(asset_target):
