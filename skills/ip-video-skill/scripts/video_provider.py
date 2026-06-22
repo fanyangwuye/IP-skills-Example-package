@@ -3,8 +3,10 @@ from typing import Dict, List, Optional
 
 try:
     from .config import VideoProviderConfig
+    from .poyo_video_client import PoYoVideoClient
 except ImportError:
     from config import VideoProviderConfig
+    from poyo_video_client import PoYoVideoClient
 
 
 SUPPORTED_PROVIDERS = {"offline", "dry_run", "dreamina_cli", "jimeng_cli", "poyo_video"}
@@ -43,6 +45,28 @@ def run_video_generation(task: Dict, config: VideoProviderConfig) -> Dict:
             "request": request,
             "logs": ["prepared video provider request; no external API call executed"],
         }
+    if provider == "poyo_video":
+        client = PoYoVideoClient(config)
+        output_dir = task.get("output_dir") or config.output_root
+        result = client.run_seedance2(
+            request,
+            output_dir=output_dir,
+            callback_url=task.get("callback_url"),
+            download=bool(task.get("download", True)),
+        )
+        return {
+            "status": "success",
+            "provider": provider,
+            "mode": "run_video_generation",
+            "dry_run": False,
+            "request": request,
+            "result": result,
+            "artifacts": [
+                {"type": "video", "path": path, "meta": {"provider": "poyo_video", "task_id": result.get("task_id")}}
+                for path in result.get("local_paths", [])
+            ],
+            "logs": [f"completed PoYo video task {result.get('task_id')}", f"downloaded {len(result.get('local_paths', []))} file(s)"],
+        }
     raise RuntimeError(
         f"Live video generation for provider '{provider}' is not implemented yet. "
         "Use dry_run=true to inspect the provider request."
@@ -63,6 +87,12 @@ def _base_request(task: Dict, shot: Dict, provider: str, prompt_kind: str, confi
         "duration_sec": task.get("duration_sec") or timing.get("duration_sec"),
         "aspect_ratio": task.get("aspect_ratio") or config.default_aspect_ratio,
         "resolution": task.get("resolution") or config.default_resolution,
+        "generate_audio": task.get("generate_audio"),
+        "seed": task.get("seed"),
+        "image_urls": _normalize_reference_list(task.get("image_urls") or []),
+        "reference_image_urls": _normalize_reference_list(task.get("reference_image_urls") or []),
+        "reference_video_urls": _normalize_reference_list(task.get("reference_video_urls") or []),
+        "reference_audio_urls": _normalize_reference_list(task.get("reference_audio_urls") or []),
         "reference_images": _reference_images(task, shot),
         "reference_binding": shot.get("reference_binding", {}),
         "continuity_state": shot.get("continuity_state", {}),
@@ -147,6 +177,10 @@ def _normalize_reference(item) -> Dict:
     return dict(item)
 
 
+def _normalize_reference_list(items: List) -> List:
+    return [_normalize_reference(item) for item in items]
+
+
 def _dreamina_cli_transport(task: Dict, request: Dict) -> Dict:
     executable = task.get("dreamina_cli_path") or task.get("jimeng_cli_path") or task.get("cli_path") or "dreamina"
     subcommand = task.get("dreamina_subcommand") or _dreamina_subcommand(request)
@@ -188,14 +222,27 @@ def _dreamina_subcommand(request: Dict) -> str:
 
 
 def _poyo_video_transport(task: Dict, request: Dict, config: VideoProviderConfig) -> Dict:
+    model = task.get("provider_model_name") or request.get("model") or "seedance-2"
+    input_obj = {
+        "prompt": request["prompt"],
+        "resolution": request["resolution"],
+        "duration": int(round(float(request.get("duration_sec") or 5))),
+    }
+    if request.get("aspect_ratio"):
+        input_obj["aspect_ratio"] = request["aspect_ratio"]
+    if request.get("generate_audio") is not None:
+        input_obj["generate_audio"] = bool(request["generate_audio"])
+    if request.get("seed") is not None:
+        input_obj["seed"] = int(request["seed"])
+    for key in ("image_urls", "reference_image_urls", "reference_video_urls", "reference_audio_urls"):
+        if request.get(key):
+            input_obj[key] = [item.get("url", item) if isinstance(item, dict) else item for item in request[key]]
     return {
         "type": "http",
         "method": "POST",
         "url": (task.get("api_base") or config.api_base or "https://api.poyo.ai") + "/api/generate/submit",
         "headers": {"Authorization": "Bearer ${VIDEO_API_KEY}"},
-        "json": {
-            "model": task.get("provider_model_name", "video-generation"),
-            "input": request,
-        },
-        "note": "PoYo video endpoint schema is a placeholder until official video docs are confirmed.",
+        "json": {"model": model, "input": input_obj},
+        "status_url": (task.get("api_base") or config.api_base or "https://api.poyo.ai") + "/api/generate/status/{task_id}",
+        "note": "PoYo Seedance 2 request. Live execution requires dry_run=false and VIDEO_API_KEY or POYO_API_KEY.",
     }

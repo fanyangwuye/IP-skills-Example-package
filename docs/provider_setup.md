@@ -37,9 +37,10 @@ For future PoYo video:
 $env:VIDEO_PROVIDER="poyo_video"
 $env:VIDEO_API_KEY="your_key"
 $env:VIDEO_API_BASE="https://api.poyo.ai"
+$env:VIDEO_DEFAULT_MODEL="seedance-2"
 ```
 
-Current `poyo_video` support only prepares provider request JSON until official video API details are confirmed.
+Current `poyo_video` support can submit Seedance 2 / Seedance 2 Fast tasks, poll status, and download returned files. It still defaults to dry-run unless the task explicitly sets `dry_run: false`.
 
 ## Dreamina / 即梦 CLI
 

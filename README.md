@@ -86,6 +86,8 @@ VIDEO_OUTPUT_ROOT=E:\Plans for 2026\ip-skills\outputs
 VIDEO_DEFAULT_MODEL=optional_provider_model
 VIDEO_DEFAULT_ASPECT_RATIO=9:16
 VIDEO_DEFAULT_RESOLUTION=1080p
+VIDEO_POLL_INTERVAL_SEC=4
+VIDEO_POLL_TIMEOUT_SEC=600
 ```
 
 `POYO_API_KEY` can be used as a shared key fallback for image, music, and future video providers.

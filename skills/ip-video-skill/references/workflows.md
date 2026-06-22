@@ -77,6 +77,23 @@ Supported provider request shapes:
 - `offline` / `dry_run`: returns request JSON only.
 - `dreamina_cli`: returns a CLI transport placeholder for the official `dreamina` executable, with `subcommand`, `help_command`, intended parameters, and `stdin_json`.
 - `jimeng_cli`: compatibility alias for `dreamina_cli`.
-- `poyo_video`: returns an HTTP transport placeholder with URL, headers shape, and JSON payload.
+- `poyo_video`: returns a Seedance 2 HTTP payload in dry-run mode; with `dry_run=false`, submits to `/api/generate/submit`, polls `/api/generate/status/{task_id}`, and downloads returned `files`.
 
 Do not run full-episode batches until single-shot face, costume, scene, lighting, axis, and eyeline consistency is verified.
+
+## PoYo Seedance 2 Notes
+
+Supported models:
+
+- `seedance-2`
+- `seedance-2-fast`
+
+Request rules:
+
+- `prompt` is required.
+- `duration` is clamped to 4-15 seconds.
+- `seedance-2-fast` downgrades `1080p` requests to `720p`.
+- `image_urls` supports up to 2 first/last frame images.
+- `image_urls` cannot be mixed with `reference_image_urls`, `reference_video_urls`, or `reference_audio_urls`.
+- Reference assets must be public URLs or local paths that can be uploaded through PoYo upload stream.
+- `reference_audio_urls` requires at least one reference image or reference video.

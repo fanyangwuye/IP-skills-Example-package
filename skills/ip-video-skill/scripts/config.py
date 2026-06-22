@@ -11,6 +11,8 @@ class VideoProviderConfig:
     default_model: str
     default_aspect_ratio: str
     default_resolution: str
+    poll_interval_sec: int
+    poll_timeout_sec: int
 
 
 def _env(name: str, default: str = "") -> str:
@@ -43,4 +45,6 @@ def load_video_provider_config() -> VideoProviderConfig:
         default_model=_env("VIDEO_DEFAULT_MODEL", ""),
         default_aspect_ratio=_env("VIDEO_DEFAULT_ASPECT_RATIO", "9:16") or "9:16",
         default_resolution=_env("VIDEO_DEFAULT_RESOLUTION", "1080p") or "1080p",
+        poll_interval_sec=int(_env("VIDEO_POLL_INTERVAL_SEC", "4") or "4"),
+        poll_timeout_sec=int(_env("VIDEO_POLL_TIMEOUT_SEC", "600") or "600"),
     )

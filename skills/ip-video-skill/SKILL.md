@@ -94,7 +94,7 @@ Every shot is safe to pass to a provider adapter later because continuity is alr
 - `offline` / `dry_run`: prepare requests only; no external call.
 - `dreamina_cli`: prepare a CLI-shaped request for the official Dreamina/即梦 `dreamina` command.
 - `jimeng_cli`: compatibility alias for `dreamina_cli`.
-- `poyo_video`: prepare an HTTP-shaped request for a future PoYo video endpoint.
+- `poyo_video`: submit Seedance 2 / Seedance 2 Fast video tasks through PoYo, poll task status, and download returned files when `dry_run=false`.
 
 Use `prepare_video_generation` to inspect a single-shot provider request before spending credits. Provider requests preserve:
 
@@ -116,6 +116,8 @@ Environment variables:
 - `VIDEO_DEFAULT_MODEL`
 - `VIDEO_DEFAULT_ASPECT_RATIO=9:16`
 - `VIDEO_DEFAULT_RESOLUTION=1080p`
+- `VIDEO_POLL_INTERVAL_SEC=4`
+- `VIDEO_POLL_TIMEOUT_SEC=600`
 
 ## Resources
 
@@ -123,6 +125,7 @@ Environment variables:
 - `scripts/shot_plan.py`: shot/storyboard/prompt builder
 - `scripts/prompt_quality.py`: prompt quality layers for performance, camera, light, sound, realism, constraints, and retry advice
 - `scripts/video_provider.py`: provider request builder and dry-run execution boundary
+- `scripts/poyo_video_client.py`: PoYo Seedance 2 submit, status polling, upload, and download client
 - `scripts/video_handoff.py`: handoff and EDL builder
 - `scripts/video_skill.py`: agent-facing task entrypoint
 - `scripts/ffmpeg_assembly.py`: phase-3 placeholder for local assembly helpers

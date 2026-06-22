@@ -77,7 +77,9 @@ def run_task(task: Dict) -> Dict:
         result = run_video_generation(task, config)
         path = os.path.join(output_dir, task.get("provider_manifest_filename", "video_provider_manifest.json"))
         _write_json(path, result)
-        return _result(mode, {"provider_result": result}, path, "video_provider_manifest")
+        response = _result(mode, {"provider_result": result}, path, "video_provider_manifest")
+        response["artifacts"] = list(result.get("artifacts", [])) + response["artifacts"]
+        return response
 
     raise ValueError(
         "mode must be one of: build_continuity_bible, build_video_handoff, build_shot_plan, "

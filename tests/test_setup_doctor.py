@@ -48,6 +48,12 @@ def test_setup_doctor_accepts_shared_poyo_key_and_tools():
     assert _by_name(report, "dreamina.provider")["status"] == "pass"
 
 
+def test_setup_doctor_warns_for_poyo_video_without_key():
+    report = run_checks(env={"VIDEO_PROVIDER": "poyo_video"}, which=_which_some)
+    assert _by_name(report, "poyo.video_key")["status"] == "warn"
+    assert any("poyo_video" in step for step in report["next_steps"])
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_") and callable(fn):

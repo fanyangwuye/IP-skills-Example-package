@@ -7,6 +7,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 from continuity import build_continuity_bible  # noqa: E402
 from config import VideoProviderConfig  # noqa: E402
+from poyo_video_client import PoYoVideoClient  # noqa: E402
 from video_provider import prepare_video_generation_request  # noqa: E402
 from video_handoff import build_video_handoff  # noqa: E402
 from video_skill import run_task  # noqa: E402
@@ -159,6 +160,8 @@ def test_prepare_video_generation_request_offline():
         default_model="offline-preview",
         default_aspect_ratio="9:16",
         default_resolution="1080p",
+        poll_interval_sec=1,
+        poll_timeout_sec=5,
     )
     request = prepare_video_generation_request(
         {
@@ -187,6 +190,8 @@ def test_prepare_video_generation_request_dreamina_cli_shape():
         default_model="dreamina-test",
         default_aspect_ratio="9:16",
         default_resolution="1080p",
+        poll_interval_sec=1,
+        poll_timeout_sec=5,
     )
     request = prepare_video_generation_request(
         {
@@ -205,6 +210,135 @@ def test_prepare_video_generation_request_dreamina_cli_shape():
     assert request["transport"]["subcommand"] == "image2video"
     assert request["transport"]["help_command"] == ["dreamina", "image2video", "-h"]
     assert request["transport"]["intended_parameters"]["duration_sec"] == 5
+
+
+def test_prepare_video_generation_request_poyo_seedance2_shape():
+    handoff = build_video_handoff(_task())
+    config = VideoProviderConfig(
+        provider="poyo_video",
+        api_key="test",
+        api_base="https://api.example",
+        output_root="",
+        default_model="seedance-2",
+        default_aspect_ratio="9:16",
+        default_resolution="1080p",
+        poll_interval_sec=1,
+        poll_timeout_sec=5,
+    )
+    request = prepare_video_generation_request(
+        {
+            "video_handoff": handoff,
+            "provider": "poyo_video",
+            "model": "seedance-2",
+            "image_urls": ["https://files.example/first.png"],
+            "duration_sec": 5,
+            "generate_audio": False,
+            "seed": 42,
+        },
+        config,
+    )
+    assert request["transport"]["type"] == "http"
+    assert request["transport"]["json"]["model"] == "seedance-2"
+    input_obj = request["transport"]["json"]["input"]
+    assert input_obj["prompt"]
+    assert input_obj["image_urls"] == ["https://files.example/first.png"]
+    assert input_obj["resolution"] == "1080p"
+    assert input_obj["duration"] == 5
+    assert input_obj["generate_audio"] is False
+    assert input_obj["seed"] == 42
+    assert request["transport"]["status_url"].endswith("/api/generate/status/{task_id}")
+
+
+class FakeResponse:
+    ok = True
+
+    def __init__(self, payload=None, chunks=None):
+        self.payload = payload or {}
+        self.chunks = chunks or []
+
+    def json(self):
+        return self.payload
+
+    def iter_content(self, chunk_size=65536):
+        yield from self.chunks
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+
+class FakeVideoSession:
+    def __init__(self):
+        self.headers = {}
+        self.posts = []
+        self.gets = []
+
+    def post(self, url, json=None, files=None, data=None, timeout=None):
+        self.posts.append({"url": url, "json": json, "files": files, "data": data, "timeout": timeout})
+        return FakeResponse({"code": 200, "data": {"task_id": "task_video_123", "status": "not_started"}})
+
+    def get(self, url, stream=False, timeout=None):
+        self.gets.append({"url": url, "stream": stream, "timeout": timeout})
+        if "status" in url:
+            return FakeResponse(
+                {
+                    "code": 200,
+                    "data": {
+                        "task_id": "task_video_123",
+                        "status": "finished",
+                        "credits_amount": 20,
+                        "files": [
+                            {
+                                "file_url": "https://storage.example/video.mp4",
+                                "file_type": "video",
+                                "format": "mp4",
+                            }
+                        ],
+                        "created_time": "2026-04-04T10:30:00",
+                        "progress": 100,
+                        "error_message": None,
+                    },
+                }
+            )
+        return FakeResponse(chunks=[b"mp4data"])
+
+
+def test_poyo_video_client_submit_poll_download():
+    with tempfile.TemporaryDirectory() as output_dir:
+        config = VideoProviderConfig(
+            provider="poyo_video",
+            api_key="test",
+            api_base="https://api.example",
+            output_root=output_dir,
+            default_model="seedance-2",
+            default_aspect_ratio="9:16",
+            default_resolution="1080p",
+            poll_interval_sec=1,
+            poll_timeout_sec=5,
+        )
+        client = PoYoVideoClient(config)
+        client.session = FakeVideoSession()
+        result = client.run_seedance2(
+            {
+                "model": "seedance-2",
+                "prompt": "测试视频提示词",
+                "resolution": "1080p",
+                "duration_sec": 5,
+                "aspect_ratio": "9:16",
+                "image_urls": [{"url": "https://files.example/first.png"}],
+                "output_filename": "shot_001.mp4",
+            },
+            output_dir=output_dir,
+        )
+        assert result["task_id"] == "task_video_123"
+        assert result["credits_amount"] == 20
+        assert result["local_paths"][0].endswith("shot_001_01.mp4")
+        assert os.path.exists(result["local_paths"][0])
+        submit = client.session.posts[0]["json"]
+        assert submit["model"] == "seedance-2"
+        assert submit["input"]["image_urls"] == ["https://files.example/first.png"]
 
 
 def test_run_task_prepare_video_generation_writes_json():

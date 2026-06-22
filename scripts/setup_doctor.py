@@ -42,9 +42,11 @@ def _python_check() -> CheckResult:
 
 def _poyo_checks(env: Dict[str, str]) -> List[CheckResult]:
     poyo_key = _env(env, "POYO_API_KEY")
+    video_provider = _env(env, "VIDEO_PROVIDER", "offline") or "offline"
     image_key = _env(env, "IMAGE_API_KEY") or poyo_key
     music_key = _env(env, "MUSIC_API_KEY") or poyo_key
     video_key = _env(env, "VIDEO_API_KEY") or poyo_key
+    video_status = "pass" if video_key else ("warn" if video_provider == "poyo_video" else "info")
 
     return [
         _check(
@@ -61,9 +63,9 @@ def _poyo_checks(env: Dict[str, str]) -> List[CheckResult]:
         ),
         _check(
             "poyo.video_key",
-            "pass" if video_key else "info",
+            video_status,
             "PoYo video key is configured." if video_key else "PoYo video key is not configured.",
-            "Set VIDEO_API_KEY or POYO_API_KEY later if poyo_video becomes the chosen video provider." if not video_key else "",
+            "Set VIDEO_API_KEY or POYO_API_KEY for live poyo_video generation." if not video_key and video_provider == "poyo_video" else "",
         ),
         _check(
             "poyo.base_url",
