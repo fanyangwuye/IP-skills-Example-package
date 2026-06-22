@@ -1,0 +1,42 @@
+{
+  "mode": "build_character_handoff",
+  "ip_id": "demo_ip",
+  "title": "Rainy Convenience Store",
+  "source_text": "A rainy night, a convenience store, and a restrained heroine whose identity should stay stable across multiple image assets.",
+  "creative_direction": {
+    "tone": "mysterious urban romance",
+    "viewpoint": "lead heroine"
+  },
+  "character_sheet": {
+    "character_profile": {
+      "identity": {
+        "name": "Lin Yue",
+        "role": "lead heroine"
+      }
+    },
+    "identity_anchors": [
+      "stable face identity",
+      "same eye shape"
+    ],
+    "continuity_rules": [
+      "future assets must preserve the same identity"
+    ],
+    "interaction_state": {
+      "locked_traits": [
+        "face",
+        "hair silhouette"
+      ]
+    }
+  },
+  "asset_bundle": [
+    {
+      "label": "hero_portrait",
+      "asset_target": {
+        "type": "hero portrait",
+        "purpose": "key visual"
+      }
+    }
+  ],
+  "output_dir": "OUTPUT_DIR_HERE"
+}
+

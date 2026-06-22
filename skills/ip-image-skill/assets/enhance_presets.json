@@ -1,0 +1,18 @@
+{
+  "low": {
+    "quality": "medium",
+    "resolution": "2K",
+    "prompt_suffix": "Keep the original composition, subject placement, and core visual content unchanged. Improve texture clarity, edge quality, and overall polish only."
+  },
+  "mid": {
+    "quality": "high",
+    "resolution": "2K",
+    "prompt_suffix": "Preserve the original composition and subject identity. Improve texture, detail, lighting polish, and material richness without changing the main scene layout."
+  },
+  "high": {
+    "quality": "high",
+    "resolution": "4K",
+    "prompt_suffix": "Strongly preserve the original composition, subject identity, and scene structure. Upgrade detail fidelity and finish quality toward a polished 4K result without changing what is in the image."
+  }
+}
+

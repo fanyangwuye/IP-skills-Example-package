@@ -1,0 +1,14 @@
+{
+  "license_id": "LIC-DEMO-001",
+  "ip_id": "demo_ip",
+  "source_title": "Demo IP",
+  "rights_holder": "Demo Studio",
+  "allowed_targets": [
+    "short_drama_script",
+    "webnovel",
+    "promo"
+  ],
+  "commercial": true,
+  "valid_until": "2030-01-01"
+}
+

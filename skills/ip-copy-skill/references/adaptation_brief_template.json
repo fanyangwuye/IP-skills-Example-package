@@ -1,0 +1,29 @@
+{
+  "title": "",
+  "source_text": "",
+  "creative_direction": {
+    "target": "short_drama",
+    "tone": "",
+    "viewpoint": "",
+    "adaptation_strength": "",
+    "audience": ""
+  },
+  "character_sheet": {},
+  "asset_bundle": [],
+  "scene_cards": [
+    {
+      "visual": "",
+      "voiceover": "",
+      "music_cue": "",
+      "subtitle": "",
+      "duration_sec": 0,
+      "asset_goal": {
+        "type": "",
+        "purpose": "",
+        "expression": "",
+        "scene": ""
+      }
+    }
+  ]
+}
+

@@ -1,0 +1,33 @@
+{
+  "mode": "text_to_image",
+  "ip_id": "demo_ip",
+  "asset_kind": "single_character_image",
+  "creative_goal": "Refine a single character image through conversational direction",
+  "character_name": "Lin Yue",
+  "prompt": "Generate a premium single-character image for an original heroine.",
+  "interaction_notes": [
+    "keep the identity stable and recognisable",
+    "make the outfit more refined and less generic"
+  ],
+  "conversation_turns": [
+    {
+      "role": "user",
+      "content": "make her feel more mysterious and self-possessed"
+    },
+    {
+      "role": "user",
+      "content": "keep the face soft but sharp in the eyes"
+    },
+    {
+      "role": "user",
+      "content": "switch the costume to deep blue with subtle metallic details"
+    }
+  ],
+  "scene": "rainy neon alley",
+  "camera": "waist-up portrait",
+  "quality": "high",
+  "size": "3:4",
+  "resolution": "2K",
+  "filename": "interactive_single_image_example.jpg",
+  "output_dir": "OUTPUT_DIR_HERE"
+}

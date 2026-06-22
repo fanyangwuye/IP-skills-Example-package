@@ -1,0 +1,50 @@
+{
+  "character_profile": {
+    "identity": {
+      "name": "",
+      "role": "",
+      "age_range": "",
+      "gender_presentation": ""
+    },
+    "appearance": {
+      "ethnicity": "",
+      "face_shape": "",
+      "eyes": "",
+      "hair": "",
+      "body_type": "",
+      "skin_tone": ""
+    },
+    "styling": {
+      "wardrobe": "",
+      "palette": "",
+      "accessories": [],
+      "materials": ""
+    },
+    "personality": {
+      "temperament": "",
+      "aura": "",
+      "keywords": []
+    },
+    "world_context": {
+      "genre": "",
+      "era": "",
+      "setting": ""
+    }
+  },
+  "identity_anchors": [],
+  "continuity_rules": [],
+  "interaction_state": {
+    "locked_traits": [],
+    "pending_questions": [],
+    "latest_user_direction": "",
+    "decision_log": []
+  },
+  "asset_target": {
+    "type": "",
+    "purpose": "",
+    "framing": "",
+    "expression": "",
+    "pose": "",
+    "scene": ""
+  }
+}

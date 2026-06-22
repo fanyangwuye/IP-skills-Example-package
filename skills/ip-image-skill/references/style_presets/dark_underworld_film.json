@@ -1,0 +1,32 @@
+{
+  "style_direction": "dark underworld business fantasy with realistic film texture, restrained horror, and premium character presence",
+  "primary_palette": "charcoal black, worn metal, cold green-blue shadow, muted red underworld glow, old-gold accents",
+  "positive_prompt_fragments": [
+    "realistic film still texture",
+    "restrained supernatural atmosphere",
+    "specific wardrobe materials",
+    "subtle menace",
+    "low-key dramatic lighting",
+    "grounded actor-like face"
+  ],
+  "realism_constraints": [
+    "keep supernatural elements in the environment, not on the main human face",
+    "keep the character believable as a short-drama lead",
+    "use imperfect skin texture and natural facial detail",
+    "avoid glossy fantasy poster polish"
+  ],
+  "forbidden_elements": [
+    "monster-like main character",
+    "overdesigned fantasy armor",
+    "clownish horror makeup",
+    "plastic idol face",
+    "random glowing tattoos"
+  ],
+  "negative_prompt_fragments": [
+    "waxy skin",
+    "CGI face",
+    "overly symmetrical beauty",
+    "cartoon horror",
+    "generic demon costume"
+  ]
+}

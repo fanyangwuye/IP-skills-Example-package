@@ -1,0 +1,33 @@
+{
+  "mode": "single_image_refine",
+  "ip_id": "demo_ip",
+  "src_path": "SOURCE_IMAGE_PATH_HERE",
+  "asset_kind": "single_character_image_refinement",
+  "creative_goal": "Refine an existing character image instead of regenerating from scratch",
+  "character_name": "Lin Yue",
+  "interaction_notes": [
+    "keep the identity stable and recognisable",
+    "make the outfit more refined and premium"
+  ],
+  "conversation_turns": [
+    {
+      "role": "user",
+      "content": "make her expression slightly calmer and more self-possessed"
+    },
+    {
+      "role": "user",
+      "content": "keep the same face and scene layout"
+    },
+    {
+      "role": "user",
+      "content": "make the costume deep blue with subtle metallic detail"
+    }
+  ],
+  "scene": "rainy neon alley",
+  "camera": "waist-up portrait",
+  "refine_level": "low",
+  "preserve_identity": true,
+  "size": "3:4",
+  "filename": "single_image_refined_example.jpg",
+  "output_dir": "OUTPUT_DIR_HERE"
+}

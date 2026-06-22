@@ -1,0 +1,72 @@
+{
+  "mode": "build_blueprint",
+  "ip_id": "demo_ip",
+  "target": "short_drama",
+  "commercial_use": true,
+  "title": "Rainy Convenience Store",
+  "source_text": "A rainy night, a convenience store, an unexpected meeting, and a quiet ending when the rain finally softens.",
+  "creative_direction": {
+    "tone": "mysterious to warm release",
+    "viewpoint": "lead heroine",
+    "adaptation_strength": "faithful but cinematic",
+    "audience": "short drama audience"
+  },
+  "total_duration_sec": 30,
+  "character_sheet": {
+    "character_profile": {
+      "identity": {
+        "name": "Lin Yue",
+        "role": "lead heroine"
+      }
+    },
+    "identity_anchors": [
+      "stable face identity"
+    ],
+    "continuity_rules": [
+      "future assets must preserve the same identity"
+    ],
+    "interaction_state": {
+      "locked_traits": [
+        "face"
+      ]
+    }
+  },
+  "asset_bundle": [],
+  "scene_cards": [
+    {
+      "visual": "Rainy street outside a convenience store, heroine seen from behind under neon.",
+      "voiceover": "That night, the rain felt like it could hide the whole city.",
+      "music_cue": "low suspense bed with rain texture",
+      "asset_goal": {
+        "type": "hero portrait",
+        "purpose": "opening key frame",
+        "expression": "quiet vigilance",
+        "scene": "rainy convenience store exterior"
+      }
+    },
+    {
+      "visual": "Inside the store, cold and warm light split two figures across the shelf.",
+      "voiceover": "I did not expect to meet him there.",
+      "music_cue": "tension rises slightly",
+      "asset_goal": {
+        "type": "two-character scene",
+        "purpose": "tension beat",
+        "expression": "surprised restraint",
+        "scene": "store interior with cold warm contrast"
+      }
+    },
+    {
+      "visual": "They walk out together as the rain thins and the sky starts to lift.",
+      "voiceover": "Some meetings are already an answer by themselves.",
+      "music_cue": "release and lift",
+      "asset_goal": {
+        "type": "ending scene",
+        "purpose": "release beat",
+        "expression": "soft relief",
+        "scene": "rain easing after the encounter"
+      }
+    }
+  ],
+  "output_dir": "OUTPUT_DIR_HERE"
+}
+

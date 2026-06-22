@@ -1,0 +1,26 @@
+{
+  "mode": "text_to_image",
+  "ip_id": "demo_ip",
+  "asset_kind": "character_portrait",
+  "creative_goal": "Create the lead heroine from the novel excerpt as a premium key visual",
+  "character_name": "Lin Yue",
+  "character_brief": "A calm, intelligent young woman with hidden resolve",
+  "source_text": "Lin Yue stepped out of the rainy station in a dark coat, calm but alert, with cold neon reflecting across the wet pavement.",
+  "appearance_traits": [
+    "East Asian",
+    "long dark hair",
+    "clear facial structure",
+    "quiet intensity"
+  ],
+  "scene": "rainy station exit at night with neon reflections",
+  "emotion": "calm vigilance",
+  "camera": "cinematic medium close-up portrait",
+  "lighting": "cool rain-blue atmosphere with controlled magenta neon accents",
+  "composition": "single character focus, clean silhouette, premium poster-like framing",
+  "quality": "high",
+  "size": "3:4",
+  "resolution": "2K",
+  "filename": "novel_character_example.jpg",
+  "output_dir": "OUTPUT_DIR_HERE"
+}
+

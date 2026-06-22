@@ -1,0 +1,31 @@
+{
+  "style_direction": "production character design board, clean asset readability, stable identity across views",
+  "primary_palette": "neutral presentation background, readable costume colors, controlled accent colors",
+  "positive_prompt_fragments": [
+    "same actor-like face",
+    "clear silhouette",
+    "visible wardrobe construction",
+    "front three-quarter character view",
+    "production reference quality",
+    "consistent proportions"
+  ],
+  "realism_constraints": [
+    "prioritize readable design over dramatic poster lighting",
+    "avoid heavy background clutter",
+    "keep material details visible",
+    "do not hide costume structure in shadow"
+  ],
+  "forbidden_elements": [
+    "busy cinematic background",
+    "unclear silhouette",
+    "face drift",
+    "excessive lens flare",
+    "poster-only composition"
+  ],
+  "negative_prompt_fragments": [
+    "blurry costume details",
+    "inconsistent face",
+    "overly dramatic shadows",
+    "unreadable outfit"
+  ]
+}

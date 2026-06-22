@@ -1,0 +1,166 @@
+{
+  "mode": "ip_asset_pack",
+  "ip_id": "huangquan_fandian",
+  "style_preset": "realistic_short_drama",
+  "quality": "high",
+  "resolution": "2K",
+  "characters": [
+    {
+      "character_id": "lin_que",
+      "character_profile": {
+        "identity": {
+          "name": "Lin Que",
+          "role": "Huangquan Hotel owner / transmigrator",
+          "age_range": "mid 20s to early 30s",
+          "gender_presentation": "male"
+        },
+        "appearance": {
+          "ethnicity": "East Asian",
+          "face_shape": "lean refined structure with a slightly sharp jawline",
+          "eyes": "calm observant dark eyes with hidden pressure",
+          "hair": "black textured hair with natural layers",
+          "body_type": "tall lean build"
+        },
+        "styling": {
+          "wardrobe": "wearable dark suit with subtle old-gold details, refined hotel-owner styling",
+          "palette": "black, deep blue, muted crimson, old gold",
+          "materials": "matte wool, dark leather, subtle metal trim"
+        },
+        "personality": {
+          "temperament": "calm, shrewd, profit-driven, polite on the surface",
+          "aura": "gentle but dangerous owner aura"
+        },
+        "world_context": {
+          "genre": "post-apocalyptic weird-revival business fantasy",
+          "setting": "Huangquan Hotel in a ruined world"
+        }
+      },
+      "identity_anchors": [
+        "same East Asian male actor-like face",
+        "same black hair silhouette",
+        "same calm sharp eye shape",
+        "same dark suit hotel-owner identity"
+      ],
+      "continuity_rules": [
+        "keep him recognisable across all future images",
+        "do not turn him into a monster",
+        "keep supernatural elements around him, not on his face"
+      ],
+      "props": [
+        {
+          "name": "white napkin",
+          "use": "wipes mouth after steak, polite boss detail"
+        },
+        {
+          "name": "red wine glass",
+          "use": "opening scene table prop"
+        },
+        {
+          "name": "menu ledger",
+          "use": "business owner identity prop"
+        }
+      ]
+    },
+    {
+      "character_id": "niu_tou",
+      "character_profile": {
+        "identity": {
+          "name": "Niu Tou",
+          "role": "Huangquan Hotel employee / underworld enforcer",
+          "gender_presentation": "male monstrous humanoid"
+        },
+        "appearance": {
+          "body_type": "towering muscular humanoid body",
+          "face_shape": "bull head with strong horns, restrained horror realism",
+          "skin_tone": "dark rough hide texture"
+        },
+        "styling": {
+          "wardrobe": "dark service-worker uniform mixed with underworld armor apron",
+          "materials": "aged leather, black cloth, worn metal"
+        },
+        "personality": {
+          "aura": "obedient to the boss, intimidating to outsiders"
+        }
+      },
+      "identity_anchors": [
+        "same bull head silhouette",
+        "same tall muscular body",
+        "same hotel employee uniform"
+      ],
+      "continuity_rules": [
+        "scary but not cartoonish",
+        "keep realistic creature-suit texture for short-drama production"
+      ],
+      "props": [
+        {
+          "name": "large cleaver",
+          "use": "kitchen and processing factory identity"
+        },
+        {
+          "name": "metal tray with skewers",
+          "use": "Huangquan barbecue service prop"
+        }
+      ]
+    },
+    {
+      "character_id": "su_lan",
+      "character_profile": {
+        "identity": {
+          "name": "Su Lan",
+          "role": "female C-level ghost controller from Shenzhou Base",
+          "age_range": "mid 20s",
+          "gender_presentation": "female"
+        },
+        "appearance": {
+          "ethnicity": "East Asian",
+          "eyes": "alert tired eyes",
+          "hair": "practical dark tied hair",
+          "body_type": "lean survival build"
+        },
+        "styling": {
+          "wardrobe": "worn tactical survival jacket, dust-stained base gear",
+          "palette": "dust gray, dark green, worn black"
+        },
+        "personality": {
+          "aura": "brave, anxious, observant"
+        }
+      },
+      "identity_anchors": [
+        "same practical female survivor silhouette",
+        "same tired alert eyes",
+        "same tactical base gear"
+      ],
+      "props": [
+        {
+          "name": "energy detector",
+          "use": "detects ghost energy"
+        },
+        {
+          "name": "survival backpack",
+          "use": "base expedition equipment"
+        }
+      ]
+    }
+  ],
+  "scenes": [
+    {
+      "scene_id": "huangquan_hotel_exterior_720",
+      "name": "Huangquan Hotel exterior",
+      "description": "a lonely neon-lit Huangquan Hotel standing in a ruined wasteland at night, wet ground, distant black fog, weak red signage, abandoned road and survival atmosphere",
+      "purpose": "720 panorama environment reference for camera movement and scene generation",
+      "lighting": "night, weak neon signage, wet reflections, distant fog",
+      "size": "21:9",
+      "resolution": "4K"
+    },
+    {
+      "scene_id": "yanwang_hall_interior_720",
+      "name": "Yanwang Hall interior",
+      "description": "the transformed underworld hall inside Huangquan Hotel, massive stone columns, black chains, faint red underworld glow, black mist, service counter elements subtly fused with ancient hall architecture",
+      "purpose": "720 panorama environment reference for underworld power-state scenes",
+      "lighting": "dark hall contrast, low red glow, cold rim light",
+      "size": "21:9",
+      "resolution": "4K"
+    }
+  ],
+  "output_dir": "OUTPUT_DIR_HERE"
+}

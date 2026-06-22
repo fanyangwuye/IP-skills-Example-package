@@ -1,0 +1,58 @@
+{
+  "mode": "character_create",
+  "ip_id": "huangquan_fandian",
+  "style_preset": "realistic_short_drama",
+  "creation_stage": "character_creation",
+  "current_focus": "lock a realistic actor-like lead identity before making asset variations",
+  "character_profile": {
+    "identity": {
+      "name": "Lin Que",
+      "role": "underworld hotel owner / transmigrator",
+      "age_range": "mid 20s to early 30s",
+      "gender_presentation": "male"
+    },
+    "appearance": {
+      "ethnicity": "East Asian",
+      "face_shape": "lean refined structure with a slightly sharp jawline",
+      "eyes": "calm observant dark eyes",
+      "hair": "black textured hair with natural layers",
+      "body_type": "tall lean build"
+    },
+    "styling": {
+      "wardrobe": "wearable dark suit with subtle old-gold detail, not fantasy armor",
+      "palette": "black, deep blue, muted crimson, old gold",
+      "materials": "matte wool, dark leather, subtle metal trim"
+    },
+    "personality": {
+      "temperament": "calm, shrewd, profit-driven, polite on the surface",
+      "aura": "gentle but dangerous owner aura"
+    },
+    "world_context": {
+      "genre": "post-apocalyptic weird-revival business fantasy",
+      "setting": "neon-lit Huangquan Hotel in a ruined world"
+    }
+  },
+  "identity_anchors": [
+    "same East Asian male actor-like face",
+    "same calm sharp eye shape",
+    "same black hair silhouette",
+    "same dark suit owner identity"
+  ],
+  "continuity_rules": [
+    "keep him recognisable across future assets",
+    "do not turn him into a monster",
+    "do not drift into glossy idol fantasy styling"
+  ],
+  "asset_target": {
+    "type": "hero portrait",
+    "purpose": "realistic lead character key visual",
+    "framing": "waist-up cinematic portrait",
+    "expression": "polite faint smile with hidden pressure",
+    "scene": "rainy neon hotel entrance"
+  },
+  "quality": "high",
+  "size": "3:4",
+  "resolution": "2K",
+  "filename": "character_create_style_preset_example.jpg",
+  "output_dir": "OUTPUT_DIR_HERE"
+}

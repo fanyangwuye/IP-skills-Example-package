@@ -1,0 +1,11 @@
+{
+  "mode": "grid_enhance",
+  "ip_id": "demo_ip",
+  "src_path": "GRID_IMAGE_PATH_HERE",
+  "grid": 4,
+  "enhance_level": "low",
+  "prompt": "Preserve the exact subject, composition, and scene content. Only improve clarity and finish quality.",
+  "size": "3:4",
+  "output_dir": "OUTPUT_DIR_HERE"
+}
+

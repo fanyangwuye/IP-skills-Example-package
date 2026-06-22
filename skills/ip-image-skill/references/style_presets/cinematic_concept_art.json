@@ -1,0 +1,29 @@
+{
+  "style_direction": "cinematic premium concept art with strong atmosphere and polished visual drama",
+  "primary_palette": "controlled cinematic palette with clear key color and secondary accent",
+  "positive_prompt_fragments": [
+    "premium key visual",
+    "dramatic composition",
+    "high material detail",
+    "controlled lighting",
+    "clean silhouette",
+    "cinematic depth"
+  ],
+  "realism_constraints": [
+    "keep character identity stable",
+    "avoid excessive AI gloss",
+    "balance polish with believable facial texture"
+  ],
+  "forbidden_elements": [
+    "duplicate face",
+    "deformed hands",
+    "messy background clutter",
+    "random ornamental overload"
+  ],
+  "negative_prompt_fragments": [
+    "low detail",
+    "blurry eyes",
+    "plastic skin",
+    "overdecorated costume"
+  ]
+}

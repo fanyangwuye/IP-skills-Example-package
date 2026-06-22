@@ -1,0 +1,76 @@
+{
+  "mode": "character_asset_bundle",
+  "ip_id": "demo_ip",
+  "creation_stage": "character_asset_bundle",
+  "current_focus": "generate a small consistent starter asset pack for the heroine",
+  "character_profile": {
+    "identity": {
+      "name": "Lin Yue",
+      "role": "lead heroine",
+      "age_range": "early 20s"
+    },
+    "appearance": {
+      "ethnicity": "East Asian",
+      "hair": "long dark hair",
+      "face_shape": "clean refined structure"
+    },
+    "styling": {
+      "wardrobe": "dark refined coat with subtle metallic detailing",
+      "palette": "deep blue, rain blue, restrained magenta accents"
+    },
+    "personality": {
+      "aura": "calm vigilance",
+      "keywords": ["intelligent", "self-possessed", "quiet intensity"]
+    },
+    "world_context": {
+      "genre": "urban cinematic fantasy",
+      "setting": "rainy neon city"
+    }
+  },
+  "identity_anchors": [
+    "stable face identity",
+    "same eye shape",
+    "same long dark hair silhouette"
+  ],
+  "continuity_rules": [
+    "do not drift from the established identity",
+    "keep the heroine recognisable across future assets"
+  ],
+  "interaction_state": {
+    "locked_traits": ["face", "hair silhouette"],
+    "latest_user_direction": "build a compact starter package for downstream use"
+  },
+  "quality": "high",
+  "size": "3:4",
+  "resolution": "2K",
+  "asset_bundle": [
+    {
+      "label": "hero_portrait",
+      "filename": "hero_portrait.jpg",
+      "asset_target": {
+        "type": "hero portrait",
+        "purpose": "key visual",
+        "framing": "waist-up cinematic portrait",
+        "expression": "calm but alert",
+        "scene": "rainy station exit with neon reflections"
+      },
+      "camera": "waist-up cinematic portrait",
+      "lighting": "cool rain-blue atmosphere with controlled magenta neon accents"
+    },
+    {
+      "label": "full_body_costume",
+      "filename": "full_body_costume.jpg",
+      "asset_target": {
+        "type": "full body costume sheet",
+        "purpose": "costume direction",
+        "framing": "full body front view",
+        "expression": "neutral poised",
+        "scene": "clean presentation backdrop"
+      },
+      "camera": "full body front view",
+      "composition": "full silhouette visibility with clear clothing details",
+      "lighting": "clean studio-like even lighting"
+    }
+  ],
+  "output_dir": "OUTPUT_DIR_HERE"
+}

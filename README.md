@@ -1,0 +1,60 @@
+# IP Skills
+
+This repository contains agent-facing skills for IP creation workflows.
+
+Current scope:
+
+- `ip-image-skill`: image generation, grid splitting, and image enhancement
+- `ip-copy-skill`: deterministic content planning, blueprint validation, and image handoff building
+
+Design goals:
+
+- No UI layer
+- Agent-callable modules and scripts
+- Provider-configurable via environment variables
+- All generated outputs stored under the configured output root
+
+## Repository Layout
+
+- `skills/ip-image-skill/`: image generation, character sheets, asset packs, grid split/enhance
+- `skills/ip-copy-skill/`: copy planning, blueprint validation, image handoff building
+- `scripts/`: cross-skill helper scripts
+- `tests/`: repository-level integration tests
+- `docs/`: workflow notes
+- `outputs/`: local generated artifacts, ignored by Git
+- `logs/`: local logs, ignored by Git
+
+## Install
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+Host agents such as OpenClaw, Claude, or Codex should be configured to read the relevant `SKILL.md` files under `skills/` and run the Python entrypoints described there.
+
+## Environment
+
+Copy `.env.example` to your local environment manager or shell configuration. Do not commit real keys.
+
+Required for live image generation:
+
+```text
+IMAGE_PROVIDER=poyo
+IMAGE_API_KEY=your_provider_key
+IMAGE_API_BASE=https://api.poyo.ai
+IMAGE_GEN_MODEL=gpt-image-2
+IMAGE_EDIT_MODEL=gpt-image-2-edit
+IMAGE_OUTPUT_ROOT=E:\Plans for 2026\ip-skills\outputs
+```
+
+## Quick Checks
+
+Run local tests without spending image-generation credits:
+
+```bash
+python skills/ip-image-skill/tests/test_asset_pack.py
+python skills/ip-image-skill/tests/test_prompt_builder.py
+python skills/ip-image-skill/tests/test_split_grid.py
+python skills/ip-copy-skill/tests/test_copy_skill.py
+python tests/test_copy_to_image_bridge.py
+```

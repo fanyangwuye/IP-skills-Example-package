@@ -1,0 +1,11 @@
+{
+  "mode": "text_to_image",
+  "ip_id": "demo_ip",
+  "prompt": "A neon alley portrait with wet pavement reflections and a confident calm expression.",
+  "quality": "high",
+  "size": "3:4",
+  "resolution": "2K",
+  "filename": "example_text_to_image.jpg",
+  "output_dir": "OUTPUT_DIR_HERE"
+}
+

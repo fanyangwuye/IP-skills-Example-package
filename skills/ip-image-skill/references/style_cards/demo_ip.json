@@ -1,0 +1,28 @@
+{
+  "style_direction": "cinematic premium character concept art with stable identity",
+  "primary_palette": "rain blue, neon magenta, soft amber highlights",
+  "character_anchors": [
+    "young East Asian heroine",
+    "clean facial structure",
+    "long dark hair",
+    "refined modern fantasy styling"
+  ],
+  "forbidden_elements": [
+    "extra fingers",
+    "distorted anatomy",
+    "duplicate face",
+    "messy background clutter"
+  ],
+  "positive_prompt_fragments": [
+    "consistent face",
+    "clean silhouette",
+    "high material detail",
+    "controlled dramatic lighting"
+  ],
+  "negative_prompt_fragments": [
+    "low detail",
+    "deformed hands",
+    "blurry eyes"
+  ]
+}
+

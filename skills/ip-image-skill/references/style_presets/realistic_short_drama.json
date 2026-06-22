@@ -1,0 +1,33 @@
+{
+  "style_direction": "realistic short-drama film still character design, actor-like presence, grounded modern production look",
+  "primary_palette": "natural skin tones, restrained wardrobe color, real location lighting, limited stylized neon",
+  "positive_prompt_fragments": [
+    "realistic actor portrait",
+    "natural skin texture",
+    "subtle asymmetry",
+    "real-world light falloff",
+    "candid facial expression",
+    "production still realism"
+  ],
+  "realism_constraints": [
+    "avoid porcelain skin",
+    "avoid over-retouched beauty lighting",
+    "avoid doll-like facial symmetry",
+    "avoid generic AI fantasy polish",
+    "keep clothing wearable and story-specific"
+  ],
+  "forbidden_elements": [
+    "plastic skin",
+    "anime-real hybrid face",
+    "over-smooth facial features",
+    "generic influencer styling",
+    "excessive costume drama styling"
+  ],
+  "negative_prompt_fragments": [
+    "AI-looking face",
+    "waxy skin",
+    "oversharpened eyes",
+    "perfectly symmetrical face",
+    "generic fantasy armor"
+  ]
+}

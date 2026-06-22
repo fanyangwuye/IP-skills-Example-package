@@ -1,0 +1,35 @@
+{
+  "character_profile": {
+    "appearance": {
+      "hair": "long dark hair with a clean silhouette"
+    },
+    "styling": {
+      "wardrobe": "deep blue refined coat with subtle metallic detail"
+    },
+    "personality": {
+      "aura": "calm vigilance"
+    }
+  },
+  "identity_anchors": [
+    "same eye shape",
+    "same hair silhouette"
+  ],
+  "continuity_rules": [
+    "future assets must preserve the same identity"
+  ],
+  "locked_traits": [
+    "hair silhouette",
+    "face"
+  ],
+  "latest_user_direction": "keep her restrained and premium, not flashy",
+  "decision_log": [
+    "Locked the heroine's face and hair silhouette",
+    "Moved wardrobe direction toward deep blue premium styling"
+  ],
+  "resolved_questions": [
+    "角色头发最核心的特征是什么？"
+  ],
+  "pending_questions": [
+    "这一轮你想先生成什么资产？例如头像、半身、全身、服装图。"
+  ]
+}

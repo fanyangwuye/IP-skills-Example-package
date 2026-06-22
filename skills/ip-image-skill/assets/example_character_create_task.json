@@ -1,0 +1,55 @@
+{
+  "mode": "character_create",
+  "ip_id": "demo_ip",
+  "creation_stage": "character_creation",
+  "current_focus": "lock the main heroine identity and create a premium portrait asset",
+  "character_profile": {
+    "identity": {
+      "name": "Lin Yue",
+      "role": "lead heroine",
+      "age_range": "early 20s"
+    },
+    "appearance": {
+      "ethnicity": "East Asian",
+      "hair": "long dark hair",
+      "face_shape": "clean refined structure"
+    },
+    "styling": {
+      "wardrobe": "dark refined coat with subtle metallic detailing",
+      "palette": "deep blue, rain blue, restrained magenta accents"
+    },
+    "personality": {
+      "aura": "calm vigilance",
+      "keywords": ["intelligent", "self-possessed", "quiet intensity"]
+    },
+    "world_context": {
+      "genre": "urban cinematic fantasy",
+      "setting": "rainy neon city"
+    }
+  },
+  "identity_anchors": [
+    "stable face identity",
+    "same eye shape",
+    "same long dark hair silhouette"
+  ],
+  "continuity_rules": [
+    "do not drift from the established identity",
+    "keep the heroine recognisable across future assets"
+  ],
+  "interaction_state": {
+    "locked_traits": ["face", "hair silhouette"],
+    "latest_user_direction": "make the costume feel more premium without losing restraint"
+  },
+  "asset_target": {
+    "type": "hero portrait",
+    "purpose": "key visual",
+    "framing": "waist-up cinematic portrait",
+    "expression": "calm but alert",
+    "scene": "rainy station exit with neon reflections"
+  },
+  "quality": "high",
+  "size": "3:4",
+  "resolution": "2K",
+  "filename": "character_create_example.jpg",
+  "output_dir": "OUTPUT_DIR_HERE"
+}
