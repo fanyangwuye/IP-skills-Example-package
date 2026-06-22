@@ -14,6 +14,10 @@ Design goals:
 - Provider-configurable via environment variables
 - All generated outputs stored under the configured output root
 
+## Copyright And Usage
+
+This repository is private by default. See `NOTICE.md` before redistributing, publishing, or using generated outputs commercially.
+
 ## Repository Layout
 
 - `skills/ip-image-skill/`: image generation, character sheets, asset packs, grid split/enhance
