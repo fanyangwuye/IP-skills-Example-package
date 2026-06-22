@@ -13,6 +13,7 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 - Convert source copy into a multi-character `ip_asset_pack` for character sheets, props, and panorama scenes
 - Run interactive adaptation planning across conversation turns
 - Build adaptation scene cards for downstream blueprint creation
+- Build structured short-drama script drafts from scene cards or adaptation state
 - Build a minimal content brain layer before image generation
 
 ## Tool Boundaries
@@ -55,6 +56,13 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 3. Each card includes visual, voiceover, subtitle, music cue, duration, and image `asset_goal`
 4. The result can be passed into `build_blueprint`
 
+### Flow B3: Script Draft
+
+1. Accept `scene_cards` or an `adaptation_state`
+2. If scene cards are missing, build them from the adaptation state
+3. Return a structured `script_draft` with scenes, action, voiceover, dialogue, subtitles, music cues, timing, and asset goals
+4. Use this as a deterministic script scaffold before optional model-based prose/dialogue polishing
+
 ### Flow C: Character/Image Handoff
 
 1. Accept a character sheet and optional asset bundle
@@ -72,7 +80,7 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 
 - `scripts/license_gate.py`: deterministic license validation
 - `scripts/blueprint_validate.py`: deterministic blueprint validation
-- `scripts/copy_skill.py`: task entrypoint, interactive adaptation state, scene card builder, blueprint builder, handoff builder, and IP asset pack builder
+- `scripts/copy_skill.py`: task entrypoint, interactive adaptation state, scene card builder, script draft builder, blueprint builder, handoff builder, and IP asset pack builder
 
 ## References
 

@@ -18,6 +18,7 @@
 - 蓝图校验
 - 互动式二创状态沉淀
 - adaptation_state → scene_cards
+- scene_cards / adaptation_state → script_draft
 - scene cards → blueprint
 - character_sheet / asset_bundle / image_tasks handoff
 - source_text / characters / scenes → ip_asset_pack
@@ -75,3 +76,22 @@
 `聊天式二创 → adaptation_state → scene_cards → blueprint → image_handoff`
 
 当前版本重点是结构控制和稳定交接，不冒充最终文学化剧本。后续可以在这个结构上接入大模型进行对白润色、冲突强化和完整剧本生成。
+
+## 剧本草稿
+
+`build_script_draft` 用来从 `scene_cards` 或 `adaptation_state` 生成结构化短剧草稿：
+
+- 场次编号
+- 起止时间
+- 场景地点
+- 画面描述
+- 动作描述
+- 旁白
+- 角色对白
+- 字幕
+- 音乐提示
+- 转场
+- 图片资产目标
+
+它的定位是“可控剧本骨架”，不是最终文学化对白。
+后续如果接写作模型，应基于 `script_draft` 做对白润色、冲突强化、节奏压缩，而不是绕过结构直接自由发挥。

@@ -1,0 +1,49 @@
+{
+  "mode": "build_script_draft",
+  "title": "黄泉饭店",
+  "n_scene_cards": 5,
+  "total_duration_sec": 45,
+  "adaptation_state": {
+    "title": "黄泉饭店",
+    "source_text": "林缺在雨夜回到黄泉饭店，牛头员工端着托盘出现，苏澜用探测器发现大厅异常。",
+    "creative_direction": {
+      "target": "short_drama",
+      "format": "vertical short drama",
+      "tone": "悬疑诡异、强钩子、短剧节奏",
+      "viewpoint": "男主视角",
+      "audience": "短视频观众"
+    },
+    "characters": [
+      {
+        "name": "林缺",
+        "role": "黄泉饭店老板"
+      },
+      {
+        "name": "牛头",
+        "role": "怪物员工"
+      },
+      {
+        "name": "苏澜",
+        "role": "异常调查者"
+      }
+    ],
+    "scenes": [
+      {
+        "name": "黄泉饭店大厅",
+        "description": "黑暗饭店大厅，红色幽光和服务台，空间正在变成阎王殿"
+      }
+    ],
+    "story_beats": [
+      "开场前三秒，饭店大厅突然变成阎王殿",
+      "牛头端着托盘挡住苏澜的退路",
+      "苏澜的探测器显示能量暴涨",
+      "林缺发现菜单账本能改变饭店规则",
+      "红色幽光里，真正的客人还没有现身"
+    ],
+    "constraints": [
+      "避免血腥描写，用氛围和悬念替代直白暴力",
+      "输出中文对白、旁白和字幕"
+    ]
+  },
+  "output_dir": "OUTPUT_DIR_HERE"
+}

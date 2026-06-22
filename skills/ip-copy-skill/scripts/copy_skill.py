@@ -24,13 +24,15 @@ def run_task(task: Dict) -> Dict:
         return _run_update_adaptation_state(task, output_dir)
     if mode == "build_adaptation_scene_cards":
         return _run_build_adaptation_scene_cards(task, output_dir)
+    if mode == "build_script_draft":
+        return _run_build_script_draft(task, output_dir)
     if mode == "build_ip_asset_pack":
         return _run_build_ip_asset_pack(task, output_dir)
     if mode == "build_character_handoff":
         return _run_build_character_handoff(task, output_dir)
     if mode == "build_blueprint":
         return _run_build_blueprint(task, output_dir)
-    raise ValueError("mode must be one of: check_license, build_blueprint, build_character_handoff, build_ip_asset_pack, update_adaptation_state, build_adaptation_scene_cards")
+    raise ValueError("mode must be one of: check_license, build_blueprint, build_character_handoff, build_ip_asset_pack, update_adaptation_state, build_adaptation_scene_cards, build_script_draft")
 
 
 def _run_check_license(task: Dict) -> Dict:
@@ -106,6 +108,35 @@ def _run_build_adaptation_scene_cards(task: Dict, output_dir: str) -> Dict:
         ],
         "handoff": payload,
         "logs": [f"built {len(scene_cards)} adaptation scene cards"],
+    }
+
+
+def _run_build_script_draft(task: Dict, output_dir: str) -> Dict:
+    scene_cards = task.get("scene_cards") or []
+    state = task.get("adaptation_state") or {}
+    if not scene_cards:
+        if not state:
+            state = _update_adaptation_state(task)
+        scene_cards = _build_adaptation_scene_cards(state, task)
+    script = _build_script_draft(scene_cards, state, task)
+    out_path = os.path.join(output_dir, task.get("script_filename", "script_draft.json"))
+    _write_json(out_path, script)
+    return {
+        "status": "success",
+        "skill": "ip-copy-skill",
+        "mode": "build_script_draft",
+        "task_id": task.get("task_id", "build_script_draft"),
+        "artifacts": [
+            {
+                "type": "json",
+                "path": out_path,
+                "meta": {"kind": "script_draft"},
+            }
+        ],
+        "handoff": {
+            "script_draft": script,
+        },
+        "logs": [f"built script draft with {len(script['scenes'])} scenes"],
     }
 
 
@@ -368,6 +399,97 @@ def _build_adaptation_scene_cards(state: Dict, task: Dict) -> List[Dict]:
             }
         )
     return cards
+
+
+def _build_script_draft(scene_cards: List[Dict], state: Dict, task: Dict) -> Dict:
+    title = task.get("title") or state.get("title", "")
+    direction = state.get("creative_direction", task.get("creative_direction", {})) or {}
+    total_duration = float(task.get("total_duration_sec", sum(float(card.get("duration_sec", 0) or 0) for card in scene_cards) or 30))
+    characters = state.get("characters", task.get("characters", [])) or []
+    constraints = state.get("constraints", task.get("constraints", [])) or []
+
+    scenes = []
+    start = 0.0
+    for index, card in enumerate(scene_cards, start=1):
+        duration = float(card.get("duration_sec", 0) or (total_duration / max(len(scene_cards), 1)))
+        end = round(start + duration, 3)
+        dialogue = _dialogue_from_card(card, characters, index)
+        scene = {
+            "scene_no": index,
+            "title": card.get("asset_goal", {}).get("scene") or f"第{index}场",
+            "start_sec": round(start, 3),
+            "end_sec": end,
+            "location": card.get("asset_goal", {}).get("scene", ""),
+            "visual": card.get("visual", ""),
+            "action": _action_from_visual(card.get("visual", "")),
+            "voiceover": card.get("voiceover", ""),
+            "dialogue": dialogue,
+            "subtitle": card.get("subtitle", card.get("voiceover", "")),
+            "music_cue": card.get("music_cue", ""),
+            "transition": card.get("transition", "cut"),
+            "asset_goal": card.get("asset_goal", {}),
+        }
+        scenes.append(scene)
+        start = end
+
+    if scenes:
+        scenes[-1]["end_sec"] = total_duration
+
+    return {
+        "script_id": task.get("script_id", f"{_safe_label(title or 'adaptation')}_script_draft"),
+        "title": title,
+        "format": direction.get("format", task.get("format", "vertical short drama")),
+        "target": direction.get("target", task.get("target", "short_drama")),
+        "tone": direction.get("tone", ""),
+        "viewpoint": direction.get("viewpoint", ""),
+        "audience": direction.get("audience", ""),
+        "total_duration_sec": total_duration,
+        "source_text": state.get("source_text", task.get("source_text", "")),
+        "constraints": constraints,
+        "characters": characters,
+        "scenes": scenes,
+        "handoff": {
+            "scene_cards": scene_cards,
+            "can_build_blueprint": True,
+        },
+    }
+
+
+def _dialogue_from_card(card: Dict, characters: List[Dict], index: int) -> List[Dict]:
+    names = [item.get("name") for item in characters if item.get("name")]
+    lead = names[0] if names else "主角"
+    support = names[1] if len(names) > 1 else "对手"
+    beat = card.get("voiceover") or card.get("visual", "")
+    if index == 1:
+        return [
+            {"speaker": lead, "line": "这里不对劲。"},
+            {"speaker": support, "line": "现在才发现，已经晚了。"},
+        ]
+    if "反转" in beat or "规则" in beat or "改变" in beat:
+        return [
+            {"speaker": lead, "line": "规则不是用来遵守的，是用来被我改写的。"},
+            {"speaker": support, "line": "你到底是谁？"},
+        ]
+    return [
+        {"speaker": lead, "line": _short_dialogue_line(beat)},
+    ]
+
+
+def _short_dialogue_line(text: str) -> str:
+    cleaned = re.sub(r"^[一二三四五六七八九十]+开始，?", "", str(text or "").strip())
+    cleaned = cleaned.replace("一开始，", "").strip()
+    if not cleaned:
+        return "继续。"
+    if len(cleaned) > 24:
+        cleaned = cleaned[:24].rstrip("，。；、 ") + "。"
+    return cleaned
+
+
+def _action_from_visual(visual: str) -> str:
+    text = str(visual or "").strip()
+    if len(text) <= 80:
+        return text
+    return text[:79].rstrip("，。；、 ") + "。"
 
 
 def copy_dict(value: Dict) -> Dict:

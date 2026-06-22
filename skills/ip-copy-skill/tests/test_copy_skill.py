@@ -273,6 +273,64 @@ def test_build_adaptation_scene_cards_from_state():
         assert os.path.exists(os.path.join(output_dir, "adaptation_scene_cards.json"))
 
 
+def test_build_script_draft_from_scene_cards():
+    with tempfile.TemporaryDirectory() as output_dir:
+        scene_cards = [
+            {
+                "visual": "黄泉饭店大厅突然变成阎王殿，林缺站在服务台后。",
+                "voiceover": "开场前三秒，饭店大厅突然变成阎王殿",
+                "subtitle": "饭店大厅突然变成阎王殿",
+                "music_cue": "低频悬念起势",
+                "duration_sec": 8,
+                "asset_goal": {"scene": "黄泉饭店大厅", "type": "adapted scene key frame"},
+            },
+            {
+                "visual": "牛头端着托盘挡住苏澜的退路。",
+                "voiceover": "牛头端着托盘挡住苏澜的退路",
+                "duration_sec": 8,
+                "asset_goal": {"scene": "黄泉饭店大厅", "type": "adapted scene key frame"},
+            },
+        ]
+        task = {
+            "mode": "build_script_draft",
+            "title": "黄泉饭店",
+            "scene_cards": scene_cards,
+            "characters": [{"name": "林缺"}, {"name": "牛头"}, {"name": "苏澜"}],
+            "total_duration_sec": 16,
+            "output_dir": output_dir,
+        }
+        result = run_task(task)
+        script = result["handoff"]["script_draft"]
+        assert script["title"] == "黄泉饭店"
+        assert len(script["scenes"]) == 2
+        assert script["scenes"][0]["dialogue"]
+        assert script["scenes"][0]["start_sec"] == 0
+        assert script["scenes"][-1]["end_sec"] == 16
+        assert script["handoff"]["can_build_blueprint"] is True
+        assert os.path.exists(os.path.join(output_dir, "script_draft.json"))
+
+
+def test_build_script_draft_from_adaptation_state():
+    with tempfile.TemporaryDirectory() as output_dir:
+        task = {
+            "mode": "build_script_draft",
+            "title": "黄泉饭店",
+            "source_text": "林缺回到黄泉饭店。牛头出现。苏澜发现异常。",
+            "conversation_turns": [
+                {"role": "user", "content": "做成竖屏短剧，悬疑诡异，中文对白。"}
+            ],
+            "n_scene_cards": 3,
+            "total_duration_sec": 30,
+            "output_dir": output_dir,
+        }
+        result = run_task(task)
+        script = result["handoff"]["script_draft"]
+        assert len(script["scenes"]) == 3
+        assert script["target"] == "short_drama"
+        assert script["scenes"][0]["voiceover"]
+        assert script["handoff"]["scene_cards"]
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_") and callable(fn):
