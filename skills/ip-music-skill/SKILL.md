@@ -68,7 +68,7 @@ This flow is local and does not spend API credits.
 2. Build PoYo/Suno input
 3. Submit `/api/generate/submit`
 4. Poll `/api/generate/detail/music`
-5. Download the first returned audio into `output_dir`
+5. Download all returned audio variants into `output_dir` by default
 6. Return audio IDs for downstream remixing
 
 ### Flow C: Remix / Edit / Split
@@ -110,6 +110,7 @@ For uploaded/external audio remix modes, pass either `audio_url` or `audio_path`
 - Manual CLI sample: `python music_cli.py generate --prompt "..." --out demo.mp3`
 - Generated-track stems: `python music_cli.py stems --task-id TASK --audio-id AUDIO --out-dir ./stems`
 - External-audio split: call `run_task` with `audio_url` or local `audio_path`; local WAV/MP3 will be wrapped into an MP4 proxy automatically.
+- Audio variants: live audio modes download every returned variant by default, using `_variant_02`, `_variant_03` suffixes. Set `download_all: false` to download only the first variant.
 
 ## Handoff Contract
 
@@ -130,4 +131,4 @@ Each music task can be passed back into `run_task` for live generation after set
 - `upload_extend_audio` extends external uploaded audio and needs `audio_path` or `audio_url`.
 - `upload_separate_vocals` is for external user audio and needs `audio_path` or `audio_url`.
 - Local WAV/MP3 upload requires ffmpeg. The generated MP4 proxy is kept in `output_dir` by default for traceability.
-- Results URLs can expire; download outputs immediately.
+- Result URLs can expire; keep downloaded `local_paths` from the handoff.

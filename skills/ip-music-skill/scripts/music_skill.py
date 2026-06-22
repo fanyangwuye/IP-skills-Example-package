@@ -126,19 +126,26 @@ def _run_live_music_task(
     model = MODEL_BY_MODE[mode]
     filename = task.get("filename") or task.get("output_filename") or _default_filename(mode)
     out_path = os.path.join(output_dir, filename) if _downloads_audio(mode) else None
-    result = client.run_music(model, input_obj, out_path=out_path)
+    result = client.run_music(
+        model,
+        input_obj,
+        out_path=out_path,
+        download_all=bool(task.get("download_all", True)),
+    )
 
     artifacts = []
-    if result.get("local_path"):
+    local_paths = result.get("local_paths") or ([result["local_path"]] if result.get("local_path") else [])
+    for index, local_path in enumerate(local_paths):
         artifacts.append(
             {
                 "type": "audio",
-                "path": result["local_path"],
+                "path": local_path,
                 "meta": {
                     "provider": "poyo",
                     "model": model,
                     "task_id": result.get("task_id"),
-                    "audios": result.get("audios", []),
+                    "audio": (result.get("audios") or [{}])[index] if index < len(result.get("audios", [])) else {},
+                    "variant_index": index + 1,
                 },
             }
         )
@@ -164,10 +171,11 @@ def _run_live_music_task(
         "artifacts": artifacts,
         "handoff": {
             "audios": result.get("audios", []),
+            "local_paths": local_paths,
             "stems": result.get("stems", {}),
             "credits_amount": result.get("credits_amount"),
         },
-        "logs": [f"completed {mode} with model {model}"],
+        "logs": [f"completed {mode} with model {model}", f"downloaded {len(local_paths)} audio file(s)"],
     }
 
 

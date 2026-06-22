@@ -87,20 +87,26 @@ class PoYoMusicClient:
         input_obj: Dict,
         out_path: Optional[str] = None,
         callback_url: Optional[str] = None,
+        download_all: bool = True,
     ) -> Dict:
         task_id = self.submit_music(model, input_obj, callback_url=callback_url)
         data = self.wait_for_music(task_id)
         audios = self.parse_audio_results(data)
         stems = self.parse_stems(data)
         local_path = None
+        local_paths = []
         if out_path and audios:
-            local_path = self.download(audios[0]["audio_url"], out_path)
+            targets = [_variant_path(out_path, index) for index in range(len(audios))] if download_all else [out_path]
+            for audio, target in zip(audios, targets):
+                local_paths.append(self.download(audio["audio_url"], target))
+            local_path = local_paths[0] if local_paths else None
         return {
             "task_id": task_id,
             "audios": audios,
             "stems": stems,
             "credits_amount": data.get("credits_amount"),
             "local_path": local_path,
+            "local_paths": local_paths,
             "raw": data,
         }
 
@@ -313,3 +319,10 @@ def _safe_ascii_stem(stem: str) -> str:
     safe = "".join(ch if ch.isascii() and (ch.isalnum() or ch in ("-", "_")) else "_" for ch in stem)
     safe = safe.strip("_")
     return safe or "audio"
+
+
+def _variant_path(out_path: str, index: int) -> str:
+    if index == 0:
+        return out_path
+    root, ext = os.path.splitext(out_path)
+    return f"{root}_variant_{index + 1:02d}{ext or '.mp3'}"

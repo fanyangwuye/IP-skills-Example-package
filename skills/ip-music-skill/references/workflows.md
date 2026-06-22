@@ -24,8 +24,8 @@ All live modes submit through `POST /api/generate/submit`. Music status uses `GE
 - `stem_split`, `separate_vocals`, `replace_section`, and most `extend_music` work need upstream `task_id` and/or `audio_id`.
 - `add_instrumental`, `add_vocals`, `cover_audio`, `upload_extend_audio`, and `upload_separate_vocals` need a provider-reachable media URL. Pass `audio_url` directly when available.
 - `/api/common/upload/stream` supports images and videos, not pure audio. For local WAV/MP3 `audio_path`, the client automatically wraps the audio into a black-screen MP4 proxy, uploads the MP4, then uses the returned `file_url` as `upload_url`.
-- Generated music result URLs can expire. Download useful results immediately.
-- `generate_music` usually returns multiple variants. The scripts download the first one and keep all returned audio metadata in `handoff.audios`.
+- Generated music result URLs can expire. The scripts download all returned audio variants by default.
+- `generate_music` usually returns multiple variants. Downloaded paths are stored in `handoff.local_paths`; returned metadata remains in `handoff.audios`.
 
 ## Common Chains
 

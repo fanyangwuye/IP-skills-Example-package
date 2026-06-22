@@ -11,7 +11,7 @@ from music_skill import (  # noqa: E402
     run_task,
 )
 from config import MusicProviderConfig  # noqa: E402
-from poyo_music_client import PoYoMusicClient  # noqa: E402
+from poyo_music_client import PoYoMusicClient, _variant_path  # noqa: E402
 
 
 class FakeClient:
@@ -26,8 +26,8 @@ class FakeClient:
     def upload(self, path):
         return self.upload_file(path)
 
-    def run_music(self, model, input_obj, out_path=None):
-        self.calls.append((model, input_obj, out_path))
+    def run_music(self, model, input_obj, out_path=None, download_all=True):
+        self.calls.append((model, input_obj, out_path, download_all))
         result = {
             "task_id": "task_123",
             "audios": [
@@ -36,13 +36,20 @@ class FakeClient:
                     "audio_url": "https://files.example/generated.mp3",
                     "title": "Generated",
                     "duration": 30,
-                }
+                },
+                {
+                    "audio_id": "audio_456",
+                    "audio_url": "https://files.example/generated_2.mp3",
+                    "title": "Generated Alt",
+                    "duration": 42,
+                },
             ],
             "stems": {},
             "credits_amount": 10,
         }
         if out_path:
             result["local_path"] = out_path
+            result["local_paths"] = [out_path, out_path.replace(".mp3", "_variant_02.mp3")]
         return result
 
 
@@ -233,8 +240,11 @@ def test_run_live_music_task_uses_model_map_and_artifact():
         assert result["status"] == "success"
         assert client.calls[0][0] == "generate-music"
         assert client.calls[0][2].endswith("theme.mp3")
+        assert client.calls[0][3] is True
         assert result["artifacts"][0]["type"] == "audio"
+        assert len(result["artifacts"]) == 2
         assert result["handoff"]["audios"][0]["audio_id"] == "audio_123"
+        assert result["handoff"]["local_paths"][1].endswith("theme_variant_02.mp3")
 
 
 class FakeUploadResponse:
@@ -298,6 +308,12 @@ def test_audio_path_upload_wraps_to_mp4_proxy():
         assert post["mime_type"] == "video/mp4"
         assert post["data"]["upload_path"] == "music-audio-proxy"
         assert post["bytes"] == b"mp4!"
+
+
+def test_variant_path_naming():
+    assert _variant_path("song.mp3", 0) == "song.mp3"
+    assert _variant_path("song.mp3", 1) == "song_variant_02.mp3"
+    assert _variant_path("song", 2) == "song_variant_03.mp3"
 
 
 if __name__ == "__main__":
