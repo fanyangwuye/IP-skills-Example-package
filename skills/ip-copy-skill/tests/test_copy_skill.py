@@ -200,6 +200,79 @@ def test_build_ip_asset_pack_keeps_explicit_multi_characters():
         assert pack["scenes"][0]["name"] == "废墟基地入口"
 
 
+def test_update_adaptation_state_from_conversation():
+    with tempfile.TemporaryDirectory() as output_dir:
+        task = {
+            "mode": "update_adaptation_state",
+            "title": "黄泉饭店",
+            "source_text": "林缺在雨夜回到黄泉饭店，牛头员工端着托盘出现，苏澜用探测器发现大厅异常。",
+            "conversation_turns": [
+                {
+                    "role": "user",
+                    "content": "改成竖屏短剧，开头要强钩子，风格悬疑诡异，不要太血腥，中文对白。",
+                }
+            ],
+            "output_dir": output_dir,
+        }
+        result = run_task(task)
+        assert result["status"] == "success"
+        state = result["handoff"]["adaptation_state"]
+        assert state["creative_direction"]["target"] == "short_drama"
+        assert "悬疑诡异" in state["creative_direction"]["tone"]
+        assert any("避免血腥" in item for item in state["constraints"])
+        names = [item["name"] for item in state["characters"]]
+        assert "林缺" in names
+        assert "苏澜" in names
+        roles = {item["name"]: item["role"] for item in state["characters"]}
+        assert roles["苏澜"] == "调查者 / 异常能量探测者"
+        assert roles["林缺"] != "服务人员 / 员工"
+        assert state["story_beats"]
+        assert os.path.exists(os.path.join(output_dir, "adaptation_state.json"))
+
+
+def test_build_adaptation_scene_cards_from_state():
+    with tempfile.TemporaryDirectory() as output_dir:
+        state = {
+            "title": "黄泉饭店",
+            "source_text": "林缺回到黄泉饭店。牛头出现。苏澜发现异常。",
+            "creative_direction": {
+                "target": "short_drama",
+                "tone": "悬疑诡异、强钩子",
+                "viewpoint": "男主视角",
+            },
+            "characters": [
+                {"name": "林缺", "role": "老板"},
+                {"name": "牛头", "role": "员工"},
+                {"name": "苏澜", "role": "调查者"},
+            ],
+            "scenes": [
+                {"name": "黄泉饭店大厅", "description": "黑暗饭店大厅，红色幽光和服务台"},
+            ],
+            "story_beats": [
+                "开场前三秒，饭店大厅突然变成阎王殿",
+                "牛头端着托盘挡住去路",
+                "苏澜的探测器显示能量暴涨",
+                "林缺发现菜单账本能改变规则",
+            ],
+        }
+        task = {
+            "mode": "build_adaptation_scene_cards",
+            "adaptation_state": state,
+            "n_scene_cards": 4,
+            "total_duration_sec": 40,
+            "output_dir": output_dir,
+        }
+        result = run_task(task)
+        assert result["status"] == "success"
+        cards = result["handoff"]["scene_cards"]
+        assert len(cards) == 4
+        assert cards[0]["duration_sec"] == 10
+        assert "林缺" in cards[0]["visual"]
+        assert cards[0]["voiceover"]
+        assert cards[0]["asset_goal"]["type"] == "adapted scene key frame"
+        assert os.path.exists(os.path.join(output_dir, "adaptation_scene_cards.json"))
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_") and callable(fn):

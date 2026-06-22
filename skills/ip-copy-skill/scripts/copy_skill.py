@@ -20,13 +20,17 @@ def run_task(task: Dict) -> Dict:
 
     if mode == "check_license":
         return _run_check_license(task)
+    if mode == "update_adaptation_state":
+        return _run_update_adaptation_state(task, output_dir)
+    if mode == "build_adaptation_scene_cards":
+        return _run_build_adaptation_scene_cards(task, output_dir)
     if mode == "build_ip_asset_pack":
         return _run_build_ip_asset_pack(task, output_dir)
     if mode == "build_character_handoff":
         return _run_build_character_handoff(task, output_dir)
     if mode == "build_blueprint":
         return _run_build_blueprint(task, output_dir)
-    raise ValueError("mode must be one of: check_license, build_blueprint, build_character_handoff, build_ip_asset_pack")
+    raise ValueError("mode must be one of: check_license, build_blueprint, build_character_handoff, build_ip_asset_pack, update_adaptation_state, build_adaptation_scene_cards")
 
 
 def _run_check_license(task: Dict) -> Dict:
@@ -51,6 +55,57 @@ def _run_check_license(task: Dict) -> Dict:
             "reasons": reasons,
         },
         "logs": ["license passed" if ok else "license blocked"],
+    }
+
+
+def _run_update_adaptation_state(task: Dict, output_dir: str) -> Dict:
+    state = _update_adaptation_state(task)
+    out_path = os.path.join(output_dir, task.get("state_filename", "adaptation_state.json"))
+    _write_json(out_path, state)
+    return {
+        "status": "success",
+        "skill": "ip-copy-skill",
+        "mode": "update_adaptation_state",
+        "task_id": task.get("task_id", "update_adaptation_state"),
+        "artifacts": [
+            {
+                "type": "json",
+                "path": out_path,
+                "meta": {"kind": "adaptation_state"},
+            }
+        ],
+        "handoff": {
+            "adaptation_state": state,
+        },
+        "logs": ["adaptation state updated"],
+    }
+
+
+def _run_build_adaptation_scene_cards(task: Dict, output_dir: str) -> Dict:
+    state = task.get("adaptation_state") or _update_adaptation_state(task)
+    scene_cards = _build_adaptation_scene_cards(state, task)
+    payload = {
+        "title": state.get("title", task.get("title", "")),
+        "source_text": state.get("source_text", task.get("source_text", "")),
+        "creative_direction": state.get("creative_direction", {}),
+        "scene_cards": scene_cards,
+    }
+    out_path = os.path.join(output_dir, task.get("scene_cards_filename", "adaptation_scene_cards.json"))
+    _write_json(out_path, payload)
+    return {
+        "status": "success",
+        "skill": "ip-copy-skill",
+        "mode": "build_adaptation_scene_cards",
+        "task_id": task.get("task_id", "build_adaptation_scene_cards"),
+        "artifacts": [
+            {
+                "type": "json",
+                "path": out_path,
+                "meta": {"kind": "adaptation_scene_cards"},
+            }
+        ],
+        "handoff": payload,
+        "logs": [f"built {len(scene_cards)} adaptation scene cards"],
     }
 
 
@@ -235,6 +290,209 @@ def _build_image_handoff(task: Dict, blueprint: Optional[Dict] = None) -> Dict:
     }
 
 
+def _update_adaptation_state(task: Dict) -> Dict:
+    state = copy_dict(task.get("adaptation_state") or {})
+    source_text = task.get("source_text") or state.get("source_text", "")
+    turns = _normalize_conversation_turns(task.get("conversation_turns") or [])
+    user_text = "\n".join(turn["content"] for turn in turns if turn["role"] == "user")
+    combined_text = "\n".join(part for part in [source_text, user_text] if part)
+
+    state["title"] = task.get("title") or state.get("title", "")
+    state["source_text"] = source_text
+    state["conversation_turns"] = (state.get("conversation_turns") or []) + turns
+
+    creative_direction = copy_dict(state.get("creative_direction") or {})
+    creative_direction.update({k: v for k, v in (task.get("creative_direction") or {}).items() if v not in (None, "")})
+    inferred_direction = _infer_adaptation_direction(combined_text)
+    for key, value in inferred_direction.items():
+        creative_direction.setdefault(key, value)
+    state["creative_direction"] = creative_direction
+
+    constraints = list(state.get("constraints") or [])
+    constraints.extend(task.get("constraints") or [])
+    constraints.extend(_infer_constraints(user_text))
+    state["constraints"] = _dedupe_list(constraints)
+
+    locked = copy_dict(state.get("locked_choices") or {})
+    for key in ("target", "tone", "viewpoint", "audience", "format", "episode_count", "duration_sec"):
+        if key in task and task[key] not in (None, ""):
+            locked[key] = task[key]
+        elif key in creative_direction and creative_direction[key] not in (None, ""):
+            locked.setdefault(key, creative_direction[key])
+    state["locked_choices"] = locked
+
+    state["characters"] = task.get("characters") or state.get("characters") or [
+        {"name": name, "role": _infer_role(name, combined_text)}
+        for name in _extract_character_candidates(combined_text)[: int(task.get("max_characters", 6) or 6)]
+    ]
+    state["scenes"] = task.get("scenes") or state.get("scenes") or [
+        {"name": scene, "description": scene}
+        for scene in _extract_scene_candidates(combined_text)[: int(task.get("max_scenes", 6) or 6)]
+    ]
+    state["story_beats"] = _build_story_beats(combined_text, creative_direction)
+    state["next_questions"] = _adaptation_next_questions(state)
+    state["ready_for_scene_cards"] = len(state["next_questions"]) == 0 or bool(task.get("force_ready"))
+    return state
+
+
+def _build_adaptation_scene_cards(state: Dict, task: Dict) -> List[Dict]:
+    total_cards = int(task.get("n_scene_cards", state.get("n_scene_cards", 5)) or 5)
+    total_cards = max(3, min(total_cards, 8))
+    beats = state.get("story_beats") or _build_story_beats(state.get("source_text", ""), state.get("creative_direction", {}))
+    scenes = state.get("scenes") or []
+    characters = state.get("characters") or []
+    direction = state.get("creative_direction", {})
+    tone = direction.get("tone", "强钩子、节奏清晰")
+    viewpoint = direction.get("viewpoint", "主角视角")
+
+    cards: List[Dict] = []
+    for index in range(total_cards):
+        beat = beats[index] if index < len(beats) else f"推进第{index + 1}个剧情转折"
+        scene = scenes[index % len(scenes)] if scenes else {"name": "核心场景", "description": state.get("source_text", "")}
+        character_names = "、".join(item.get("name", "角色") for item in characters[:3]) or "主要角色"
+        visual = _scene_visual_from_beat(beat, scene, character_names, tone)
+        voiceover = _voiceover_from_beat(beat, viewpoint, index, total_cards)
+        cards.append(
+            {
+                "visual": visual,
+                "voiceover": voiceover,
+                "music_cue": _music_cue_for_index(index, total_cards, tone),
+                "subtitle": voiceover,
+                "duration_sec": round(float(task.get("total_duration_sec", 30)) / total_cards, 3),
+                "asset_goal": {
+                    "type": "adapted scene key frame",
+                    "purpose": "short drama adaptation beat",
+                    "expression": _expression_for_index(index, total_cards),
+                    "scene": scene.get("name", scene.get("description", "")),
+                },
+            }
+        )
+    return cards
+
+
+def copy_dict(value: Dict) -> Dict:
+    return json.loads(json.dumps(value or {}, ensure_ascii=False))
+
+
+def _normalize_conversation_turns(turns: List) -> List[Dict]:
+    normalized = []
+    for turn in turns:
+        if isinstance(turn, dict):
+            role = str(turn.get("role", "user")).strip() or "user"
+            content = str(turn.get("content", "")).strip()
+        else:
+            role = "user"
+            content = str(turn).strip()
+        if content:
+            normalized.append({"role": role, "content": content})
+    return normalized
+
+
+def _infer_adaptation_direction(text: str) -> Dict:
+    direction: Dict[str, object] = {}
+    if any(word in text for word in ("短剧", "竖屏", "爽点", "反转", "钩子")):
+        direction["target"] = "short_drama"
+        direction["format"] = "vertical short drama"
+    if any(word in text for word in ("悬疑", "诡异", "惊悚", "复苏", "地府", "黄泉")):
+        direction["tone"] = "悬疑诡异、强钩子、短剧节奏"
+    elif any(word in text for word in ("甜", "恋爱", "治愈")):
+        direction["tone"] = "情感治愈、轻悬念、情绪推进"
+    if "女主" in text:
+        direction["viewpoint"] = "女主视角"
+    elif "男主" in text or "老板" in text:
+        direction["viewpoint"] = "男主视角"
+    if any(word in text for word in ("年轻", "短视频", "抖音", "快手")):
+        direction["audience"] = "短视频观众"
+    direction.setdefault("adaptation_strength", "保留核心设定，强化短剧冲突和钩子")
+    return direction
+
+
+def _infer_constraints(text: str) -> List[str]:
+    constraints = []
+    if any(word in text for word in ("不要魔改", "别魔改", "忠实")):
+        constraints.append("保留原文核心人物关系和世界观，不做大幅魔改")
+    if any(word in text for word in ("不要太血腥", "不血腥", "少血腥")):
+        constraints.append("避免血腥描写，用氛围和悬念替代直白暴力")
+    if any(word in text for word in ("中文", "中文对白")):
+        constraints.append("输出中文对白、旁白和字幕")
+    return constraints
+
+
+def _build_story_beats(text: str, direction: Dict) -> List[str]:
+    sentences = [item.strip() for item in re.split(r"[。！？.!?]\s*", text or "") if item.strip()]
+    if len(sentences) >= 3:
+        beats = sentences[:6]
+    else:
+        beats = []
+    if not beats:
+        beats = [
+            "开场用异常事件或强视觉制造钩子",
+            "主角进入核心场景并发现规则不对劲",
+            "重要配角或对手出现，冲突升级",
+            "主角用关键道具或身份反转局面",
+            "结尾留下更大的世界观悬念",
+        ]
+    if direction.get("target") == "short_drama" and "开场" not in beats[0]:
+        beats.insert(0, "开场前三秒给出高压钩子和明确危机")
+    return _dedupe_list(beats)[:8]
+
+
+def _adaptation_next_questions(state: Dict) -> List[str]:
+    questions = []
+    direction = state.get("creative_direction", {})
+    if not state.get("source_text"):
+        questions.append("请提供需要二创改编的原始文案或剧情梗概。")
+    if not direction.get("target"):
+        questions.append("这次要改成什么形式：短剧、分镜脚本、视频口播，还是图文剧情？")
+    if not direction.get("tone"):
+        questions.append("希望整体风格是什么：悬疑、爽感、甜宠、治愈、热血，还是暗黑？")
+    if not state.get("characters"):
+        questions.append("有哪些必须保留的重要角色？")
+    if not state.get("constraints"):
+        questions.append("有没有不能改的设定、禁区或平台尺度要求？")
+    return questions[:4]
+
+
+def _scene_visual_from_beat(beat: str, scene: Dict, character_names: str, tone: str) -> str:
+    scene_text = scene.get("description") or scene.get("name") or "核心场景"
+    return f"{scene_text}。{character_names}围绕该剧情点行动：{beat}。画面风格：{tone}。"
+
+
+def _voiceover_from_beat(beat: str, viewpoint: str, index: int, total: int) -> str:
+    if index == 0:
+        return f"一开始，{viewpoint}就被卷进了无法解释的危机：{beat}"
+    if index == total - 1:
+        return f"可真正的答案还没有出现，{beat}"
+    return f"{beat}"
+
+
+def _music_cue_for_index(index: int, total: int, tone: str) -> str:
+    if index == 0:
+        return f"低频悬念起势，快速建立{tone}"
+    if index == total - 1:
+        return "悬念收束后留一个上扬尾音"
+    return "节奏推进，保持紧张感"
+
+
+def _expression_for_index(index: int, total: int) -> str:
+    if index == 0:
+        return "震惊、警觉、被迫进入事件"
+    if index == total - 1:
+        return "克制、反转后的余震、留下悬念"
+    return "紧张、判断、情绪推进"
+
+
+def _dedupe_list(items: List[str]) -> List[str]:
+    result = []
+    seen = set()
+    for item in items:
+        text = str(item or "").strip()
+        if text and text not in seen:
+            result.append(text)
+            seen.add(text)
+    return result
+
+
 def _build_ip_asset_pack(task: Dict) -> Dict:
     source_text = task.get("source_text", "")
     ip_id = task.get("ip_id") or _safe_label(task.get("title") or "ip_asset")
@@ -392,7 +650,7 @@ def _extract_character_candidates(source_text: str) -> List[str]:
             candidates.append(title)
 
     name_patterns = re.findall(
-        r"(?<![\u4e00-\u9fff])([\u4e00-\u9fff]{2,3})(?=(?:在|走|看|说|拿|拿着|背着|端着|站|坐|冲|推|递|握|发现|进入|离开|来到|回到|盯着|望向))",
+        r"(?<![\u4e00-\u9fff])([\u4e00-\u9fff]{2,3})(?=(?:在|用|走|看|说|拿|拿着|背着|端着|站|坐|冲|推|递|握|发现|确认|显示|进入|离开|来到|回到|盯着|望向))",
         text,
     )
     candidates.extend(name_patterns)
@@ -532,14 +790,40 @@ def _infer_role(name: str, source_text: str) -> str:
             return role
 
     context = _character_context(name, source_text)
-    for key, role in role_hints.items():
-        if key in context:
-            return role
-    if "探测器" in context or "异常能量" in context:
+    if _context_has_near(context, name, "探测器") or _context_has_near(context, name, "异常能量"):
         return "调查者 / 异常能量探测者"
-    if "背包" in context or "基地" in context:
+    if _context_has_near(context, name, "背包") or _context_has_near(context, name, "基地"):
         return "行动小队成员 / 生存者"
+    for key, role in role_hints.items():
+        if _context_has_role_phrase(context, name, key):
+            return role
     return "重要角色 / 待细化"
+
+
+def _context_has_role_phrase(context: str, name: str, keyword: str) -> bool:
+    if not context or not name or not keyword:
+        return False
+    patterns = (
+        f"{name}{keyword}",
+        f"{keyword}{name}",
+        f"{name}是{keyword}",
+        f"{name}作为{keyword}",
+        f"{name}这个{keyword}",
+        f"{keyword}，{name}",
+        f"{keyword}{name}",
+    )
+    return any(pattern in context for pattern in patterns)
+
+
+def _context_has_near(context: str, name: str, keyword: str, window: int = 12) -> bool:
+    if not context or not name or not keyword:
+        return False
+    for match in re.finditer(re.escape(name), context):
+        start = max(match.start() - window, 0)
+        end = min(match.end() + window, len(context))
+        if keyword in context[start:end]:
+            return True
+    return False
 
 
 def _character_context(name: str, source_text: str) -> str:

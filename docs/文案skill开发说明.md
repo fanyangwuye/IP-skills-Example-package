@@ -16,6 +16,8 @@
 
 - 本地授权关卡
 - 蓝图校验
+- 互动式二创状态沉淀
+- adaptation_state → scene_cards
 - scene cards → blueprint
 - character_sheet / asset_bundle / image_tasks handoff
 - source_text / characters / scenes → ip_asset_pack
@@ -23,7 +25,7 @@
 未实现：
 
 - 高质量全文案改写模型接入
-- 复杂互动式文案对话收集
+- 完整对白润色和最终剧本文学化输出
 
 ## 与图片 Skill 的衔接
 
@@ -47,3 +49,29 @@
 - 输出 `mode=ip_asset_pack`
 
 这一步是确定性结构整理，不冒充完整大模型阅读理解；后续可以在同一输出格式上接更强的模型解析器。
+
+## 互动式二创状态
+
+`update_adaptation_state` 用来承接用户一轮轮聊天里的创作要求：
+
+- 原始文案 `source_text`
+- 用户每轮要求 `conversation_turns`
+- 当前二创状态 `adaptation_state`
+- 目标形式、风格、视角、受众、限制
+- 角色、场景、剧情节拍
+- 下一轮建议问题 `next_questions`
+
+`build_adaptation_scene_cards` 会把状态转成可下游使用的场景卡：
+
+- `visual`
+- `voiceover`
+- `subtitle`
+- `music_cue`
+- `duration_sec`
+- `asset_goal`
+
+场景卡可以继续传给 `build_blueprint`，形成：
+
+`聊天式二创 → adaptation_state → scene_cards → blueprint → image_handoff`
+
+当前版本重点是结构控制和稳定交接，不冒充最终文学化剧本。后续可以在这个结构上接入大模型进行对白润色、冲突强化和完整剧本生成。

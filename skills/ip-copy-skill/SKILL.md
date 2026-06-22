@@ -11,6 +11,8 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 - Turn structured scene cards into a downstream-safe blueprint
 - Organize character, scene, and asset direction so the image skill can work from it
 - Convert source copy into a multi-character `ip_asset_pack` for character sheets, props, and panorama scenes
+- Run interactive adaptation planning across conversation turns
+- Build adaptation scene cards for downstream blueprint creation
 - Build a minimal content brain layer before image generation
 
 ## Tool Boundaries
@@ -39,6 +41,20 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 3. Build a validated blueprint
 4. Return image-facing handoff data
 
+### Flow B1: Interactive Adaptation State
+
+1. Accept `source_text`, current `adaptation_state`, and `conversation_turns`
+2. Extract user intent such as target format, tone, viewpoint, audience, constraints, characters, and scenes
+3. Update a reusable `adaptation_state`
+4. Return `next_questions` when key creative decisions are still missing
+
+### Flow B2: Adaptation Scene Cards
+
+1. Accept an `adaptation_state`
+2. Build 3-8 short-drama-ready scene cards
+3. Each card includes visual, voiceover, subtitle, music cue, duration, and image `asset_goal`
+4. The result can be passed into `build_blueprint`
+
 ### Flow C: Character/Image Handoff
 
 1. Accept a character sheet and optional asset bundle
@@ -56,7 +72,7 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 
 - `scripts/license_gate.py`: deterministic license validation
 - `scripts/blueprint_validate.py`: deterministic blueprint validation
-- `scripts/copy_skill.py`: task entrypoint, blueprint builder, handoff builder, and IP asset pack builder
+- `scripts/copy_skill.py`: task entrypoint, interactive adaptation state, scene card builder, blueprint builder, handoff builder, and IP asset pack builder
 
 ## References
 
@@ -73,3 +89,9 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 When building `ip_asset_pack`, do not collapse the cast into only the protagonist.
 Preserve every explicit `characters` entry.
 If only `source_text` is provided, extract multiple important named roles, title roles, creature roles, employees, allies, antagonists, and scene-driving figures when present.
+
+## Adaptation Boundary
+
+This version provides deterministic adaptation planning and scene-card drafting.
+It does not claim final polished prose or full model-native rewriting.
+For production writing, an agent should use this state and scene-card structure as the control layer, then call a writing model for richer dialogue and prose where needed.
