@@ -44,7 +44,7 @@ def load_video_provider_config() -> VideoProviderConfig:
         output_root=_env("VIDEO_OUTPUT_ROOT", default_output_root()),
         default_model=_env("VIDEO_DEFAULT_MODEL", ""),
         default_aspect_ratio=_env("VIDEO_DEFAULT_ASPECT_RATIO", "9:16") or "9:16",
-        default_resolution=_env("VIDEO_DEFAULT_RESOLUTION", "1080p") or "1080p",
+        default_resolution=_env("VIDEO_DEFAULT_RESOLUTION", "480p") or "480p",
         poll_interval_sec=int(_env("VIDEO_POLL_INTERVAL_SEC", "4") or "4"),
         poll_timeout_sec=int(_env("VIDEO_POLL_TIMEOUT_SEC", "600") or "600"),
     )

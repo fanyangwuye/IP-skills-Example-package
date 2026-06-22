@@ -115,9 +115,11 @@ Environment variables:
 - `VIDEO_OUTPUT_ROOT`
 - `VIDEO_DEFAULT_MODEL`
 - `VIDEO_DEFAULT_ASPECT_RATIO=9:16`
-- `VIDEO_DEFAULT_RESOLUTION=1080p`
+- `VIDEO_DEFAULT_RESOLUTION=480p`
 - `VIDEO_POLL_INTERVAL_SEC=4`
 - `VIDEO_POLL_TIMEOUT_SEC=600`
+
+Default video resolution is `480p` to keep test clips low-cost. Raise to `720p` only when a clearer review clip is needed.
 
 ## Resources
 

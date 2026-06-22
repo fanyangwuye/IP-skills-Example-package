@@ -204,7 +204,7 @@ def _valid_duration(value) -> int:
 
 
 def _valid_resolution(model: str, resolution: Optional[str]) -> str:
-    requested = resolution or ("720p" if model == "seedance-2-fast" else "1080p")
+    requested = resolution or "480p"
     if model == "seedance-2-fast" and requested == "1080p":
         return "720p"
     if requested not in {"480p", "720p", "1080p"}:

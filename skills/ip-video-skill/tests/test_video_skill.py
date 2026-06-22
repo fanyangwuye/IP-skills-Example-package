@@ -159,7 +159,7 @@ def test_prepare_video_generation_request_offline():
         output_root="",
         default_model="offline-preview",
         default_aspect_ratio="9:16",
-        default_resolution="1080p",
+        default_resolution="480p",
         poll_interval_sec=1,
         poll_timeout_sec=5,
     )
@@ -189,7 +189,7 @@ def test_prepare_video_generation_request_dreamina_cli_shape():
         output_root="",
         default_model="dreamina-test",
         default_aspect_ratio="9:16",
-        default_resolution="1080p",
+        default_resolution="480p",
         poll_interval_sec=1,
         poll_timeout_sec=5,
     )
@@ -221,7 +221,7 @@ def test_prepare_video_generation_request_poyo_seedance2_shape():
         output_root="",
         default_model="seedance-2",
         default_aspect_ratio="9:16",
-        default_resolution="1080p",
+        default_resolution="480p",
         poll_interval_sec=1,
         poll_timeout_sec=5,
     )
@@ -242,7 +242,7 @@ def test_prepare_video_generation_request_poyo_seedance2_shape():
     input_obj = request["transport"]["json"]["input"]
     assert input_obj["prompt"]
     assert input_obj["image_urls"] == ["https://files.example/first.png"]
-    assert input_obj["resolution"] == "1080p"
+    assert input_obj["resolution"] == "480p"
     assert input_obj["duration"] == 5
     assert input_obj["generate_audio"] is False
     assert input_obj["seed"] == 42

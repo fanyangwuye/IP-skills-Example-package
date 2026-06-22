@@ -93,6 +93,7 @@ Request rules:
 - `prompt` is required.
 - `duration` is clamped to 4-15 seconds.
 - `seedance-2-fast` downgrades `1080p` requests to `720p`.
+- Default project resolution is `480p` for low-cost test clips. Use `720p` only when the shot needs review-quality detail.
 - `image_urls` supports up to 2 first/last frame images.
 - `image_urls` cannot be mixed with `reference_image_urls`, `reference_video_urls`, or `reference_audio_urls`.
 - Reference assets must be public URLs or local paths that can be uploaded through PoYo upload stream.
