@@ -177,14 +177,14 @@ def test_prepare_video_generation_request_offline():
     assert request["reference_binding"]["scene_lock"]
 
 
-def test_prepare_video_generation_request_jimeng_cli_shape():
+def test_prepare_video_generation_request_dreamina_cli_shape():
     handoff = build_video_handoff(_task())
     config = VideoProviderConfig(
-        provider="jimeng_cli",
+        provider="dreamina_cli",
         api_key="",
         api_base="",
         output_root="",
-        default_model="jimeng-test",
+        default_model="dreamina-test",
         default_aspect_ratio="9:16",
         default_resolution="1080p",
     )
@@ -198,11 +198,13 @@ def test_prepare_video_generation_request_jimeng_cli_shape():
         },
         config,
     )
-    assert request["provider"] == "jimeng_cli"
+    assert request["provider"] == "dreamina_cli"
     assert request["mode"] == "image_to_video"
     assert request["transport"]["type"] == "cli"
-    assert request["transport"]["executable"] == "jimeng"
-    assert "--duration" in request["transport"]["args"]
+    assert request["transport"]["executable"] == "dreamina"
+    assert request["transport"]["subcommand"] == "image2video"
+    assert request["transport"]["help_command"] == ["dreamina", "image2video", "-h"]
+    assert request["transport"]["intended_parameters"]["duration_sec"] == 5
 
 
 def test_run_task_prepare_video_generation_writes_json():

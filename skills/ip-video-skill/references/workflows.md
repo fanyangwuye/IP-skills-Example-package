@@ -75,7 +75,8 @@ Use this flow before any paid video generation:
 Supported provider request shapes:
 
 - `offline` / `dry_run`: returns request JSON only.
-- `jimeng_cli`: returns a CLI transport placeholder with executable, args, and `stdin_json`.
+- `dreamina_cli`: returns a CLI transport placeholder for the official `dreamina` executable, with `subcommand`, `help_command`, intended parameters, and `stdin_json`.
+- `jimeng_cli`: compatibility alias for `dreamina_cli`.
 - `poyo_video`: returns an HTTP transport placeholder with URL, headers shape, and JSON payload.
 
 Do not run full-episode batches until single-shot face, costume, scene, lighting, axis, and eyeline consistency is verified.

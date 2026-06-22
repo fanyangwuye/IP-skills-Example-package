@@ -92,7 +92,8 @@ Every shot is safe to pass to a provider adapter later because continuity is alr
 `provider` means the concrete video service adapter. Examples:
 
 - `offline` / `dry_run`: prepare requests only; no external call.
-- `jimeng_cli`: prepare a CLI-shaped request for a future official Jimeng/即梦 command.
+- `dreamina_cli`: prepare a CLI-shaped request for the official Dreamina/即梦 `dreamina` command.
+- `jimeng_cli`: compatibility alias for `dreamina_cli`.
 - `poyo_video`: prepare an HTTP-shaped request for a future PoYo video endpoint.
 
 Use `prepare_video_generation` to inspect a single-shot provider request before spending credits. Provider requests preserve:
@@ -108,7 +109,7 @@ Use `prepare_video_generation` to inspect a single-shot provider request before 
 
 Environment variables:
 
-- `VIDEO_PROVIDER=offline|dry_run|jimeng_cli|poyo_video`
+- `VIDEO_PROVIDER=offline|dry_run|dreamina_cli|jimeng_cli|poyo_video`
 - `VIDEO_API_KEY`
 - `VIDEO_API_BASE`
 - `VIDEO_OUTPUT_ROOT`

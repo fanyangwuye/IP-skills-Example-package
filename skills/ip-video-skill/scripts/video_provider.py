@@ -7,7 +7,7 @@ except ImportError:
     from config import VideoProviderConfig
 
 
-SUPPORTED_PROVIDERS = {"offline", "dry_run", "jimeng_cli", "poyo_video"}
+SUPPORTED_PROVIDERS = {"offline", "dry_run", "dreamina_cli", "jimeng_cli", "poyo_video"}
 
 
 def prepare_video_generation_request(task: Dict, config: VideoProviderConfig) -> Dict:
@@ -22,8 +22,8 @@ def prepare_video_generation_request(task: Dict, config: VideoProviderConfig) ->
 
     prompt_kind = task.get("prompt_kind", _default_prompt_kind(provider))
     request = _base_request(task, shot, provider, prompt_kind, config)
-    if provider == "jimeng_cli":
-        request["transport"] = _jimeng_cli_transport(task, request)
+    if provider in {"dreamina_cli", "jimeng_cli"}:
+        request["transport"] = _dreamina_cli_transport(task, request)
     elif provider == "poyo_video":
         request["transport"] = _poyo_video_transport(task, request, config)
     else:
@@ -92,7 +92,7 @@ def _select_shot(handoff: Dict, task: Dict) -> Optional[Dict]:
 
 
 def _default_prompt_kind(provider: str) -> str:
-    if provider == "jimeng_cli":
+    if provider in {"dreamina_cli", "jimeng_cli"}:
         return "seedance"
     if provider == "poyo_video":
         return "i2v"
@@ -102,6 +102,7 @@ def _default_prompt_kind(provider: str) -> str:
 def _default_model(provider: str) -> str:
     return {
         "jimeng_cli": "jimeng-video-default",
+        "dreamina_cli": "dreamina-video-default",
         "poyo_video": "video-default",
         "offline": "offline-preview",
         "dry_run": "offline-preview",
@@ -146,28 +147,44 @@ def _normalize_reference(item) -> Dict:
     return dict(item)
 
 
-def _jimeng_cli_transport(task: Dict, request: Dict) -> Dict:
-    executable = task.get("jimeng_cli_path") or task.get("cli_path") or "jimeng"
-    args = [
-        "generate",
-        "--mode",
-        request["mode"],
-        "--model",
-        request["model"],
-        "--aspect-ratio",
-        request["aspect_ratio"],
-        "--duration",
-        str(request.get("duration_sec") or ""),
-        "--output",
-        request["output_filename"],
-    ]
+def _dreamina_cli_transport(task: Dict, request: Dict) -> Dict:
+    executable = task.get("dreamina_cli_path") or task.get("jimeng_cli_path") or task.get("cli_path") or "dreamina"
+    subcommand = task.get("dreamina_subcommand") or _dreamina_subcommand(request)
     return {
         "type": "cli",
         "executable": executable,
-        "args": args,
+        "subcommand": subcommand,
+        "help_command": [executable, subcommand, "-h"],
+        "intended_parameters": {
+            "prompt": request["prompt"],
+            "negative_prompt": request["negative_prompt"],
+            "duration_sec": request.get("duration_sec"),
+            "aspect_ratio": request["aspect_ratio"],
+            "resolution": request["resolution"],
+            "model": request["model"],
+            "reference_images": request["reference_images"],
+            "output_filename": request["output_filename"],
+        },
         "stdin_json": request,
-        "note": "CLI schema is a stable placeholder until the official Jimeng CLI command contract is confirmed.",
+        "note": (
+            "Official entrypoint is dreamina. Run help_command first and map intended_parameters "
+            "to the exact flags reported by `dreamina <subcommand> -h` before any paid generation."
+        ),
     }
+
+
+def _dreamina_subcommand(request: Dict) -> str:
+    mode = request.get("mode")
+    refs = request.get("reference_images") or []
+    if mode == "text_to_video":
+        return "text2video"
+    if mode == "frames_to_video":
+        return "frames2video"
+    if mode == "multimodal_to_video":
+        return "multimodal2video"
+    if len(refs) > 1:
+        return "multiframe2video"
+    return "image2video"
 
 
 def _poyo_video_transport(task: Dict, request: Dict, config: VideoProviderConfig) -> Dict:
