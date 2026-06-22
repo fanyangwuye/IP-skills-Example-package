@@ -23,11 +23,12 @@ Use this before any prompt writing.
 ## Clip Continuity Rules
 
 - Generate video at the `clip_plan` level by default; use shot-level requests only for troubleshooting.
-- For clip 1, use locked character refs and normal scene refs.
+- For clip 1, use locked character refs and normal scene refs. Do not use text-to-video as an IP consistency test.
 - For clip 2+, extract the previous clip's final frame and pass it as `previous_clip_end_frame`; provider requests should map it to the first-frame slot when supported.
 - If a provider disallows first-frame input together with reference images, prefer the previous final frame for clip continuation and keep the normal refs in metadata/prompt checks.
 - Preserve 720 panorama assets as `space_anchor_refs`; do not discard them and do not default to feeding them as direct generation frames.
 - Check every clip boundary for face, hairstyle, costume, prop hand, scene layout, light direction, and current_start_state/current_end_state continuity.
+- Keep generated-video audio limited to ambient sound and foley. Background music, songs, music beds, on-screen subtitles, fake text, title cards, and watermarks are forbidden in video prompts.
 
 ## Prompt Quality Layers
 
@@ -77,11 +78,13 @@ Provider adapters must preserve:
 
 Use this flow before any paid video generation:
 
-1. Build `video_handoff`.
-2. Prefer one `clip_id` or `clip_index` for normal generation; use `shot_id` or `shot_index` only for troubleshooting.
-3. Run `prepare_video_generation`.
-4. Inspect `provider_request.prompt`, `reference_images`, `video_reference_images`, `space_anchor_refs`, `continuity_state`, and `transport`.
-5. Generate only one short test clip after the provider adapter is confirmed.
+1. Build or generate the image assets first: character design refs and normal perspective scene refs. Keep 720 panoramas as space anchors.
+2. Build `video_handoff`.
+3. Prefer one `clip_id` or `clip_index` for normal generation; use `shot_id` or `shot_index` only for troubleshooting.
+4. Run `prepare_video_generation`.
+5. Inspect `provider_request.prompt`, `reference_images`, `video_reference_images`, `space_anchor_refs`, `continuity_state`, and `transport`.
+6. Confirm the prompt says ambient sound/foley only and forbids BGM, songs, subtitles, title cards, fake text, and watermarks.
+7. Generate only one short I2V test clip after the provider adapter is confirmed.
 
 Supported provider request shapes:
 

@@ -141,6 +141,20 @@ def test_prompts_include_quality_layers_and_retry_advice():
     assert handoff["seedance_prompts"][1]["prompt"] == shot["seedance_prompt"]
 
 
+def test_video_prompts_preserve_ambient_sound_and_forbid_bgm_subtitles():
+    handoff = build_video_handoff(_task())
+    shot = handoff["shots"][0]
+    clip = handoff["clip_plan"][0]
+    assert "只保留现场环境声和拟音" in shot["i2v_prompt"]
+    assert "禁止背景音乐" in shot["i2v_prompt"]
+    assert "禁止生成画面字幕" in shot["i2v_prompt"]
+    assert "BGM：" not in shot["i2v_prompt"]
+    assert "不要画面字幕" in shot["negative_prompt"]
+    assert "不要背景音乐" in shot["negative_prompt"]
+    assert "声音只保留现场环境声与拟音" in clip["clip_prompt"]
+    assert "画面禁止字幕" in clip["clip_prompt"]
+
+
 def test_run_task_writes_video_handoff_json():
     with tempfile.TemporaryDirectory() as output_dir:
         task = _task()

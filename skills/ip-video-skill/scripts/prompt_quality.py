@@ -94,6 +94,11 @@ def build_negative_prompt(multichar: bool, action_scene: bool = False) -> str:
         "不要夸张表情",
         "不要无意义镜头乱晃",
         "不要字幕乱码或伪文字",
+        "不要画面字幕",
+        "不要片头片尾文字",
+        "不要背景音乐",
+        "不要歌曲",
+        "不要音乐铺底",
     ]
     if multichar:
         items.extend(["不要越轴", "不要屏幕方向翻转", "不要视线同向错位", "不要人物距离瞬移"])
@@ -177,13 +182,14 @@ def _lighting_texture(scene: Dict, style: Dict) -> str:
 def _sound_design(storyboard_card: Dict) -> str:
     sound = storyboard_card.get("sound_subtitle") or {}
     parts = []
-    if sound.get("music_cue"):
-        parts.append(f"BGM：{sound['music_cue']}")
     if sound.get("voiceover"):
-        parts.append(f"旁白：{sound['voiceover']}")
+        parts.append(f"旁白内容仅作为剪辑参考，不要求视频模型生成可听人声：{sound['voiceover']}")
+    if sound.get("dialogue"):
+        parts.append(f"对白内容仅作为表演节奏参考，不要求视频模型生成清晰台词：{sound['dialogue']}")
     if sound.get("subtitle"):
-        parts.append(f"字幕只保留关键句：{sound['subtitle']}")
-    parts.append("环境声保留空间底噪、脚步、衣料摩擦、呼吸或道具轻响，声音不要抢过表演。")
+        parts.append(f"字幕内容只进入后期剪辑 metadata，禁止生成画面字幕：{sound['subtitle']}")
+    parts.append("只保留现场环境声和拟音：空间底噪、风声、雨声、脚步、衣料摩擦、呼吸、门响或道具轻响。")
+    parts.append("禁止背景音乐、歌曲、音乐铺底、片头片尾声效和抢戏音效。")
     return "；".join(parts)
 
 
@@ -198,6 +204,8 @@ def _execution_constraints(storyboard_card: Dict) -> str:
     constraints = [
         "每镜只保留一个主动作和一个情绪落点",
         "不要把世界观解释写成画面文字",
+        "禁止画面字幕、伪文字、水印、片头片尾和标题卡",
+        "禁止背景音乐和歌曲；视频模型只处理现场环境声与拟音",
         "不要新增不在连续性圣经里的角色、服装、道具和地标",
     ]
     if multichar:

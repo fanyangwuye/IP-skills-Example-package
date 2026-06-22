@@ -45,8 +45,10 @@ For actual video generation, prefer clip-level generation over tiny shot-level g
 - Use `clip_plan` for provider calls; each clip should usually be 5-15 seconds and may contain multiple shots.
 - Preserve panorama scene images as `space_anchor_refs` for spatial overview and human consistency checks.
 - Use normal perspective scene references as `video_reference_images` for model input.
+- Test real IP video with image-to-video only after generating character and scene reference images; text-to-video is only useful for provider connectivity checks, not IP consistency.
 - For clip 2+, pass the previous clip's extracted last frame as `previous_clip_end_frame`; provider requests should map it to the first-frame slot when supported.
 - Do not discard panorama assets; they remain useful for layout, landmark, and light-direction anchoring.
+- Keep generated video audio limited to ambient sound and foley. Forbid background music, songs, music beds, on-screen subtitles, fake text, title cards, and watermarks in video prompts.
 
 ## Inputs
 

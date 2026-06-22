@@ -94,7 +94,9 @@ VIDEO_POLL_TIMEOUT_SEC=600
 
 Video defaults to `480p` to keep test clips low-cost. Set `VIDEO_DEFAULT_RESOLUTION=720p` for clearer review clips when needed.
 
-Video generation is clip-first by default: `clip_plan` groups shots into 5-15 second continuity clips. Panorama scene images are preserved as `space_anchor_refs`; normal perspective scene references are used for video model input.
+Video generation is clip-first by default: `clip_plan` groups shots into 5-15 second continuity clips. Panorama scene images are preserved as `space_anchor_refs`; normal perspective scene references are used for video model input. Real IP video tests should start from generated image references and I2V; text-to-video is only a provider connectivity check.
+
+Video prompts keep only ambient sound and foley for generated audio. Background music, songs, music beds, on-screen subtitles, title cards, fake text, and watermarks are forbidden; BGM and subtitles belong in post-production/EDL.
 
 ## Quick Checks
 
