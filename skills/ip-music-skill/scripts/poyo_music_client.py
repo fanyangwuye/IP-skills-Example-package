@@ -1,6 +1,9 @@
 import json
 import mimetypes
 import os
+import shutil
+import subprocess
+import tempfile
 import time
 from typing import Dict, List, Optional
 
@@ -102,17 +105,46 @@ class PoYoMusicClient:
         }
 
     def upload(self, file_path: str, file_name: Optional[str] = None) -> str:
-        upload_name = file_name or os.path.basename(file_path)
+        return self.upload_file(file_path, file_name=file_name)
+
+    def upload_file(
+        self,
+        file_path: str,
+        file_name: Optional[str] = None,
+        upload_path: Optional[str] = None,
+        proxy_dir: Optional[str] = None,
+        keep_proxy: bool = True,
+    ) -> str:
+        actual_path = file_path
+        cleanup_dir = None
+        upload_name = file_name or os.path.basename(actual_path)
         mime_type = mimetypes.guess_type(upload_name)[0] or "application/octet-stream"
-        with open(file_path, "rb") as fh:
-            files = {"file": (upload_name, fh, mime_type)}
-            data = {"file_name": upload_name}
-            response = self.session.post(
-                f"{self.config.api_base}/api/common/upload/stream",
-                files=files,
-                data=data,
-                timeout=120,
+
+        if mime_type.startswith("audio/"):
+            actual_path, cleanup_dir = self._wrap_audio_as_mp4(
+                file_path,
+                proxy_dir=proxy_dir if keep_proxy else None,
             )
+            upload_name = os.path.basename(actual_path)
+            mime_type = "video/mp4"
+            upload_path = upload_path or "music-audio-proxy"
+
+        try:
+            with open(actual_path, "rb") as fh:
+                files = {"file": (upload_name, fh, mime_type)}
+                data = {"file_name": upload_name}
+                if upload_path:
+                    data["upload_path"] = upload_path
+                response = self.session.post(
+                    f"{self.config.api_base}/api/common/upload/stream",
+                    files=files,
+                    data=data,
+                    timeout=120,
+                )
+        finally:
+            if cleanup_dir:
+                shutil.rmtree(cleanup_dir, ignore_errors=True)
+
         try:
             self._raise_for_error(response)
         except RuntimeError as exc:
@@ -128,6 +160,70 @@ class PoYoMusicClient:
         if not file_url:
             raise RuntimeError(f"Upload did not return file_url: {body}")
         return file_url
+
+    def _wrap_audio_as_mp4(self, file_path: str, proxy_dir: Optional[str] = None):
+        ffmpeg = _find_binary("MUSIC_FFMPEG_BIN", "FFMPEG_BIN", "ffmpeg")
+        if not ffmpeg:
+            raise RuntimeError(
+                "ffmpeg is required to upload local audio files. Install ffmpeg, "
+                "or set MUSIC_FFMPEG_BIN/FFMPEG_BIN, or pass a public audio_url."
+            )
+
+        cleanup_dir = None
+        if proxy_dir:
+            os.makedirs(proxy_dir, exist_ok=True)
+            out_dir = proxy_dir
+        else:
+            cleanup_dir = tempfile.mkdtemp(prefix="poyo_audio_proxy_")
+            out_dir = cleanup_dir
+
+        stem = _safe_ascii_stem(os.path.splitext(os.path.basename(file_path))[0])
+        out_path = os.path.join(out_dir, f"{stem}_upload_proxy.mp4")
+        duration = _probe_duration(file_path)
+
+        color_input = "color=c=black:s=1280x720:r=1"
+        if duration:
+            color_input += f":d={duration:.3f}"
+
+        cmd = [
+            ffmpeg,
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            color_input,
+            "-i",
+            file_path,
+        ]
+        if duration:
+            cmd.extend(["-t", f"{duration:.3f}"])
+        cmd.extend(
+            [
+                "-map",
+                "0:v:0",
+                "-map",
+                "1:a:0",
+                "-c:v",
+                "libx264",
+                "-pix_fmt",
+                "yuv420p",
+                "-preset",
+                "veryfast",
+                "-tune",
+                "stillimage",
+                "-c:a",
+                "aac",
+                "-b:a",
+                "192k",
+                "-movflags",
+                "+faststart",
+                out_path,
+            ]
+        )
+        completed = subprocess.run(cmd, capture_output=True, text=True)
+        if completed.returncode != 0:
+            raise RuntimeError(f"ffmpeg failed to create MP4 audio proxy: {completed.stderr}")
+        return out_path, cleanup_dir
 
     def download(self, file_url: str, out_path: str) -> str:
         os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
@@ -175,3 +271,45 @@ class PoYoMusicClient:
         except Exception:
             detail = response.text
         raise RuntimeError(f"Provider request failed: {response.status_code} {detail}")
+
+
+def _find_binary(*env_names_and_default: str) -> Optional[str]:
+    default_name = env_names_and_default[-1]
+    for name in env_names_and_default[:-1]:
+        value = os.environ.get(name, "").strip()
+        if value:
+            return value
+    return shutil.which(default_name)
+
+
+def _probe_duration(file_path: str) -> Optional[float]:
+    ffprobe = _find_binary("MUSIC_FFPROBE_BIN", "FFPROBE_BIN", "ffprobe")
+    if not ffprobe:
+        return None
+    completed = subprocess.run(
+        [
+            ffprobe,
+            "-v",
+            "error",
+            "-show_entries",
+            "format=duration",
+            "-of",
+            "default=noprint_wrappers=1:nokey=1",
+            file_path,
+        ],
+        capture_output=True,
+        text=True,
+    )
+    if completed.returncode != 0:
+        return None
+    try:
+        duration = float(completed.stdout.strip())
+    except ValueError:
+        return None
+    return duration if duration > 0 else None
+
+
+def _safe_ascii_stem(stem: str) -> str:
+    safe = "".join(ch if ch.isascii() and (ch.isalnum() or ch in ("-", "_")) else "_" for ch in stem)
+    safe = safe.strip("_")
+    return safe or "audio"

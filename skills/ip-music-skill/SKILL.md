@@ -49,6 +49,7 @@ Optional:
 - `MUSIC_DEFAULT_MODEL_VERSION=V5`
 - `MUSIC_POLL_INTERVAL_SEC=4`
 - `MUSIC_POLL_TIMEOUT_SEC=600`
+- `MUSIC_FFMPEG_BIN` or `FFMPEG_BIN`: ffmpeg path for automatic local WAV/MP3 to MP4 proxy wrapping
 
 ## Core Flows
 
@@ -79,6 +80,7 @@ Supported live modes:
 - `add_vocals`
 - `cover_audio`
 - `extend_music`
+- `upload_extend_audio`
 - `replace_section`
 - `stem_split`
 - `separate_vocals`
@@ -86,7 +88,7 @@ Supported live modes:
 
 For multi-step remix chains and mode selection details, read `references/workflows.md`.
 
-For uploaded/external audio remix modes, prefer `audio_url` that is publicly reachable by PoYo. The current `/api/common/upload/stream` endpoint rejects pure audio files such as WAV/MP3, but accepts MP4 files; for local audio, create a short black-screen MP4 proxy containing the audio track, upload that MP4, then pass the returned `file_url` as `upload_url`.
+For uploaded/external audio remix modes, pass either `audio_url` or `audio_path`. If `audio_path` points to a pure audio file such as WAV/MP3, `poyo_music_client.py` automatically creates a short black-screen MP4 proxy with ffmpeg, uploads that MP4, then passes the returned `file_url` as `upload_url`.
 
 ## Scripts
 
@@ -97,6 +99,8 @@ For uploaded/external audio remix modes, prefer `audio_url` that is publicly rea
 - `references/workflows.md`: mode map, chaining rules, and prompt style guidance
 - `assets/example_build_music_handoff_task.json`: offline handoff example
 - `assets/example_generate_music_task.json`: live generation template
+- `assets/example_cover_local_audio_task.json`: local audio remix/rebuild template
+- `assets/example_upload_extend_audio_task.json`: local audio extension template
 - `assets/example_upload_separate_vocals_task.json`: external audio split template
 
 ## Invocation
@@ -105,7 +109,7 @@ For uploaded/external audio remix modes, prefer `audio_url` that is publicly rea
 - JSON task usage: `python music_skill.py --task path/to/task.json`
 - Manual CLI sample: `python music_cli.py generate --prompt "..." --out demo.mp3`
 - Generated-track stems: `python music_cli.py stems --task-id TASK --audio-id AUDIO --out-dir ./stems`
-- External-audio split: call `run_task` with `audio_url`; for local WAV/MP3, first wrap the audio into an MP4 proxy and upload the MP4.
+- External-audio split: call `run_task` with `audio_url` or local `audio_path`; local WAV/MP3 will be wrapped into an MP4 proxy automatically.
 
 ## Handoff Contract
 
@@ -123,5 +127,7 @@ Each music task can be passed back into `run_task` for live generation after set
 - Music query uses `/api/generate/detail/music`, not the image status endpoint.
 - Generated music usually returns `task_id` plus one or more `audio_id` values.
 - `extend_music`, `replace_section`, `stem_split`, and `separate_vocals` need upstream `audio_id`; some modes also need upstream `task_id`.
+- `upload_extend_audio` extends external uploaded audio and needs `audio_path` or `audio_url`.
 - `upload_separate_vocals` is for external user audio and needs `audio_path` or `audio_url`.
+- Local WAV/MP3 upload requires ffmpeg. The generated MP4 proxy is kept in `output_dir` by default for traceability.
 - Results URLs can expire; download outputs immediately.

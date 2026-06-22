@@ -1,0 +1,15 @@
+{
+  "mode": "cover_audio",
+  "audio_path": "LOCAL_AUDIO_OR_MP4_PATH_HERE",
+  "prompt": "参考上传音频的核心旋律和节奏动机，重构成更连贯、更干净的版本。修复断断续续的听感，增强鼓点律动和动作感，不要加入人声。",
+  "style": "instrumental, Chinese cinematic, wuxia assassin theme, tense percussion, guzheng, bamboo flute, strings, clean mix, rhythmic, short video background music",
+  "title": "Audio Rhythm Rebuild",
+  "negative_tags": "vocals, singing, lyrics, noise, glitch, broken audio, distorted, muddy mix",
+  "instrumental": true,
+  "audio_weight": 0.78,
+  "style_weight": 0.62,
+  "weirdness_constraint": 0.25,
+  "mv": "V5",
+  "output_filename": "audio_rebuilt_v1.mp3",
+  "output_dir": "OUTPUT_DIR_HERE"
+}

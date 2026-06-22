@@ -13,6 +13,7 @@ All live modes submit through `POST /api/generate/submit`. Music status uses `GE
 | `add_vocals` | `add-vocals` | uploaded instrumental URL + lyrics prompt + style | complete song |
 | `cover_audio` | `upload-and-cover-audio` | uploaded audio URL + prompt | restyled/remade song |
 | `extend_music` | `extend-music` | upstream `audio_id` | extended song |
+| `upload_extend_audio` | `upload-and-extend-audio` | uploaded audio URL + `continue_at` | external-audio extension |
 | `replace_section` | `replace-section` | upstream `task_id`, `audio_id`, start/end seconds | edited song |
 | `stem_split` | `stem-split` | upstream `task_id`, `audio_id` | generated-song stems |
 | `separate_vocals` | `separate-vocals` | upstream `task_id`, `audio_id` | generated-song vocal/instrumental split |
@@ -21,8 +22,8 @@ All live modes submit through `POST /api/generate/submit`. Music status uses `GE
 ## Chaining Rules
 
 - `stem_split`, `separate_vocals`, `replace_section`, and most `extend_music` work need upstream `task_id` and/or `audio_id`.
-- `add_instrumental`, `add_vocals`, `cover_audio`, and `upload_separate_vocals` need a provider-reachable media URL. Prefer `audio_url`.
-- `/api/common/upload/stream` supports images and videos, not pure audio. For local WAV/MP3, wrap the audio into a black-screen MP4 proxy, upload the MP4, then use the returned `file_url` as `upload_url`.
+- `add_instrumental`, `add_vocals`, `cover_audio`, `upload_extend_audio`, and `upload_separate_vocals` need a provider-reachable media URL. Pass `audio_url` directly when available.
+- `/api/common/upload/stream` supports images and videos, not pure audio. For local WAV/MP3 `audio_path`, the client automatically wraps the audio into a black-screen MP4 proxy, uploads the MP4, then uses the returned `file_url` as `upload_url`.
 - Generated music result URLs can expire. Download useful results immediately.
 - `generate_music` usually returns multiple variants. The scripts download the first one and keep all returned audio metadata in `handoff.audios`.
 
@@ -46,13 +47,13 @@ add_instrumental with audio_path + tags
 Restyle a rough external recording:
 
 ```text
-cover_audio with a public audio_url and audio_weight around 0.7-0.9
+cover_audio with audio_url or local audio_path and audio_weight around 0.7-0.9
 ```
 
-Local WAV/MP3 workaround:
+Local WAV/MP3 upload path:
 
 ```text
-audio file -> black-screen MP4 proxy -> upload stream -> cover_audio with returned file_url
+audio_path -> automatic black-screen MP4 proxy -> upload stream -> cover_audio with returned file_url
 ```
 
 Use `cover_audio` as a remake, not as deterministic audio restoration. If the melody is not recognizable, the generated version may drift.

@@ -17,6 +17,7 @@ MODEL_BY_MODE = {
     "add_vocals": "add-vocals",
     "cover_audio": "upload-and-cover-audio",
     "extend_music": "extend-music",
+    "upload_extend_audio": "upload-and-extend-audio",
     "replace_section": "replace-section",
     "stem_split": "stem-split",
     "separate_vocals": "separate-vocals",
@@ -180,7 +181,11 @@ def _build_music_input(task: Dict, default_model_version: str, client: PoYoMusic
             "instrumental": bool(task.get("instrumental", False)),
             "mv": mv,
         }
-        _copy_optional(task, input_obj, ("style", "title", "negative_tags", "vocal_gender", "style_weight"))
+        _copy_optional(
+            task,
+            input_obj,
+            ("style", "title", "negative_tags", "vocal_gender", "style_weight", "weirdness_constraint", "persona_id"),
+        )
         return input_obj
 
     if mode in {"add_instrumental", "add_vocals", "cover_audio"}:
@@ -191,17 +196,68 @@ def _build_music_input(task: Dict, default_model_version: str, client: PoYoMusic
         if mode == "add_instrumental":
             input_obj["title"] = task.get("title", "Instrumental")
             input_obj["tags"] = task["tags"]
-            _copy_optional(task, input_obj, ("negative_tags", "vocal_gender", "style_weight"))
+            _copy_optional(
+                task,
+                input_obj,
+                ("negative_tags", "vocal_gender", "style_weight", "weirdness_constraint", "persona_id"),
+            )
         elif mode == "add_vocals":
             input_obj["prompt"] = task["prompt"]
             input_obj["title"] = task.get("title", "With Vocals")
             input_obj["style"] = task["style"]
-            _copy_optional(task, input_obj, ("negative_tags", "vocal_gender", "style_weight"))
+            _copy_optional(
+                task,
+                input_obj,
+                ("negative_tags", "vocal_gender", "style_weight", "weirdness_constraint", "persona_id"),
+            )
         else:
             input_obj["prompt"] = task["prompt"]
             input_obj["custom_mode"] = bool(task.get("style") or task.get("title"))
             input_obj["instrumental"] = bool(task.get("instrumental", False))
-            _copy_optional(task, input_obj, ("style", "title", "negative_tags", "vocal_gender", "style_weight", "audio_weight"))
+            _copy_optional(
+                task,
+                input_obj,
+                (
+                    "style",
+                    "title",
+                    "negative_tags",
+                    "vocal_gender",
+                    "style_weight",
+                    "weirdness_constraint",
+                    "audio_weight",
+                    "persona_id",
+                ),
+            )
+        return input_obj
+
+    if mode == "upload_extend_audio":
+        input_obj = {
+            "upload_url": _resolve_audio_url(task, client),
+            "default_param_flag": bool(
+                task.get(
+                    "default_param_flag",
+                    bool(task.get("prompt") or task.get("style") or task.get("title")),
+                )
+            ),
+            "instrumental": bool(task.get("instrumental", True)),
+            "continue_at": task.get("continue_at", task.get("at", 0)),
+            "mv": mv,
+        }
+        _copy_optional(
+            task,
+            input_obj,
+            (
+                "prompt",
+                "style",
+                "title",
+                "negative_tags",
+                "vocal_gender",
+                "style_weight",
+                "weirdness_constraint",
+                "audio_weight",
+                "persona_id",
+            ),
+        )
         return input_obj
 
     if mode == "extend_music":
@@ -215,7 +271,7 @@ def _build_music_input(task: Dict, default_model_version: str, client: PoYoMusic
             input_obj["style"] = task.get("style", "")
             input_obj["title"] = task.get("title", "Extended")
             input_obj["continue_at"] = task.get("continue_at", task.get("at", 0))
-        _copy_optional(task, input_obj, ("negative_tags", "style_weight"))
+        _copy_optional(task, input_obj, ("negative_tags", "style_weight", "weirdness_constraint", "audio_weight", "persona_id"))
         return input_obj
 
     if mode == "replace_section":
@@ -245,7 +301,11 @@ def _resolve_audio_url(task: Dict, client: PoYoMusicClient) -> str:
     if task.get("audio_url"):
         return task["audio_url"]
     if task.get("audio_path"):
-        return client.upload(task["audio_path"])
+        return client.upload_file(
+            task["audio_path"],
+            proxy_dir=task.get("upload_proxy_dir") or task.get("output_dir"),
+            keep_proxy=bool(task.get("keep_upload_proxy", True)),
+        )
     raise ValueError("audio_url or audio_path is required")
 
 
@@ -316,6 +376,7 @@ def _default_filename(mode: str) -> str:
         "add_vocals": "with_vocals.mp3",
         "cover_audio": "cover_audio.mp3",
         "extend_music": "extended_music.mp3",
+        "upload_extend_audio": "upload_extended_audio.mp3",
         "replace_section": "replaced_section.mp3",
     }.get(mode, f"{mode}.mp3")
 

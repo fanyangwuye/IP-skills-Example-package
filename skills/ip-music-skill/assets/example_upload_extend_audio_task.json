@@ -1,0 +1,10 @@
+{
+  "mode": "upload_extend_audio",
+  "audio_path": "LOCAL_AUDIO_OR_MP4_PATH_HERE",
+  "default_param_flag": false,
+  "instrumental": true,
+  "continue_at": 45,
+  "mv": "V5",
+  "output_filename": "audio_extended_v1.mp3",
+  "output_dir": "OUTPUT_DIR_HERE"
+}

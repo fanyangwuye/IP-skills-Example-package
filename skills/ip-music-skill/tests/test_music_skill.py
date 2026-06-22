@@ -10,6 +10,8 @@ from music_skill import (  # noqa: E402
     build_music_handoff,
     run_task,
 )
+from config import MusicProviderConfig  # noqa: E402
+from poyo_music_client import PoYoMusicClient  # noqa: E402
 
 
 class FakeClient:
@@ -17,9 +19,12 @@ class FakeClient:
         self.uploads = []
         self.calls = []
 
-    def upload(self, path):
-        self.uploads.append(path)
+    def upload_file(self, path, **kwargs):
+        self.uploads.append((path, kwargs))
         return f"https://files.example/{os.path.basename(path)}"
+
+    def upload(self, path):
+        return self.upload_file(path)
 
     def run_music(self, model, input_obj, out_path=None):
         self.calls.append((model, input_obj, out_path))
@@ -149,6 +154,7 @@ def test_build_music_input_generate_and_audio_upload_modes():
         client,
     )
     assert upload_split == {"upload_url": "https://files.example/external.wav", "mv": "V5"}
+    assert client.uploads[-1][1] == {"proxy_dir": None, "keep_proxy": True}
 
 
 def test_build_music_input_generated_track_modes():
@@ -192,6 +198,24 @@ def test_build_music_input_generated_track_modes():
     )
     assert stems == {"task_id": "task_1", "audio_id": "audio_1"}
 
+    upload_extend = _build_music_input(
+        {
+            "mode": "upload_extend_audio",
+            "audio_url": "https://files.example/input.mp4",
+            "continue_at": 30,
+            "instrumental": True,
+            "style": "cinematic",
+            "title": "Extended",
+            "audio_weight": 0.7,
+        },
+        "V5",
+        client,
+    )
+    assert upload_extend["upload_url"].endswith("/input.mp4")
+    assert upload_extend["default_param_flag"] is True
+    assert upload_extend["continue_at"] == 30
+    assert upload_extend["audio_weight"] == 0.7
+
 
 def test_run_live_music_task_uses_model_map_and_artifact():
     with tempfile.TemporaryDirectory() as output_dir:
@@ -211,6 +235,69 @@ def test_run_live_music_task_uses_model_map_and_artifact():
         assert client.calls[0][2].endswith("theme.mp3")
         assert result["artifacts"][0]["type"] == "audio"
         assert result["handoff"]["audios"][0]["audio_id"] == "audio_123"
+
+
+class FakeUploadResponse:
+    ok = True
+
+    def json(self):
+        return {"data": {"file_url": "https://storage.example/proxy.mp4"}}
+
+
+class FakeUploadSession:
+    def __init__(self):
+        self.headers = {}
+        self.posts = []
+
+    def post(self, url, files=None, data=None, timeout=None):
+        file_name, fh, mime_type = files["file"]
+        self.posts.append(
+            {
+                "url": url,
+                "file_name": file_name,
+                "mime_type": mime_type,
+                "data": dict(data),
+                "bytes": fh.read(4),
+                "timeout": timeout,
+            }
+        )
+        return FakeUploadResponse()
+
+
+def test_audio_path_upload_wraps_to_mp4_proxy():
+    with tempfile.TemporaryDirectory() as tmp:
+        audio_path = os.path.join(tmp, "demo.wav")
+        proxy_path = os.path.join(tmp, "demo_upload_proxy.mp4")
+        with open(audio_path, "wb") as fh:
+            fh.write(b"RIFF")
+
+        config = MusicProviderConfig(
+            provider="poyo",
+            api_key="test",
+            api_base="https://api.example",
+            output_root=tmp,
+            default_model_version="V5",
+            poll_interval_sec=1,
+            poll_timeout_sec=1,
+        )
+        client = PoYoMusicClient(config)
+        client.session = FakeUploadSession()
+
+        def fake_wrap(path, proxy_dir=None):
+            assert path == audio_path
+            assert proxy_dir == tmp
+            with open(proxy_path, "wb") as fh:
+                fh.write(b"mp4!")
+            return proxy_path, None
+
+        client._wrap_audio_as_mp4 = fake_wrap
+        url = client.upload_file(audio_path, proxy_dir=tmp)
+        assert url == "https://storage.example/proxy.mp4"
+        post = client.session.posts[0]
+        assert post["file_name"] == "demo_upload_proxy.mp4"
+        assert post["mime_type"] == "video/mp4"
+        assert post["data"]["upload_path"] == "music-audio-proxy"
+        assert post["bytes"] == b"mp4!"
 
 
 if __name__ == "__main__":

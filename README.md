@@ -61,6 +61,7 @@ MUSIC_API_KEY=your_provider_key
 MUSIC_API_BASE=https://api.poyo.ai
 MUSIC_OUTPUT_ROOT=E:\Plans for 2026\ip-skills\outputs
 MUSIC_DEFAULT_MODEL_VERSION=V5
+MUSIC_FFMPEG_BIN=optional_ffmpeg_path_for_local_audio_upload
 ```
 
 ## Quick Checks
