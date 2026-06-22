@@ -1,0 +1,31 @@
+{
+  "mode": "build_music_handoff",
+  "task_id": "demo_music_handoff",
+  "title": "黄泉饭店",
+  "creative_direction": {
+    "target": "short_drama",
+    "tone": "悬疑诡异、强钩子、地府奇幻",
+    "audience": "竖屏短剧用户"
+  },
+  "polished_script": {
+    "script_id": "huangquan_polished_v1",
+    "title": "黄泉饭店",
+    "tone": "悬疑诡异、强钩子、地府奇幻",
+    "source_text": "林缺在雨夜回到黄泉饭店，牛头员工端着托盘出现，苏澜用探测器发现大厅异常。",
+    "scenes": [
+      {
+        "scene_no": 1,
+        "visual": "黄泉饭店大厅突然变成阎王殿。",
+        "voiceover": "雨夜三秒后，饭店大厅变成阎王殿。",
+        "music_cue": "低频鼓点、阴冷弦乐、地府仪式感，快速制造悬疑钩子"
+      },
+      {
+        "scene_no": 2,
+        "visual": "牛头员工端着托盘挡住苏澜。",
+        "voiceover": "苏澜的探测器开始爆表。",
+        "music_cue": "紧张脉冲、金属敲击、呼吸感停顿"
+      }
+    ]
+  },
+  "output_dir": "OUTPUT_DIR_HERE"
+}

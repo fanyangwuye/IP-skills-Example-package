@@ -1,0 +1,10 @@
+{
+  "mode": "generate_music",
+  "prompt": "为竖屏短剧《黄泉饭店》创作一段30秒主题音乐，开头三秒强钩子，低频鼓点推动，阴冷弦乐和地府仪式感，适合悬疑奇幻开场。",
+  "style": "dark cinematic, suspense, low strings, ritual percussion, short drama soundtrack",
+  "title": "黄泉饭店 Theme",
+  "instrumental": true,
+  "mv": "V5",
+  "output_filename": "huangquan_theme.mp3",
+  "output_dir": "OUTPUT_DIR_HERE"
+}

@@ -6,6 +6,7 @@ Current scope:
 
 - `ip-image-skill`: image generation, grid splitting, and image enhancement
 - `ip-copy-skill`: deterministic content planning, blueprint validation, and image handoff building
+- `ip-music-skill`: music handoff building plus PoYo/Suno music generation, remixing, stems, and vocal separation
 
 Design goals:
 
@@ -22,6 +23,7 @@ This repository is private by default. See `NOTICE.md` before redistributing, pu
 
 - `skills/ip-image-skill/`: image generation, character sheets, asset packs, grid split/enhance
 - `skills/ip-copy-skill/`: copy planning, blueprint validation, image handoff building
+- `skills/ip-music-skill/`: theme/BGM handoff building, music generation, remix/edit/split workflows
 - `scripts/`: cross-skill helper scripts
 - `tests/`: repository-level integration tests
 - `docs/`: workflow notes
@@ -51,6 +53,16 @@ IMAGE_EDIT_MODEL=gpt-image-2-edit
 IMAGE_OUTPUT_ROOT=E:\Plans for 2026\ip-skills\outputs
 ```
 
+Required for live music generation:
+
+```text
+MUSIC_PROVIDER=poyo
+MUSIC_API_KEY=your_provider_key
+MUSIC_API_BASE=https://api.poyo.ai
+MUSIC_OUTPUT_ROOT=E:\Plans for 2026\ip-skills\outputs
+MUSIC_DEFAULT_MODEL_VERSION=V5
+```
+
 ## Quick Checks
 
 Run local tests without spending image-generation credits:
@@ -60,5 +72,6 @@ python skills/ip-image-skill/tests/test_asset_pack.py
 python skills/ip-image-skill/tests/test_prompt_builder.py
 python skills/ip-image-skill/tests/test_split_grid.py
 python skills/ip-copy-skill/tests/test_copy_skill.py
+python skills/ip-music-skill/tests/test_music_skill.py
 python tests/test_copy_to_image_bridge.py
 ```

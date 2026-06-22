@@ -1,0 +1,6 @@
+{
+  "mode": "upload_separate_vocals",
+  "audio_path": "LOCAL_AUDIO_PATH_HERE",
+  "mv": "V5",
+  "output_dir": "OUTPUT_DIR_HERE"
+}
