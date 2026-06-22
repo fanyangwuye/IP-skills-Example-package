@@ -113,7 +113,16 @@ class PoYoMusicClient:
                 data=data,
                 timeout=120,
             )
-        self._raise_for_error(response)
+        try:
+            self._raise_for_error(response)
+        except RuntimeError as exc:
+            if mime_type.startswith("audio/") and "Unsupported file type" in str(exc):
+                raise RuntimeError(
+                    "Provider upload endpoint rejected this audio file type. "
+                    "Pass a public audio_url for live music remix modes, or update "
+                    "the client when the provider's audio upload endpoint is known."
+                ) from exc
+            raise
         body = response.json()
         file_url = body.get("data", {}).get("file_url")
         if not file_url:

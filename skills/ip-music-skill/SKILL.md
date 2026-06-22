@@ -23,7 +23,7 @@ description: "Build music handoff tasks from IP scripts or blueprints, and gener
 
 - Allowed:
   - Remote PoYo music API calls
-  - Local audio upload and result download
+  - Public audio URL remix inputs and result download
   - Local JSON handoff writing
 - Forbidden:
   - Hardcoding API keys
@@ -86,6 +86,8 @@ Supported live modes:
 
 For multi-step remix chains and mode selection details, read `references/workflows.md`.
 
+For uploaded/external audio remix modes, prefer `audio_url` that is publicly reachable by PoYo. The current `/api/common/upload/stream` endpoint may reject local audio files with `Unsupported file type`; do not promise local audio upload until the provider's music upload endpoint is confirmed.
+
 ## Scripts
 
 - `scripts/config.py`: environment-driven config
@@ -103,7 +105,7 @@ For multi-step remix chains and mode selection details, read `references/workflo
 - JSON task usage: `python music_skill.py --task path/to/task.json`
 - Manual CLI sample: `python music_cli.py generate --prompt "..." --out demo.mp3`
 - Generated-track stems: `python music_cli.py stems --task-id TASK --audio-id AUDIO --out-dir ./stems`
-- External-audio split: `python music_cli.py upload-separate --audio demo.mp3 --out-dir ./stems`
+- External-audio split: call `run_task` with `audio_url`, or use `music_cli.py upload-separate --audio demo.mp3` only after confirming the provider accepts local audio upload.
 
 ## Handoff Contract
 

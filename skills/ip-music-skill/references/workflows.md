@@ -21,7 +21,7 @@ All live modes submit through `POST /api/generate/submit`. Music status uses `GE
 ## Chaining Rules
 
 - `stem_split`, `separate_vocals`, `replace_section`, and most `extend_music` work need upstream `task_id` and/or `audio_id`.
-- `add_instrumental`, `add_vocals`, `cover_audio`, and `upload_separate_vocals` accept uploaded audio. Pass `audio_path` for local files or `audio_url` for existing URLs.
+- `add_instrumental`, `add_vocals`, `cover_audio`, and `upload_separate_vocals` need a provider-reachable audio URL. Prefer `audio_url`. Use `audio_path` only after confirming the provider accepts audio files on the configured upload endpoint.
 - Generated music result URLs can expire. Download useful results immediately.
 - `generate_music` usually returns multiple variants. The scripts download the first one and keep all returned audio metadata in `handoff.audios`.
 
@@ -45,7 +45,7 @@ add_instrumental with audio_path + tags
 Restyle a rough external recording:
 
 ```text
-cover_audio with audio_weight around 0.7-0.9
+cover_audio with a public audio_url and audio_weight around 0.7-0.9
 ```
 
 Use `cover_audio` as a remake, not as deterministic audio restoration. If the melody is not recognizable, the generated version may drift.

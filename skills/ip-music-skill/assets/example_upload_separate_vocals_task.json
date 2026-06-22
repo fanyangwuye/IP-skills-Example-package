@@ -1,6 +1,6 @@
 {
   "mode": "upload_separate_vocals",
-  "audio_path": "LOCAL_AUDIO_PATH_HERE",
+  "audio_url": "PUBLIC_AUDIO_URL_HERE",
   "mv": "V5",
   "output_dir": "OUTPUT_DIR_HERE"
 }
