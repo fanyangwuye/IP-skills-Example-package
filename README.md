@@ -7,7 +7,7 @@ Current scope:
 - `ip-image-skill`: image generation, grid splitting, and image enhancement
 - `ip-copy-skill`: deterministic content planning, blueprint validation, and image handoff building
 - `ip-music-skill`: music handoff building plus PoYo/Suno music generation, remixing, stems, and vocal separation
-- `ip-video-skill`: offline continuity bible, shot plan, high-quality I2V/T2V/Seedance prompts, provider request preparation, video handoff, and EDL building
+- `ip-video-skill`: offline continuity bible, shot/clip plan, high-quality I2V/T2V/Seedance prompts, provider request preparation, video handoff, and EDL building
 
 Design goals:
 
@@ -25,7 +25,7 @@ This repository is private by default. See `NOTICE.md` before redistributing, pu
 - `skills/ip-image-skill/`: image generation, character sheets, asset packs, grid split/enhance
 - `skills/ip-copy-skill/`: copy planning, blueprint validation, image handoff building
 - `skills/ip-music-skill/`: theme/BGM handoff building, music generation, remix/edit/split workflows
-- `skills/ip-video-skill/`: continuity-locked video handoff, shot planning, prompt quality layers, provider request preparation, and EDL
+- `skills/ip-video-skill/`: continuity-locked video handoff, shot/clip planning, prompt quality layers, provider request preparation, and EDL
 - `scripts/`: cross-skill helper scripts
 - `tests/`: repository-level integration tests
 - `docs/`: workflow notes
@@ -93,6 +93,8 @@ VIDEO_POLL_TIMEOUT_SEC=600
 `POYO_API_KEY` can be used as a shared key fallback for image, music, and future video providers.
 
 Video defaults to `480p` to keep test clips low-cost. Set `VIDEO_DEFAULT_RESOLUTION=720p` for clearer review clips when needed.
+
+Video generation is clip-first by default: `clip_plan` groups shots into 5-15 second continuity clips. Panorama scene images are preserved as `space_anchor_refs`; normal perspective scene references are used for video model input.
 
 ## Quick Checks
 

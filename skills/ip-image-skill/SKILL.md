@@ -11,7 +11,7 @@ description: "Generate IP visual assets, split grid images into single tiles, an
 - Create characters and visual assets from novel or copy input
 - Iteratively refine a single image through conversational interaction
 - Generate a consistent starter asset bundle for one locked character
-- Generate multi-character IP asset packs with clean character sheets, props, and 720 panorama scene assets
+- Generate multi-character IP asset packs with clean character sheets, props, 720 panorama scene assets, and normal video scene references
 - Split a 4 / 9 / 16 grid image into single images
 - Enhance an existing image or split tiles while keeping the source file untouched
 
@@ -73,7 +73,8 @@ Supported Flow A task styles:
 2. Generate character assets as clean design sheets with plain backgrounds, not story-scene images
 3. Include key props beside the matching character where useful
 4. Generate scene assets as wide 720-style panorama references with seamless left-right edge instructions
-5. Return the full asset pack for downstream image and video workflows
+5. Also generate a normal perspective `video_scene_reference` for video pipelines, keeping stable entrances, landmarks, light direction, and foreground/midground/background layers
+6. Return the full asset pack for downstream image and video workflows
 
 ### Flow B: Grid Split And Enhance
 

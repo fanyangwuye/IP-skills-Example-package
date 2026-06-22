@@ -1,9 +1,11 @@
 from typing import Dict, List
 
 try:
+    from .clip_plan import build_clip_plan, build_clip_prompts
     from .continuity import build_continuity_bible
     from .shot_plan import build_i2v_prompts, build_shot_plan, build_t2v_prompts
 except ImportError:
+    from clip_plan import build_clip_plan, build_clip_prompts
     from continuity import build_continuity_bible
     from shot_plan import build_i2v_prompts, build_shot_plan, build_t2v_prompts
 
@@ -11,15 +13,18 @@ except ImportError:
 def build_video_handoff(task: Dict) -> Dict:
     bible = build_continuity_bible(task)
     shots = build_shot_plan(task, bible)
+    clips = build_clip_plan(task, shots, bible)
     return {
         "source_title": bible.get("source_title", task.get("title", "")),
         "continuity_bible": bible,
         "shots": shots,
+        "clip_plan": clips,
         "i2v_prompts": build_i2v_prompts(shots),
         "t2v_prompts": build_t2v_prompts(shots),
         "seedance_prompts": build_seedance_prompts(shots),
-        "edit_decision_list": build_edit_decision_list(task, shots),
-        "quality_checks": build_global_quality_checks(shots),
+        "clip_prompts": build_clip_prompts(clips),
+        "edit_decision_list": build_edit_decision_list(task, shots, clips),
+        "quality_checks": build_global_quality_checks(shots, clips),
     }
 
 
@@ -36,9 +41,13 @@ def build_seedance_prompts(shots: List[Dict]) -> List[Dict]:
     ]
 
 
-def build_edit_decision_list(task: Dict, shots: List[Dict]) -> Dict:
+def build_edit_decision_list(task: Dict, shots: List[Dict], clips: List[Dict] = None) -> Dict:
     music_handoff = task.get("music_handoff") or {}
     music_tasks = music_handoff.get("music_tasks") or []
+    shot_to_clip = {}
+    for clip in clips or []:
+        for shot_id in clip.get("shot_ids") or []:
+            shot_to_clip[shot_id] = clip.get("clip_id")
     rows = []
     for index, shot in enumerate(shots, start=1):
         storyboard = shot.get("storyboard_card") or {}
@@ -47,6 +56,7 @@ def build_edit_decision_list(task: Dict, shots: List[Dict]) -> Dict:
             {
                 "order": index,
                 "shot_id": shot["shot_id"],
+                "clip_id": shot_to_clip.get(shot["shot_id"], ""),
                 "start_sec": shot["timing"]["start_sec"],
                 "end_sec": shot["timing"]["end_sec"],
                 "transition": "cut",
@@ -61,23 +71,49 @@ def build_edit_decision_list(task: Dict, shots: List[Dict]) -> Dict:
     return {
         "format": task.get("target_format", "short_drama_video"),
         "timeline": rows,
+        "clip_timeline": [
+            {
+                "order": clip.get("order"),
+                "clip_id": clip.get("clip_id"),
+                "shot_ids": clip.get("shot_ids"),
+                "start_sec": clip.get("timing", {}).get("start_sec"),
+                "end_sec": clip.get("timing", {}).get("end_sec"),
+                "duration_sec": clip.get("timing", {}).get("duration_sec"),
+                "previous_clip_end_frame": clip.get("previous_clip_end_frame"),
+                "continuity_start": clip.get("continuity_state", {}).get("current_start_state"),
+                "continuity_end": clip.get("continuity_state", {}).get("current_end_state"),
+            }
+            for clip in clips or []
+        ],
         "assembly_notes": [
             "先按 EDL 顺序拼接生成片段。",
+            "视频生成优先按 clip_timeline 生成 5-15 秒连续片段；shot timeline 用于内部分镜和剪辑检查。",
             "字幕和旁白使用每镜 sound_subtitle 字段。",
             "BGM 优先使用 music_ref；缺失时使用主题曲或场景 BGM fallback。",
             "拼接前检查每个片段首尾状态是否符合 continuity_start/continuity_end。",
+            "跨 clip 续接时，优先抽取上一 clip 最后一帧作为下一 clip 的 previous_clip_end_frame。",
         ],
     }
 
 
-def build_global_quality_checks(shots: List[Dict]) -> List[Dict]:
-    return [
+def build_global_quality_checks(shots: List[Dict], clips: List[Dict] = None) -> Dict:
+    return {
+        "shots": [
         {
             "shot_id": shot["shot_id"],
             "must_pass": shot.get("quality_checks", []),
         }
         for shot in shots
-    ]
+        ],
+        "clips": [
+            {
+                "clip_id": clip.get("clip_id"),
+                "shot_ids": clip.get("shot_ids", []),
+                "must_pass": clip.get("quality_checks", []),
+            }
+            for clip in clips or []
+        ],
+    }
 
 
 def _music_ref_for_shot(index: int, music_tasks: List[Dict]) -> Dict:

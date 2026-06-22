@@ -12,11 +12,12 @@ Build the offline video structure layer for IP workflows:
 - `build_continuity_bible`: lock characters, costumes, props, scenes, lighting, style, and reference roles.
 - `build_video_handoff`: turn `blueprint`, `polished_script`, `ip_asset_pack`, `image_handoff`, and `music_handoff` into executable video tasks.
 - `build_shot_plan`: create continuity-aware storyboard cards.
+- `build_clip_plan`: group shots into 5-15 second continuity clips so generation is not split into too many tiny fragments.
 - `build_i2v_prompts`: create image-to-video prompts from locked references.
 - `build_t2v_prompts`: create text-to-video prompts when no usable image reference exists.
 - `seedance_prompts`: create timed Chinese prompts with performance, camera, light, sound, realism, and retry guidance.
 - `build_edit_decision_list`: create a first-pass EDL for later assembly.
-- `prepare_video_generation`: convert one locked shot into a provider-specific request without calling the provider.
+- `prepare_video_generation`: convert one locked clip or shot into a provider-specific request without calling the provider.
 - `run_video_generation`: dry-run provider execution; live provider calls are intentionally blocked until an adapter is implemented and verified.
 
 This phase is local only by default. Do not call live video APIs unless a provider adapter explicitly implements and tests that provider.
@@ -37,6 +38,15 @@ For 2+ characters, each shot must also include:
 - `blocking_distance`
 
 Do not write isolated video prompts that can drift across shots.
+
+For actual video generation, prefer clip-level generation over tiny shot-level generation:
+
+- Keep `shots` for storyboard, subtitles, and edit checks.
+- Use `clip_plan` for provider calls; each clip should usually be 5-15 seconds and may contain multiple shots.
+- Preserve panorama scene images as `space_anchor_refs` for spatial overview and human consistency checks.
+- Use normal perspective scene references as `video_reference_images` for model input.
+- For clip 2+, pass the previous clip's extracted last frame as `previous_clip_end_frame`; provider requests should map it to the first-frame slot when supported.
+- Do not discard panorama assets; they remain useful for layout, landmark, and light-direction anchoring.
 
 ## Inputs
 
@@ -79,13 +89,15 @@ result = run_task({
 - `source_title`
 - `continuity_bible`
 - `shots`
+- `clip_plan`
 - `i2v_prompts`
 - `t2v_prompts`
 - `seedance_prompts`
+- `clip_prompts`
 - `edit_decision_list`
 - `quality_checks`
 
-Every shot is safe to pass to a provider adapter later because continuity is already explicit.
+Every shot and clip is safe to pass to a provider adapter later because continuity is already explicit.
 
 ## Provider Layer
 
@@ -96,11 +108,14 @@ Every shot is safe to pass to a provider adapter later because continuity is alr
 - `jimeng_cli`: compatibility alias for `dreamina_cli`.
 - `poyo_video`: submit Seedance 2 / Seedance 2 Fast video tasks through PoYo, poll task status, and download returned files when `dry_run=false`.
 
-Use `prepare_video_generation` to inspect a single-shot provider request before spending credits. Provider requests preserve:
+Use `prepare_video_generation` to inspect a single-shot or single-clip provider request before spending credits. Prefer `clip_index` for normal video generation and `shot_index` for troubleshooting. Provider requests preserve:
 
 - prompt
 - negative prompt
 - reference images
+- video reference images
+- space anchor refs
+- previous clip end frame
 - reference binding
 - continuity state
 - visual lock
@@ -125,6 +140,7 @@ Default video resolution is `480p` to keep test clips low-cost. Raise to `720p` 
 
 - `scripts/continuity.py`: continuity bible builder
 - `scripts/shot_plan.py`: shot/storyboard/prompt builder
+- `scripts/clip_plan.py`: clip grouping, clip prompts, video reference images, space anchors, and previous-frame handoff
 - `scripts/prompt_quality.py`: prompt quality layers for performance, camera, light, sound, realism, constraints, and retry advice
 - `scripts/video_provider.py`: provider request builder and dry-run execution boundary
 - `scripts/poyo_video_client.py`: PoYo Seedance 2 submit, status polling, upload, and download client

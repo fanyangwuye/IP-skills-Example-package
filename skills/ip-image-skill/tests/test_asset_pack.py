@@ -32,7 +32,7 @@ def test_build_ip_asset_pack_tasks():
         ],
     }
     tasks = build_ip_asset_pack_tasks(pack, output_dir="out")
-    assert len(tasks) == 3
+    assert len(tasks) == 4
     assert tasks[0]["mode"] == "character_create"
     assert tasks[0]["filename"] == "lin_que_design_sheet.jpg"
     assert "plain neutral background" in tasks[0]["asset_requirements"]
@@ -43,6 +43,9 @@ def test_build_ip_asset_pack_tasks():
     assert tasks[2]["asset_kind"] == "720_seamless_panorama_scene"
     assert tasks[2]["size"] == "21:9"
     assert tasks[2]["resolution"] == "4K"
+    assert tasks[3]["asset_kind"] == "video_scene_reference"
+    assert tasks[3]["size"] == "16:9"
+    assert any("normal perspective environment reference" in item for item in tasks[3]["asset_requirements"])
 
 
 def test_asset_pack_prompt_contains_specs():

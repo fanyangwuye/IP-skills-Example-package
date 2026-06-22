@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import tempfile
+import copy
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
@@ -98,6 +99,10 @@ def test_build_continuity_bible_outputs_locks():
 def test_build_video_handoff_has_required_shot_fields():
     handoff = build_video_handoff(_task())
     assert len(handoff["shots"]) == 2
+    assert len(handoff["clip_plan"]) == 1
+    assert handoff["clip_prompts"][0]["clip_id"] == "clip_001"
+    assert handoff["clip_plan"][0]["video_reference_images"]
+    assert handoff["clip_plan"][0]["space_anchor_refs"]
     for shot in handoff["shots"]:
         assert shot["visual_lock"]
         assert shot["continuity_state"]
@@ -148,6 +153,7 @@ def test_run_task_writes_video_handoff_json():
             saved = json.load(fh)
         assert saved["source_title"] == "黄泉饭店"
         assert len(saved["edit_decision_list"]["timeline"]) == 2
+        assert len(saved["edit_decision_list"]["clip_timeline"]) == 1
 
 
 def test_prepare_video_generation_request_offline():
@@ -247,6 +253,61 @@ def test_prepare_video_generation_request_poyo_seedance2_shape():
     assert input_obj["generate_audio"] is False
     assert input_obj["seed"] == 42
     assert request["transport"]["status_url"].endswith("/api/generate/status/{task_id}")
+
+
+def test_clip_plan_groups_30_seconds_into_two_clips():
+    task = copy.deepcopy(_task())
+    task["target_clip_duration_sec"] = 15
+    task["blueprint"]["segments"] = [
+        {"index": idx + 1, "start_sec": idx * 5, "end_sec": (idx + 1) * 5, "visual": f"林缺在黄泉饭店大厅推进连续动作 {idx + 1}"}
+        for idx in range(6)
+    ]
+    handoff = build_video_handoff(task)
+    clips = handoff["clip_plan"]
+    assert len(clips) == 2
+    assert all(clip["timing"]["duration_sec"] <= 15 for clip in clips)
+    assert clips[0]["shot_ids"] == ["shot_001", "shot_002", "shot_003"]
+    assert clips[1]["continuity_state"]["current_start_state"] == handoff["shots"][3]["continuity_state"]["current_start_state"]
+    assert clips[0]["space_anchor_refs"]
+    assert clips[0]["video_reference_images"]
+
+
+def test_prepare_clip_generation_uses_previous_clip_end_frame_and_keeps_panorama_as_anchor():
+    task = copy.deepcopy(_task())
+    task["target_clip_duration_sec"] = 5
+    task["previous_clip_end_frames"] = {
+        "clip_001": {"url": "https://files.example/clip001_last.png", "role": "previous_clip_end_frame"}
+    }
+    handoff = build_video_handoff(task)
+    config = VideoProviderConfig(
+        provider="poyo_video",
+        api_key="test",
+        api_base="https://api.example",
+        output_root="",
+        default_model="seedance-2",
+        default_aspect_ratio="9:16",
+        default_resolution="480p",
+        poll_interval_sec=1,
+        poll_timeout_sec=5,
+    )
+    request = prepare_video_generation_request(
+        {
+            "video_handoff": handoff,
+            "provider": "poyo_video",
+            "clip_index": 2,
+            "duration_sec": 5,
+        },
+        config,
+    )
+    assert request["unit_kind"] == "clip"
+    assert request["clip_id"] == "clip_002"
+    assert request["image_urls"][0]["url"] == "https://files.example/clip001_last.png"
+    assert request["reference_image_urls"] == []
+    assert request["space_anchor_refs"]
+    assert request["video_reference_images"]
+    input_obj = request["transport"]["json"]["input"]
+    assert input_obj["image_urls"] == ["https://files.example/clip001_last.png"]
+    assert "reference_image_urls" not in input_obj
 
 
 class FakeResponse:

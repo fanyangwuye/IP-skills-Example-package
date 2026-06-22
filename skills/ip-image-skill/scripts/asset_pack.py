@@ -30,6 +30,15 @@ DEFAULT_PANORAMA_REQUIREMENTS = [
     "no main character blocking the view",
 ]
 
+DEFAULT_VIDEO_SCENE_REQUIREMENTS = [
+    "normal perspective environment reference for video generation",
+    "stable spatial anchors: entrances, windows, counters, roads, landmarks, and light direction",
+    "no 720 panorama projection",
+    "no fisheye distortion",
+    "no main character blocking the layout",
+    "clear foreground, midground, and background layers for camera planning",
+]
+
 
 def build_ip_asset_pack_tasks(pack: Dict, output_dir: str) -> List[Dict]:
     tasks: List[Dict] = []
@@ -39,7 +48,7 @@ def build_ip_asset_pack_tasks(pack: Dict, output_dir: str) -> List[Dict]:
         tasks.extend(_build_character_tasks(character, common, output_dir))
 
     for scene in pack.get("scenes") or []:
-        tasks.append(_build_scene_task(scene, common, output_dir))
+        tasks.extend(_build_scene_tasks(scene, common, output_dir))
 
     for prop in pack.get("standalone_props") or []:
         tasks.append(_build_prop_task(prop, common, output_dir))
@@ -136,7 +145,14 @@ def _build_character_tasks(character: Dict, common: Dict, output_dir: str) -> Li
     return tasks
 
 
-def _build_scene_task(scene: Dict, common: Dict, output_dir: str) -> Dict:
+def _build_scene_tasks(scene: Dict, common: Dict, output_dir: str) -> List[Dict]:
+    tasks = [_build_scene_panorama_task(scene, common, output_dir)]
+    if scene.get("include_video_reference", True):
+        tasks.append(_build_video_scene_reference_task(scene, common, output_dir))
+    return tasks
+
+
+def _build_scene_panorama_task(scene: Dict, common: Dict, output_dir: str) -> Dict:
     scene_id = _safe_label(scene.get("scene_id") or scene.get("name") or "scene")
     asset_requirements = list(DEFAULT_PANORAMA_REQUIREMENTS)
     asset_requirements.extend(scene.get("asset_requirements") or [])
@@ -166,6 +182,43 @@ def _build_scene_task(scene: Dict, common: Dict, output_dir: str) -> Dict:
         "size": scene.get("size", "21:9"),
         "resolution": scene.get("resolution", common.get("resolution", "4K")),
         "filename": scene.get("filename", f"{scene_id}_720_panorama.jpg"),
+        "output_dir": output_dir,
+    }
+
+
+def _build_video_scene_reference_task(scene: Dict, common: Dict, output_dir: str) -> Dict:
+    scene_id = _safe_label(scene.get("scene_id") or scene.get("name") or "scene")
+    asset_requirements = list(DEFAULT_VIDEO_SCENE_REQUIREMENTS)
+    asset_requirements.extend(scene.get("video_reference_requirements") or [])
+    return {
+        **copy.deepcopy(common),
+        "mode": "text_to_image",
+        "creation_stage": "scene_video_reference_asset_pack",
+        "current_focus": f"generate normal video scene reference: {scene_id}",
+        "asset_kind": "video_scene_reference",
+        "scene_profile": copy.deepcopy(scene),
+        "asset_target": {
+            "type": "normal perspective video scene reference",
+            "purpose": scene.get("video_reference_purpose", "video reference for spatial continuity and image-to-video generation"),
+            "scene": scene.get("description", scene.get("name", "")),
+        },
+        "camera": scene.get("video_reference_camera", "normal cinematic wide establishing frame, 35mm lens feel, eye-level or slightly low angle"),
+        "composition": scene.get(
+            "video_reference_composition",
+            "single coherent environment frame with stable spatial anchors, readable entrances and landmarks, no 720 panorama wrap",
+        ),
+        "lighting": scene.get("lighting", ""),
+        "asset_requirements": asset_requirements,
+        "gpt_image_2_spec": {
+            "model": "gpt-image-2",
+            "recommended_size": scene.get("video_reference_size", "16:9"),
+            "recommended_resolution": scene.get("video_reference_resolution", common.get("resolution", "2K")),
+            "note": "Use this normal perspective scene reference for video generation; keep panorama assets as separate space anchors.",
+        },
+        "quality": scene.get("video_reference_quality", scene.get("quality", common.get("quality", "high"))),
+        "size": scene.get("video_reference_size", "16:9"),
+        "resolution": scene.get("video_reference_resolution", common.get("resolution", "2K")),
+        "filename": scene.get("video_reference_filename", f"{scene_id}_video_scene_reference.jpg"),
         "output_dir": output_dir,
     }
 

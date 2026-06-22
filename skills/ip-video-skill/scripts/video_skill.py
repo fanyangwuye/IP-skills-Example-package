@@ -4,12 +4,14 @@ import os
 from typing import Dict
 
 try:
+    from .clip_plan import build_clip_plan, build_clip_prompts
     from .config import load_video_provider_config
     from .continuity import build_continuity_bible
     from .shot_plan import build_i2v_prompts, build_shot_plan, build_t2v_prompts
     from .video_provider import prepare_video_generation_request, run_video_generation
     from .video_handoff import build_edit_decision_list, build_video_handoff
 except ImportError:
+    from clip_plan import build_clip_plan, build_clip_prompts
     from config import load_video_provider_config
     from continuity import build_continuity_bible
     from shot_plan import build_i2v_prompts, build_shot_plan, build_t2v_prompts
@@ -40,6 +42,14 @@ def run_task(task: Dict) -> Dict:
         path = os.path.join(output_dir, task.get("shot_plan_filename", "shot_plan.json"))
         _write_json(path, {"continuity_bible": bible, "shots": shots})
         return _result(mode, {"continuity_bible": bible, "shots": shots}, path, "shot_plan")
+
+    if mode == "build_clip_plan":
+        bible = build_continuity_bible(task)
+        shots = task.get("shots") or build_shot_plan(task, bible)
+        clips = build_clip_plan(task, shots, bible)
+        path = os.path.join(output_dir, task.get("clip_plan_filename", "clip_plan.json"))
+        _write_json(path, {"continuity_bible": bible, "clip_plan": clips, "clip_prompts": build_clip_prompts(clips)})
+        return _result(mode, {"continuity_bible": bible, "clip_plan": clips}, path, "clip_plan")
 
     if mode == "build_i2v_prompts":
         bible = build_continuity_bible(task)
@@ -82,7 +92,7 @@ def run_task(task: Dict) -> Dict:
         return response
 
     raise ValueError(
-        "mode must be one of: build_continuity_bible, build_video_handoff, build_shot_plan, "
+        "mode must be one of: build_continuity_bible, build_video_handoff, build_shot_plan, build_clip_plan, "
         "build_i2v_prompts, build_t2v_prompts, build_edit_decision_list, "
         "prepare_video_generation, run_video_generation"
     )

@@ -136,7 +136,9 @@ class PoYoVideoClient:
             if not file_url:
                 continue
             suffix = _suffix_for_file(file_info)
-            base = os.path.splitext(request.get("output_filename") or request.get("shot_id") or "video")[0]
+            base = os.path.splitext(
+                request.get("output_filename") or request.get("clip_id") or request.get("shot_id") or request.get("unit_id") or "video"
+            )[0]
             out_path = os.path.join(output_dir, f"{base}_{index:02d}{suffix}")
             local_paths.append(self.download(file_url, out_path))
         return local_paths

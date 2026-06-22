@@ -13,10 +13,21 @@ Use this before any prompt writing.
 
 1. Prefer `blueprint.segments` for timing and scene order.
 2. Fall back to `polished_script.scenes`, `script_draft.scenes`, then `scene_cards`.
-3. Create one shot per segment in phase 1.
+3. Create one shot per segment for storyboard, subtitles, and edit checking.
 4. Carry `previous_end_state -> current_start_state -> current_end_state` through every shot.
-5. Create `i2v_prompt`, `t2v_prompt`, and `seedance_prompt`.
-6. Create an EDL for later ffmpeg/provider assembly.
+5. Group shots into `clip_plan` entries, usually 5-15 seconds each, so video generation is not split into too many tiny fragments.
+6. Keep panorama scene images in `space_anchor_refs` for spatial overview; use normal perspective scene images in `video_reference_images` for model generation.
+7. Create `i2v_prompt`, `t2v_prompt`, `seedance_prompt`, and `clip_prompts`.
+8. Create an EDL for later ffmpeg/provider assembly.
+
+## Clip Continuity Rules
+
+- Generate video at the `clip_plan` level by default; use shot-level requests only for troubleshooting.
+- For clip 1, use locked character refs and normal scene refs.
+- For clip 2+, extract the previous clip's final frame and pass it as `previous_clip_end_frame`; provider requests should map it to the first-frame slot when supported.
+- If a provider disallows first-frame input together with reference images, prefer the previous final frame for clip continuation and keep the normal refs in metadata/prompt checks.
+- Preserve 720 panorama assets as `space_anchor_refs`; do not discard them and do not default to feeding them as direct generation frames.
+- Check every clip boundary for face, hairstyle, costume, prop hand, scene layout, light direction, and current_start_state/current_end_state continuity.
 
 ## Prompt Quality Layers
 
@@ -43,7 +54,7 @@ Each generated video prompt should include:
 
 ## Provider Adapter Boundary
 
-Future provider adapters must consume `video_handoff.shots`. Do not rebuild prompts from scratch inside adapters.
+Future provider adapters must consume `video_handoff.clip_plan` for normal generation and `video_handoff.shots` for troubleshooting. Do not rebuild prompts from scratch inside adapters.
 
 Provider adapters may add:
 
@@ -67,10 +78,10 @@ Provider adapters must preserve:
 Use this flow before any paid video generation:
 
 1. Build `video_handoff`.
-2. Pick one `shot_id` or `shot_index`.
+2. Prefer one `clip_id` or `clip_index` for normal generation; use `shot_id` or `shot_index` only for troubleshooting.
 3. Run `prepare_video_generation`.
-4. Inspect `provider_request.prompt`, `reference_images`, `continuity_state`, and `transport`.
-5. Generate only one short test shot after the provider adapter is confirmed.
+4. Inspect `provider_request.prompt`, `reference_images`, `video_reference_images`, `space_anchor_refs`, `continuity_state`, and `transport`.
+5. Generate only one short test clip after the provider adapter is confirmed.
 
 Supported provider request shapes:
 
@@ -79,7 +90,7 @@ Supported provider request shapes:
 - `jimeng_cli`: compatibility alias for `dreamina_cli`.
 - `poyo_video`: returns a Seedance 2 HTTP payload in dry-run mode; with `dry_run=false`, submits to `/api/generate/submit`, polls `/api/generate/status/{task_id}`, and downloads returned `files`.
 
-Do not run full-episode batches until single-shot face, costume, scene, lighting, axis, and eyeline consistency is verified.
+Do not run full-episode batches until single-clip face, costume, scene, lighting, axis, and eyeline consistency is verified.
 
 ## PoYo Seedance 2 Notes
 

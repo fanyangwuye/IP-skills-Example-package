@@ -18,12 +18,12 @@ def prepare_video_generation_request(task: Dict, config: VideoProviderConfig) ->
         raise RuntimeError(f"Unsupported VIDEO_PROVIDER: {provider}")
 
     handoff = task.get("video_handoff") or task.get("handoff") or {}
-    shot = task.get("shot") or _select_shot(handoff, task)
-    if not shot:
-        raise ValueError("prepare_video_generation requires shot or video_handoff.shots")
+    unit = task.get("clip") or task.get("shot") or _select_generation_unit(handoff, task)
+    if not unit:
+        raise ValueError("prepare_video_generation requires clip, shot, video_handoff.clip_plan, or video_handoff.shots")
 
     prompt_kind = task.get("prompt_kind", _default_prompt_kind(provider))
-    request = _base_request(task, shot, provider, prompt_kind, config)
+    request = _base_request(task, unit, provider, prompt_kind, config)
     if provider in {"dreamina_cli", "jimeng_cli"}:
         request["transport"] = _dreamina_cli_transport(task, request)
     elif provider == "poyo_video":
@@ -73,36 +73,69 @@ def run_video_generation(task: Dict, config: VideoProviderConfig) -> Dict:
     )
 
 
-def _base_request(task: Dict, shot: Dict, provider: str, prompt_kind: str, config: VideoProviderConfig) -> Dict:
-    mode = task.get("generation_mode") or _infer_generation_mode(task, shot)
-    timing = shot.get("timing") or {}
+def _base_request(task: Dict, unit: Dict, provider: str, prompt_kind: str, config: VideoProviderConfig) -> Dict:
+    image_urls = _image_urls(task, unit)
+    reference_image_urls = _reference_image_urls(task, unit, image_urls)
+    mode = task.get("generation_mode") or _infer_generation_mode(task, unit, image_urls, reference_image_urls)
+    timing = unit.get("timing") or {}
+    unit_id = unit.get("clip_id") or unit.get("shot_id") or "video_unit"
     return {
         "provider": provider,
         "mode": mode,
-        "shot_id": shot.get("shot_id", ""),
+        "unit_kind": "clip" if unit.get("clip_id") else "shot",
+        "clip_id": unit.get("clip_id", ""),
+        "shot_id": unit.get("shot_id", ""),
+        "unit_id": unit_id,
         "model": task.get("model") or config.default_model or _default_model(provider),
         "prompt_kind": prompt_kind,
-        "prompt": _prompt_for_kind(shot, prompt_kind),
-        "negative_prompt": shot.get("negative_prompt", ""),
+        "prompt": _prompt_for_kind(unit, prompt_kind),
+        "negative_prompt": unit.get("negative_prompt", ""),
         "duration_sec": task.get("duration_sec") or timing.get("duration_sec"),
         "aspect_ratio": task.get("aspect_ratio") or config.default_aspect_ratio,
         "resolution": task.get("resolution") or config.default_resolution,
         "generate_audio": task.get("generate_audio"),
         "seed": task.get("seed"),
-        "image_urls": _normalize_reference_list(task.get("image_urls") or []),
-        "reference_image_urls": _normalize_reference_list(task.get("reference_image_urls") or []),
+        "image_urls": image_urls,
+        "reference_image_urls": reference_image_urls,
         "reference_video_urls": _normalize_reference_list(task.get("reference_video_urls") or []),
         "reference_audio_urls": _normalize_reference_list(task.get("reference_audio_urls") or []),
-        "reference_images": _reference_images(task, shot),
-        "reference_binding": shot.get("reference_binding", {}),
-        "continuity_state": shot.get("continuity_state", {}),
-        "visual_lock": shot.get("visual_lock", {}),
-        "axis": shot.get("axis", {}),
-        "screen_direction": shot.get("screen_direction", {}),
-        "eyeline": shot.get("eyeline", {}),
-        "retry_advice": shot.get("retry_advice", []),
-        "output_filename": task.get("output_filename") or f"{shot.get('shot_id', 'shot')}.mp4",
+        "reference_images": _reference_images(task, unit),
+        "video_reference_images": unit.get("video_reference_images", []),
+        "space_anchor_refs": unit.get("space_anchor_refs", []),
+        "previous_clip_end_frame": unit.get("previous_clip_end_frame"),
+        "reference_binding": unit.get("reference_binding", {}),
+        "continuity_state": unit.get("continuity_state", {}),
+        "visual_lock": unit.get("visual_lock", {}),
+        "axis": unit.get("axis", {}),
+        "screen_direction": unit.get("screen_direction", {}),
+        "eyeline": unit.get("eyeline", {}),
+        "retry_advice": unit.get("retry_advice", []),
+        "output_filename": task.get("output_filename") or f"{unit_id}.mp4",
     }
+
+
+def _select_generation_unit(handoff: Dict, task: Dict) -> Optional[Dict]:
+    wants_clip = bool(task.get("clip_id") or task.get("clip_index") or task.get("generation_unit") == "clip")
+    wants_shot = bool(task.get("shot_id") or task.get("shot_index") or task.get("generation_unit") == "shot")
+    if (wants_clip or not wants_shot) and handoff.get("clip_plan"):
+        return _select_clip(handoff, task)
+    return _select_shot(handoff, task)
+
+
+def _select_clip(handoff: Dict, task: Dict) -> Optional[Dict]:
+    clips = handoff.get("clip_plan") or handoff.get("clips") or []
+    if not clips:
+        return None
+    clip_id = task.get("clip_id")
+    if clip_id:
+        for clip in clips:
+            if clip.get("clip_id") == clip_id:
+                return clip
+        raise ValueError(f"clip_id not found in video_handoff: {clip_id}")
+    index = int(task.get("clip_index", 1) or 1)
+    if index < 1 or index > len(clips):
+        raise ValueError(f"clip_index out of range: {index}")
+    return clips[index - 1]
 
 
 def _select_shot(handoff: Dict, task: Dict) -> Optional[Dict]:
@@ -139,19 +172,47 @@ def _default_model(provider: str) -> str:
     }.get(provider, "video-default")
 
 
-def _infer_generation_mode(task: Dict, shot: Dict) -> str:
-    refs = _reference_images(task, shot)
+def _infer_generation_mode(task: Dict, unit: Dict, image_urls: List, reference_image_urls: List) -> str:
+    if image_urls:
+        return "frames_to_video" if unit.get("clip_id") else "image_to_video"
+    if reference_image_urls:
+        return "multimodal_to_video"
+    refs = _reference_images(task, unit)
     return "image_to_video" if refs else "text_to_video"
 
 
 def _prompt_for_kind(shot: Dict, prompt_kind: str) -> str:
     if prompt_kind == "i2v":
-        return shot.get("i2v_prompt") or shot.get("seedance_prompt") or shot.get("t2v_prompt", "")
+        return shot.get("i2v_prompt") or shot.get("clip_prompt") or shot.get("seedance_prompt") or shot.get("t2v_prompt", "")
     if prompt_kind == "t2v":
-        return shot.get("t2v_prompt") or shot.get("seedance_prompt") or shot.get("i2v_prompt", "")
+        return shot.get("t2v_prompt") or shot.get("clip_prompt") or shot.get("seedance_prompt") or shot.get("i2v_prompt", "")
     if prompt_kind == "seedance":
-        return shot.get("seedance_prompt") or shot.get("i2v_prompt") or shot.get("t2v_prompt", "")
+        return shot.get("seedance_prompt") or shot.get("clip_prompt") or shot.get("i2v_prompt") or shot.get("t2v_prompt", "")
     raise ValueError("prompt_kind must be one of: seedance, i2v, t2v")
+
+
+def _image_urls(task: Dict, unit: Dict) -> List:
+    explicit = task.get("image_urls") or []
+    if explicit:
+        return _normalize_reference_list(explicit)
+    previous = unit.get("previous_clip_end_frame")
+    if previous:
+        return [_normalize_reference(previous)]
+    return []
+
+
+def _reference_image_urls(task: Dict, unit: Dict, image_urls: List) -> List:
+    explicit = task.get("reference_image_urls") or []
+    if explicit:
+        return _normalize_reference_list(explicit)
+    if image_urls:
+        return []
+    refs = []
+    for item in unit.get("video_reference_images") or []:
+        ref = _normalize_reference(item)
+        if ref.get("url") or ref.get("path"):
+            refs.append(ref)
+    return refs
 
 
 def _reference_images(task: Dict, shot: Dict) -> List[Dict]:
@@ -160,6 +221,8 @@ def _reference_images(task: Dict, shot: Dict) -> List[Dict]:
         return [_normalize_reference(item) for item in explicit]
 
     refs = []
+    for item in shot.get("video_reference_images") or []:
+        refs.append(_normalize_reference(item))
     binding = shot.get("reference_binding") or {}
     for role, values in (binding.get("face_locks") or {}).items():
         refs.append({"role": "face", "lock": values, "character": role})
