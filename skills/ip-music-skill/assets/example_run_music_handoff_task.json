@@ -1,0 +1,31 @@
+{
+  "mode": "run_music_handoff",
+  "music_handoff": {
+    "source_title": "黄泉饭店",
+    "music_tasks": [
+      {
+        "mode": "generate_music",
+        "role": "theme",
+        "prompt": "为《黄泉饭店》创作一首悬疑诡异的地府奇幻主题音乐，开头三秒强钩子，适合竖屏短剧。",
+        "style": "dark cinematic, suspense, low strings, ritual percussion, short drama soundtrack",
+        "title": "Huangquan Theme",
+        "instrumental": true,
+        "mv": "V5",
+        "output_filename": "huangquan_theme.mp3"
+      },
+      {
+        "mode": "generate_music",
+        "role": "scene_bgm",
+        "prompt": "低频鼓点、阴冷弦乐、红色幽光、饭店大厅变成阎王殿的紧张氛围。",
+        "style": "dark cinematic underscore, tense pulse, ritual percussion",
+        "title": "Hall BGM 01",
+        "instrumental": true,
+        "mv": "V5",
+        "output_filename": "scene_bgm_01.mp3"
+      }
+    ]
+  },
+  "download_all": true,
+  "download_cover_images": true,
+  "output_dir": "OUTPUT_DIR_HERE"
+}

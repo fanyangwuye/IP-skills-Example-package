@@ -29,9 +29,11 @@ def run_task(task: Dict) -> Dict:
     mode = task.get("mode", "build_music_handoff")
     if mode == "build_music_handoff":
         return _run_build_music_handoff(task)
+    if mode == "run_music_handoff":
+        return _run_music_handoff(task)
     if mode not in MODEL_BY_MODE:
         raise ValueError(
-            "mode must be one of: build_music_handoff, "
+            "mode must be one of: build_music_handoff, run_music_handoff, "
             + ", ".join(sorted(MODEL_BY_MODE))
         )
 
@@ -115,6 +117,70 @@ def build_music_handoff(task: Dict) -> Dict:
     }
 
 
+def _run_music_handoff(task: Dict) -> Dict:
+    config = load_music_provider_config()
+    if config.provider != "poyo":
+        raise RuntimeError(f"Unsupported MUSIC_PROVIDER: {config.provider}")
+    client = PoYoMusicClient(config)
+    output_dir = task.get("output_dir") or config.output_root
+    os.makedirs(output_dir, exist_ok=True)
+
+    handoff = task.get("music_handoff") or task.get("handoff") or {}
+    music_tasks = task.get("music_tasks") or handoff.get("music_tasks") or []
+    if not music_tasks:
+        raise ValueError("music_handoff.music_tasks or music_tasks is required")
+
+    selected_roles = set(task.get("roles") or [])
+    max_tasks = task.get("max_tasks")
+    runnable_tasks = []
+    for music_task in music_tasks:
+        if selected_roles and music_task.get("role") not in selected_roles:
+            continue
+        runnable_tasks.append(dict(music_task))
+        if max_tasks and len(runnable_tasks) >= int(max_tasks):
+            break
+
+    results = []
+    artifacts = []
+    total_credits = 0.0
+    for index, music_task in enumerate(runnable_tasks, start=1):
+        music_task.setdefault("mode", "generate_music")
+        music_task.setdefault("output_dir", output_dir)
+        if not music_task.get("output_filename") and not music_task.get("filename"):
+            role = music_task.get("role", "music")
+            music_task["output_filename"] = f"{index:02d}_{role}.mp3"
+        result = _run_live_music_task(music_task, output_dir, config.default_model_version, client)
+        results.append({"source_task": music_task, "result": result})
+        artifacts.extend(result.get("artifacts", []))
+        credits = result.get("handoff", {}).get("credits_amount")
+        if isinstance(credits, (int, float)):
+            total_credits += float(credits)
+
+    manifest = {
+        "status": "success",
+        "skill": "ip-music-skill",
+        "mode": "run_music_handoff",
+        "source_title": handoff.get("source_title", task.get("title", "")),
+        "n_requested_tasks": len(music_tasks),
+        "n_executed_tasks": len(results),
+        "total_credits_amount": total_credits,
+        "results": results,
+    }
+    manifest_path = os.path.join(output_dir, task.get("manifest_filename", "music_generation_manifest.json"))
+    _write_json(manifest_path, manifest)
+    artifacts.append({"type": "json", "path": manifest_path, "meta": {"kind": "music_generation_manifest"}})
+
+    return {
+        "status": "success",
+        "skill": "ip-music-skill",
+        "mode": "run_music_handoff",
+        "task_id": task.get("task_id", "run_music_handoff"),
+        "artifacts": artifacts,
+        "handoff": manifest,
+        "logs": [f"executed {len(results)} music task(s)", f"wrote {manifest_path}"],
+    }
+
+
 def _run_live_music_task(
     task: Dict,
     output_dir: str,
@@ -131,6 +197,7 @@ def _run_live_music_task(
         input_obj,
         out_path=out_path,
         download_all=bool(task.get("download_all", True)),
+        download_cover_images=bool(task.get("download_cover_images", True)),
     )
 
     artifacts = []
@@ -145,6 +212,21 @@ def _run_live_music_task(
                     "model": model,
                     "task_id": result.get("task_id"),
                     "audio": (result.get("audios") or [{}])[index] if index < len(result.get("audios", [])) else {},
+                    "variant_index": index + 1,
+                },
+            }
+        )
+    local_cover_paths = result.get("local_cover_paths") or []
+    for index, local_cover_path in enumerate(local_cover_paths):
+        artifacts.append(
+            {
+                "type": "image",
+                "path": local_cover_path,
+                "meta": {
+                    "provider": "poyo",
+                    "model": model,
+                    "task_id": result.get("task_id"),
+                    "kind": "music_cover",
                     "variant_index": index + 1,
                 },
             }
@@ -172,10 +254,15 @@ def _run_live_music_task(
         "handoff": {
             "audios": result.get("audios", []),
             "local_paths": local_paths,
+            "local_cover_paths": local_cover_paths,
             "stems": result.get("stems", {}),
             "credits_amount": result.get("credits_amount"),
         },
-        "logs": [f"completed {mode} with model {model}", f"downloaded {len(local_paths)} audio file(s)"],
+        "logs": [
+            f"completed {mode} with model {model}",
+            f"downloaded {len(local_paths)} audio file(s)",
+            f"downloaded {len(local_cover_paths)} cover image(s)",
+        ],
     }
 
 

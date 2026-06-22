@@ -4,8 +4,10 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+import music_skill as music_skill_module  # noqa: E402
 from music_skill import (  # noqa: E402
     _build_music_input,
+    _run_music_handoff,
     _run_live_music_task,
     build_music_handoff,
     run_task,
@@ -26,20 +28,22 @@ class FakeClient:
     def upload(self, path):
         return self.upload_file(path)
 
-    def run_music(self, model, input_obj, out_path=None, download_all=True):
-        self.calls.append((model, input_obj, out_path, download_all))
+    def run_music(self, model, input_obj, out_path=None, download_all=True, download_cover_images=True):
+        self.calls.append((model, input_obj, out_path, download_all, download_cover_images))
         result = {
             "task_id": "task_123",
             "audios": [
                 {
                     "audio_id": "audio_123",
                     "audio_url": "https://files.example/generated.mp3",
+                    "image_url": "https://files.example/generated.jpg",
                     "title": "Generated",
                     "duration": 30,
                 },
                 {
                     "audio_id": "audio_456",
                     "audio_url": "https://files.example/generated_2.mp3",
+                    "image_url": "https://files.example/generated_2.jpg",
                     "title": "Generated Alt",
                     "duration": 42,
                 },
@@ -50,6 +54,11 @@ class FakeClient:
         if out_path:
             result["local_path"] = out_path
             result["local_paths"] = [out_path, out_path.replace(".mp3", "_variant_02.mp3")]
+            if download_cover_images:
+                result["local_cover_paths"] = [
+                    out_path.replace(".mp3", "_cover.jpg"),
+                    out_path.replace(".mp3", "_variant_02_cover.jpg"),
+                ]
         return result
 
 
@@ -241,10 +250,66 @@ def test_run_live_music_task_uses_model_map_and_artifact():
         assert client.calls[0][0] == "generate-music"
         assert client.calls[0][2].endswith("theme.mp3")
         assert client.calls[0][3] is True
+        assert client.calls[0][4] is True
         assert result["artifacts"][0]["type"] == "audio"
-        assert len(result["artifacts"]) == 2
+        assert len(result["artifacts"]) == 4
+        assert result["artifacts"][2]["type"] == "image"
         assert result["handoff"]["audios"][0]["audio_id"] == "audio_123"
         assert result["handoff"]["local_paths"][1].endswith("theme_variant_02.mp3")
+        assert result["handoff"]["local_cover_paths"][1].endswith("theme_variant_02_cover.jpg")
+
+
+def test_run_music_handoff_writes_manifest():
+    with tempfile.TemporaryDirectory() as output_dir:
+        original_config = music_skill_module.load_music_provider_config
+        original_client = music_skill_module.PoYoMusicClient
+        fake_config = MusicProviderConfig(
+            provider="poyo",
+            api_key="test",
+            api_base="https://api.example",
+            output_root=output_dir,
+            default_model_version="V5",
+            poll_interval_sec=1,
+            poll_timeout_sec=1,
+        )
+        try:
+            music_skill_module.load_music_provider_config = lambda: fake_config
+            music_skill_module.PoYoMusicClient = lambda config: FakeClient()
+            result = _run_music_handoff(
+                {
+                    "music_handoff": {
+                        "source_title": "Demo",
+                        "music_tasks": [
+                            {
+                                "mode": "generate_music",
+                                "role": "theme",
+                                "prompt": "主题",
+                                "output_filename": "theme.mp3",
+                            },
+                            {
+                                "mode": "generate_music",
+                                "role": "scene_bgm",
+                                "prompt": "场景",
+                                "output_filename": "scene.mp3",
+                            },
+                        ],
+                    },
+                    "roles": ["theme"],
+                    "output_dir": output_dir,
+                }
+            )
+        finally:
+            music_skill_module.load_music_provider_config = original_config
+            music_skill_module.PoYoMusicClient = original_client
+
+        assert result["status"] == "success"
+        manifest_path = os.path.join(output_dir, "music_generation_manifest.json")
+        assert os.path.exists(manifest_path)
+        with open(manifest_path, "r", encoding="utf-8") as fh:
+            manifest = json.load(fh)
+        assert manifest["n_requested_tasks"] == 2
+        assert manifest["n_executed_tasks"] == 1
+        assert manifest["results"][0]["source_task"]["role"] == "theme"
 
 
 class FakeUploadResponse:

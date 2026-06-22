@@ -10,6 +10,7 @@ description: "Build music handoff tasks from IP scripts or blueprints, and gener
 - Build music tasks from `polished_script`, `script_draft`, `scene_cards`, or `blueprint`
 - Generate a theme song or instrumental BGM
 - Generate scene-specific short drama background music
+- Batch-run a `music_handoff` and write a generation manifest
 - Add instrumental backing to uploaded vocals
 - Add vocals to an instrumental
 - Cover or restyle an uploaded track
@@ -76,6 +77,7 @@ This flow is local and does not spend API credits.
 Supported live modes:
 
 - `generate_music`
+- `run_music_handoff`
 - `add_instrumental`
 - `add_vocals`
 - `cover_audio`
@@ -90,6 +92,14 @@ For multi-step remix chains and mode selection details, read `references/workflo
 
 For uploaded/external audio remix modes, pass either `audio_url` or `audio_path`. If `audio_path` points to a pure audio file such as WAV/MP3, `poyo_music_client.py` automatically creates a short black-screen MP4 proxy with ffmpeg, uploads that MP4, then passes the returned `file_url` as `upload_url`.
 
+### Flow D: Batch Run Handoff
+
+1. Accept `music_handoff.music_tasks`
+2. Optionally filter by `roles`, for example `["theme"]`
+3. Run selected tasks in order
+4. Download all audio variants and cover images by default
+5. Write `music_generation_manifest.json`
+
 ## Scripts
 
 - `scripts/config.py`: environment-driven config
@@ -98,6 +108,7 @@ For uploaded/external audio remix modes, pass either `audio_url` or `audio_path`
 - `scripts/music_cli.py`: small manual CLI wrapper
 - `references/workflows.md`: mode map, chaining rules, and prompt style guidance
 - `assets/example_build_music_handoff_task.json`: offline handoff example
+- `assets/example_run_music_handoff_task.json`: batch live generation from handoff
 - `assets/example_generate_music_task.json`: live generation template
 - `assets/example_cover_local_audio_task.json`: local audio remix/rebuild template
 - `assets/example_upload_extend_audio_task.json`: local audio extension template
@@ -111,6 +122,7 @@ For uploaded/external audio remix modes, pass either `audio_url` or `audio_path`
 - Generated-track stems: `python music_cli.py stems --task-id TASK --audio-id AUDIO --out-dir ./stems`
 - External-audio split: call `run_task` with `audio_url` or local `audio_path`; local WAV/MP3 will be wrapped into an MP4 proxy automatically.
 - Audio variants: live audio modes download every returned variant by default, using `_variant_02`, `_variant_03` suffixes. Set `download_all: false` to download only the first variant.
+- Cover images: live audio modes download returned cover images by default. Set `download_cover_images: false` to skip them.
 
 ## Handoff Contract
 
@@ -131,4 +143,4 @@ Each music task can be passed back into `run_task` for live generation after set
 - `upload_extend_audio` extends external uploaded audio and needs `audio_path` or `audio_url`.
 - `upload_separate_vocals` is for external user audio and needs `audio_path` or `audio_url`.
 - Local WAV/MP3 upload requires ffmpeg. The generated MP4 proxy is kept in `output_dir` by default for traceability.
-- Result URLs can expire; keep downloaded `local_paths` from the handoff.
+- Result URLs can expire; keep downloaded `local_paths`, `local_cover_paths`, and `music_generation_manifest.json`.

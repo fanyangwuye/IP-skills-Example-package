@@ -26,6 +26,8 @@ All live modes submit through `POST /api/generate/submit`. Music status uses `GE
 - `/api/common/upload/stream` supports images and videos, not pure audio. For local WAV/MP3 `audio_path`, the client automatically wraps the audio into a black-screen MP4 proxy, uploads the MP4, then uses the returned `file_url` as `upload_url`.
 - Generated music result URLs can expire. The scripts download all returned audio variants by default.
 - `generate_music` usually returns multiple variants. Downloaded paths are stored in `handoff.local_paths`; returned metadata remains in `handoff.audios`.
+- Cover images are downloaded by default into `*_cover.jpg` files and listed in `handoff.local_cover_paths`.
+- Use `run_music_handoff` to execute multiple handoff tasks and write `music_generation_manifest.json`.
 
 ## Common Chains
 
@@ -33,7 +35,7 @@ Create theme and stems:
 
 ```text
 build_music_handoff
-  -> generate_music for the theme task
+  -> run_music_handoff for selected tasks
   -> stem_split with returned task_id/audio_id
 ```
 

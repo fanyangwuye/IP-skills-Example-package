@@ -88,6 +88,7 @@ class PoYoMusicClient:
         out_path: Optional[str] = None,
         callback_url: Optional[str] = None,
         download_all: bool = True,
+        download_cover_images: bool = True,
     ) -> Dict:
         task_id = self.submit_music(model, input_obj, callback_url=callback_url)
         data = self.wait_for_music(task_id)
@@ -95,10 +96,13 @@ class PoYoMusicClient:
         stems = self.parse_stems(data)
         local_path = None
         local_paths = []
+        local_cover_paths = []
         if out_path and audios:
             targets = [_variant_path(out_path, index) for index in range(len(audios))] if download_all else [out_path]
             for audio, target in zip(audios, targets):
                 local_paths.append(self.download(audio["audio_url"], target))
+                if download_cover_images and audio.get("image_url"):
+                    local_cover_paths.append(self.download(audio["image_url"], _cover_path(target)))
             local_path = local_paths[0] if local_paths else None
         return {
             "task_id": task_id,
@@ -107,6 +111,7 @@ class PoYoMusicClient:
             "credits_amount": data.get("credits_amount"),
             "local_path": local_path,
             "local_paths": local_paths,
+            "local_cover_paths": local_cover_paths,
             "raw": data,
         }
 
@@ -326,3 +331,8 @@ def _variant_path(out_path: str, index: int) -> str:
         return out_path
     root, ext = os.path.splitext(out_path)
     return f"{root}_variant_{index + 1:02d}{ext or '.mp3'}"
+
+
+def _cover_path(audio_path: str) -> str:
+    root, _ = os.path.splitext(audio_path)
+    return f"{root}_cover.jpg"
