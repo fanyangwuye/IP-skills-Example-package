@@ -1,0 +1,131 @@
+{
+  "mode": "build_video_handoff",
+  "title": "黄泉饭店",
+  "blueprint": {
+    "blueprint_id": "huangquan_video_bp",
+    "title": "黄泉饭店",
+    "global_style": {
+      "tone": "暗黑经营、真实短剧、诡异复苏"
+    },
+    "segments": [
+      {
+        "index": 1,
+        "start_sec": 0,
+        "end_sec": 6,
+        "visual": "林缺站在黄泉饭店柜台后，菜单账本摊开，雨夜红色招牌映在脸上。",
+        "voiceover": "雨夜，黄泉饭店重新开门。",
+        "subtitle": "黄泉饭店重新开门",
+        "music_cue": "低频悬疑开场"
+      },
+      {
+        "index": 2,
+        "start_sec": 6,
+        "end_sec": 12,
+        "visual": "牛头员工端着托盘从厨房出来，手里菜刀压低，和林缺隔着柜台对视。",
+        "voiceover": "员工回来了，可客人不是活人。",
+        "subtitle": "客人不是活人",
+        "music_cue": "紧张脉冲"
+      },
+      {
+        "index": 3,
+        "start_sec": 12,
+        "end_sec": 18,
+        "visual": "饭店大厅变成阎王殿，黑色锁链垂下，红色幽光照亮服务台。",
+        "voiceover": "这家店真正卖的，是活下去的资格。",
+        "subtitle": "活下去的资格",
+        "music_cue": "地府仪式感爆发"
+      }
+    ]
+  },
+  "ip_asset_pack": {
+    "mode": "ip_asset_pack",
+    "ip_id": "huangquan_fandian",
+    "title": "黄泉饭店",
+    "style_preset": "realistic_short_drama",
+    "characters": [
+      {
+        "character_id": "lin_que",
+        "character_profile": {
+          "identity": {
+            "name": "林缺",
+            "role": "黄泉饭店老板",
+            "age_range": "二十多岁到三十出头",
+            "gender_presentation": "male"
+          },
+          "appearance": {
+            "face_shape": "清瘦利落的脸型，微锋利下颌",
+            "eyes": "冷静观察的黑色眼睛",
+            "hair": "黑色自然层次短发",
+            "body_type": "高瘦"
+          },
+          "styling": {
+            "wardrobe": "深色西装，旧金细节，饭店老板身份",
+            "palette": "黑、深蓝、暗红、旧金",
+            "materials": "哑光羊毛、深色皮革、旧金属"
+          }
+        },
+        "props": [
+          {
+            "name": "菜单账本",
+            "use": "经营身份道具"
+          }
+        ]
+      },
+      {
+        "character_id": "niu_tou",
+        "character_profile": {
+          "identity": {
+            "name": "牛头",
+            "role": "黄泉饭店员工 / 地府执行者"
+          },
+          "appearance": {
+            "face_shape": "牛头轮廓，强壮犄角，克制恐怖写实",
+            "body_type": "高大强壮"
+          },
+          "styling": {
+            "wardrobe": "深色服务员制服混合地府皮革围裙",
+            "materials": "旧皮革、黑布、磨损金属"
+          }
+        },
+        "props": [
+          {
+            "name": "菜刀",
+            "use": "厨房和威慑道具"
+          },
+          {
+            "name": "托盘",
+            "use": "服务身份道具"
+          }
+        ]
+      }
+    ],
+    "scenes": [
+      {
+        "scene_id": "huangquan_hotel_hall_720",
+        "name": "黄泉饭店大厅",
+        "description": "雨夜饭店大厅，柜台、厨房门、红色招牌反光、湿冷地面",
+        "lighting": "夜晚，红色招牌弱光，冷色环境光"
+      },
+      {
+        "scene_id": "yanwang_hall_interior_720",
+        "name": "阎王殿内景",
+        "description": "饭店大厅变形后的阎王殿，石柱、黑色锁链、红色幽光、服务台融合古殿结构",
+        "lighting": "低照度，红色幽光，冷边缘光"
+      }
+    ]
+  },
+  "music_handoff": {
+    "source_title": "黄泉饭店",
+    "music_tasks": [
+      {
+        "role": "theme",
+        "task_id": "theme_song"
+      },
+      {
+        "role": "scene_bgm",
+        "scene_ref": 1
+      }
+    ]
+  },
+  "output_dir": "OUTPUT_DIR_HERE"
+}

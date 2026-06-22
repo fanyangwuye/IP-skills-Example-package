@@ -1,0 +1,5 @@
+{
+  "mode": "build_edit_decision_list",
+  "video_handoff": "VIDEO_HANDOFF_JSON_HERE",
+  "output_dir": "OUTPUT_DIR_HERE"
+}

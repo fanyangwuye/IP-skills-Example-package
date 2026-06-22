@@ -1,0 +1,4 @@
+interface:
+  display_name: "IP Video Skill"
+  short_description: "Build continuity-locked video handoffs for IP workflows"
+  default_prompt: "Build a continuity bible and video handoff from my IP script, asset pack, and music handoff."

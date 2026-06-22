@@ -7,6 +7,7 @@ Current scope:
 - `ip-image-skill`: image generation, grid splitting, and image enhancement
 - `ip-copy-skill`: deterministic content planning, blueprint validation, and image handoff building
 - `ip-music-skill`: music handoff building plus PoYo/Suno music generation, remixing, stems, and vocal separation
+- `ip-video-skill`: offline continuity bible, shot plan, video handoff, I2V/T2V prompts, and EDL building
 
 Design goals:
 
@@ -24,6 +25,7 @@ This repository is private by default. See `NOTICE.md` before redistributing, pu
 - `skills/ip-image-skill/`: image generation, character sheets, asset packs, grid split/enhance
 - `skills/ip-copy-skill/`: copy planning, blueprint validation, image handoff building
 - `skills/ip-music-skill/`: theme/BGM handoff building, music generation, remix/edit/split workflows
+- `skills/ip-video-skill/`: continuity-locked video handoff, shot planning, prompts, and EDL
 - `scripts/`: cross-skill helper scripts
 - `tests/`: repository-level integration tests
 - `docs/`: workflow notes
@@ -74,5 +76,6 @@ python skills/ip-image-skill/tests/test_prompt_builder.py
 python skills/ip-image-skill/tests/test_split_grid.py
 python skills/ip-copy-skill/tests/test_copy_skill.py
 python skills/ip-music-skill/tests/test_music_skill.py
+python skills/ip-video-skill/tests/test_video_skill.py
 python tests/test_copy_to_image_bridge.py
 ```
