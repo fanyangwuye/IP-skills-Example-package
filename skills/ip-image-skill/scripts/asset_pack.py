@@ -13,10 +13,12 @@ DEFAULT_CHARACTER_DESIGN_REQUIREMENTS = [
 
 
 DEFAULT_CHARACTER_TEXT_REQUIREMENTS = [
-    "all visible text on the character design sheet must be Simplified Chinese unless the task explicitly requests another language",
-    "use Chinese headings for character name, role, age, personality, aura, world context, props, color palette, and back view",
-    "translate prop names and prop use notes into natural Chinese when source fields are English",
-    "avoid English headings or English-only labels on the image unless the user explicitly requests English",
+    "图片内所有可见文字默认使用简体中文，除非用户明确要求其他语言",
+    "设定板只使用少量清晰大字标签，不要生成密集小段落、长说明、小字号正文或装饰性假文字",
+    "中文字段标题固定使用：角色名、身份、年龄、性格、气场、世界观、道具、色板、背面图",
+    "道具名称和用途必须翻译成自然中文，避免英文标题和英文-only 标签",
+    "所有中文标签必须横排、清晰、字号足够大，优先保证可读性而不是塞满信息",
+    "如果文字无法清晰呈现，减少文字数量，保留角色名、身份、道具名这些核心标签",
 ]
 
 
@@ -80,7 +82,7 @@ def _build_character_tasks(character: Dict, common: Dict, output_dir: str) -> Li
                 "scene": "plain neutral background",
             },
             "camera": "front three-quarter full body design sheet",
-            "composition": "single character, clean silhouette, prop callouts arranged beside the character",
+            "composition": "single character, clean silhouette, prop callouts arranged beside the character, large readable Chinese labels only, no dense paragraphs",
             "asset_requirements": DEFAULT_CHARACTER_DESIGN_REQUIREMENTS,
         }
     ]

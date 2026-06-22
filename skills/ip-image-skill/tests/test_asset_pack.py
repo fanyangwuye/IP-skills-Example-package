@@ -37,7 +37,8 @@ def test_build_ip_asset_pack_tasks():
     assert tasks[0]["filename"] == "lin_que_design_sheet.jpg"
     assert "plain neutral background" in tasks[0]["asset_requirements"]
     assert tasks[0]["visual_text_language"] == "zh-CN"
-    assert "Simplified Chinese" in tasks[0]["visible_text_requirements"][0]
+    assert "简体中文" in tasks[0]["visible_text_requirements"][0]
+    assert "少量清晰大字标签" in tasks[0]["visible_text_requirements"][1]
     assert tasks[0]["props"][0]["name"] == "menu ledger"
     assert tasks[2]["asset_kind"] == "720_seamless_panorama_scene"
     assert tasks[2]["size"] == "21:9"
@@ -66,7 +67,8 @@ def test_asset_pack_prompt_contains_specs():
     assert "Character props and callouts:" in character_prompt
     assert "no environment scene" in character_prompt
     assert "Visible text language: zh-CN" in character_prompt
-    assert "all visible text on the character design sheet must be Simplified Chinese" in character_prompt
+    assert "图片内所有可见文字默认使用简体中文" in character_prompt
+    assert "不要生成密集小段落" in character_prompt
     assert "720-degree equirectangular panorama" in scene_prompt
     assert "left and right edges must connect seamlessly" in scene_prompt
     assert "GPT Image 2 output spec:" in scene_prompt
