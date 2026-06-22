@@ -17,9 +17,23 @@ def build_video_handoff(task: Dict) -> Dict:
         "shots": shots,
         "i2v_prompts": build_i2v_prompts(shots),
         "t2v_prompts": build_t2v_prompts(shots),
+        "seedance_prompts": build_seedance_prompts(shots),
         "edit_decision_list": build_edit_decision_list(task, shots),
         "quality_checks": build_global_quality_checks(shots),
     }
+
+
+def build_seedance_prompts(shots: List[Dict]) -> List[Dict]:
+    return [
+        {
+            "shot_id": shot["shot_id"],
+            "prompt": shot["seedance_prompt"],
+            "negative_prompt": shot["negative_prompt"],
+            "reference_binding": shot["reference_binding"],
+            "retry_advice": shot["retry_advice"],
+        }
+        for shot in shots
+    ]
 
 
 def build_edit_decision_list(task: Dict, shots: List[Dict]) -> Dict:

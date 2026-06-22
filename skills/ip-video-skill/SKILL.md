@@ -14,6 +14,7 @@ Build the offline video structure layer for IP workflows:
 - `build_shot_plan`: create continuity-aware storyboard cards.
 - `build_i2v_prompts`: create image-to-video prompts from locked references.
 - `build_t2v_prompts`: create text-to-video prompts when no usable image reference exists.
+- `seedance_prompts`: create timed Chinese prompts with performance, camera, light, sound, realism, and retry guidance.
 - `build_edit_decision_list`: create a first-pass EDL for later assembly.
 
 This phase is local only. Do not call live video APIs from this skill until a provider adapter is added.
@@ -78,6 +79,7 @@ result = run_task({
 - `shots`
 - `i2v_prompts`
 - `t2v_prompts`
+- `seedance_prompts`
 - `edit_decision_list`
 - `quality_checks`
 
@@ -87,6 +89,7 @@ Every shot is safe to pass to a provider adapter later because continuity is alr
 
 - `scripts/continuity.py`: continuity bible builder
 - `scripts/shot_plan.py`: shot/storyboard/prompt builder
+- `scripts/prompt_quality.py`: prompt quality layers for performance, camera, light, sound, realism, constraints, and retry advice
 - `scripts/video_handoff.py`: handoff and EDL builder
 - `scripts/video_skill.py`: agent-facing task entrypoint
 - `scripts/ffmpeg_assembly.py`: phase-3 placeholder for local assembly helpers

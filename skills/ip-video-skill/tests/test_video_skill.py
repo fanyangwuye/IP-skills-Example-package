@@ -100,8 +100,12 @@ def test_build_video_handoff_has_required_shot_fields():
         assert shot["continuity_state"]
         assert shot["reference_binding"]
         assert shot["storyboard_card"]
+        assert shot["prompt_profile"]
         assert shot["i2v_prompt"]
+        assert shot["t2v_prompt"]
+        assert shot["seedance_prompt"]
         assert shot["negative_prompt"]
+        assert shot["retry_advice"]
         assert shot["quality_checks"]
 
 
@@ -114,6 +118,19 @@ def test_multi_character_shot_has_axis_screen_direction_and_eyeline():
     assert "niu_tou" in shot["screen_direction"]
     assert "lin_que" in shot["eyeline"]
     assert "不要越轴" in shot["negative_prompt"]
+    assert "空间连续性" in shot["seedance_prompt"]
+    assert "表演控制" in shot["seedance_prompt"]
+    assert "光线与质感" in shot["seedance_prompt"]
+
+
+def test_prompts_include_quality_layers_and_retry_advice():
+    handoff = build_video_handoff(_task())
+    shot = handoff["shots"][1]
+    assert "动作流程" in shot["i2v_prompt"]
+    assert "真实感锚点" in shot["i2v_prompt"]
+    assert "不要塑料皮肤" in shot["negative_prompt"]
+    assert any("脸漂移" in item for item in shot["retry_advice"])
+    assert handoff["seedance_prompts"][1]["prompt"] == shot["seedance_prompt"]
 
 
 def test_run_task_writes_video_handoff_json():

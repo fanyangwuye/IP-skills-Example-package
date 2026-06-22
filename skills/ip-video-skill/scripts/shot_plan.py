@@ -2,8 +2,24 @@ from typing import Dict, List
 
 try:
     from .continuity import choose_scene_id, find_character_ids_in_text
+    from .prompt_quality import (
+        build_negative_prompt,
+        build_prompt_profile,
+        build_retry_advice,
+        compose_i2v_prompt,
+        compose_seedance_prompt,
+        compose_t2v_prompt,
+    )
 except ImportError:
     from continuity import choose_scene_id, find_character_ids_in_text
+    from prompt_quality import (
+        build_negative_prompt,
+        build_prompt_profile,
+        build_retry_advice,
+        compose_i2v_prompt,
+        compose_seedance_prompt,
+        compose_t2v_prompt,
+    )
 
 
 def build_shot_plan(task: Dict, continuity_bible: Dict) -> List[Dict]:
@@ -25,8 +41,10 @@ def build_i2v_prompts(shots: List[Dict]) -> List[Dict]:
         {
             "shot_id": shot["shot_id"],
             "prompt": shot["i2v_prompt"],
+            "seedance_prompt": shot["seedance_prompt"],
             "negative_prompt": shot["negative_prompt"],
             "reference_binding": shot["reference_binding"],
+            "retry_advice": shot["retry_advice"],
         }
         for shot in shots
     ]
@@ -37,8 +55,10 @@ def build_t2v_prompts(shots: List[Dict]) -> List[Dict]:
         {
             "shot_id": shot["shot_id"],
             "prompt": shot["t2v_prompt"],
+            "seedance_prompt": shot["seedance_prompt"],
             "negative_prompt": shot["negative_prompt"],
             "visual_lock": shot["visual_lock"],
+            "retry_advice": shot["retry_advice"],
         }
         for shot in shots
     ]
@@ -85,7 +105,10 @@ def _build_shot(index: int, segment: Dict, bible: Dict, previous_end_state: str)
             "subtitle": segment.get("subtitle", segment.get("voiceover", "")),
             "music_cue": segment.get("music_cue", ""),
         },
+        "timing": timing,
     }
+    prompt_profile = build_prompt_profile(index, visual, storyboard_card, continuity_state, visual_lock)
+    action_scene = _is_action_scene(visual)
 
     return {
         "shot_id": segment.get("shot_id") or f"shot_{index:03d}",
@@ -102,9 +125,12 @@ def _build_shot(index: int, segment: Dict, bible: Dict, previous_end_state: str)
         "eyeline": eyeline,
         "blocking_distance": _blocking_distance(character_ids),
         "storyboard_card": storyboard_card,
-        "i2v_prompt": _i2v_prompt(visual, visual_lock, storyboard_card, continuity_state),
-        "t2v_prompt": _t2v_prompt(visual, visual_lock, storyboard_card, continuity_state),
-        "negative_prompt": _negative_prompt(len(character_ids) >= 2),
+        "prompt_profile": prompt_profile,
+        "i2v_prompt": compose_i2v_prompt(visual, prompt_profile, reference_binding),
+        "t2v_prompt": compose_t2v_prompt(visual, prompt_profile, visual_lock),
+        "seedance_prompt": compose_seedance_prompt(visual, prompt_profile, reference_binding),
+        "negative_prompt": build_negative_prompt(len(character_ids) >= 2, action_scene=action_scene),
+        "retry_advice": build_retry_advice(prompt_profile, len(character_ids) >= 2),
         "quality_checks": _quality_checks(len(character_ids) >= 2),
     }
 
@@ -234,43 +260,8 @@ def _blocking_distance(character_ids: List[str]) -> str:
     return "主体与关键地标距离必须可追踪"
 
 
-def _i2v_prompt(visual: str, visual_lock: Dict, storyboard_card: Dict, continuity_state: Dict) -> str:
-    return (
-        f"图生视频，严格使用参考图锁定角色脸、发型、服饰、场景布局和光影。"
-        f"画面：{visual}。"
-        f"镜头：{storyboard_card['framing']}，{storyboard_card['camera_motion']}。"
-        f"连续性：从「{continuity_state['current_start_state']}」开始，"
-        f"完成「{continuity_state['main_action_transition']}」，"
-        f"结束在「{continuity_state['current_end_state']}」。"
-        f"轴线：{storyboard_card['axis']['line']}；屏幕方向：{storyboard_card['screen_direction']}；"
-        f"视线：{storyboard_card['eyeline']}。"
-        f"风格锁：{visual_lock.get('style', {}).get('tone_lock', '')}。"
-    )
-
-
-def _t2v_prompt(visual: str, visual_lock: Dict, storyboard_card: Dict, continuity_state: Dict) -> str:
-    return (
-        f"文生视频，按连续性圣经生成同一角色和同一场景。"
-        f"角色与服饰不得漂移，场景布局和光源方向不得重置。"
-        f"画面：{visual}。镜头：{storyboard_card['framing']}，{storyboard_card['camera_motion']}。"
-        f"从「{continuity_state['current_start_state']}」开始，到「{continuity_state['current_end_state']}」结束。"
-        f"视觉风格：{visual_lock.get('style', {}).get('tone_lock', '')}。"
-    )
-
-
-def _negative_prompt(multichar: bool) -> str:
-    items = [
-        "不要换脸",
-        "不要改变发型",
-        "不要改变服装颜色和材质",
-        "不要新增无关人物",
-        "不要重置场景布局",
-        "不要改变光源方向",
-        "不要道具凭空出现或消失",
-    ]
-    if multichar:
-        items.extend(["不要越轴", "不要屏幕方向翻转", "不要视线同向错位", "不要人物距离瞬移"])
-    return "；".join(items)
+def _is_action_scene(visual: str) -> bool:
+    return any(word in visual for word in ["刀", "剑", "拳", "打", "冲", "追", "逃", "撞", "压制", "反击"])
 
 
 def _quality_checks(multichar: bool) -> List[str]:

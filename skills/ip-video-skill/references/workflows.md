@@ -15,8 +15,23 @@ Use this before any prompt writing.
 2. Fall back to `polished_script.scenes`, `script_draft.scenes`, then `scene_cards`.
 3. Create one shot per segment in phase 1.
 4. Carry `previous_end_state -> current_start_state -> current_end_state` through every shot.
-5. Create both `i2v_prompt` and `t2v_prompt`.
+5. Create `i2v_prompt`, `t2v_prompt`, and `seedance_prompt`.
 6. Create an EDL for later ffmpeg/provider assembly.
+
+## Prompt Quality Layers
+
+Each generated video prompt should include:
+
+- timed shot duration
+- narrative intent
+- action flow from previous state to end state
+- restrained performance and 1-2 micro-actions
+- camera behavior tied to emotion, not decorative motion
+- spatial continuity with axis, screen direction, and eyeline
+- lighting logic, palette, material texture, and anti-AI realism anchors
+- sound design, including ambience, BGM cue, voiceover, and key subtitle
+- execution constraints that prevent drift, overacting, text clutter, and unsupported additions
+- retry advice for face drift, costume drift, scene reset, axis errors, or overdone camera motion
 
 ## Multi-Character Rules
 
