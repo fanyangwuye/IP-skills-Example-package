@@ -34,6 +34,7 @@ def build_clip_prompts(clips: List[Dict]) -> List[Dict]:
         {
             "clip_id": clip["clip_id"],
             "shot_ids": clip["shot_ids"],
+            "storyboard_execution_map": clip.get("storyboard_execution_map", []),
             "prompt": clip["clip_prompt"],
             "negative_prompt": clip["negative_prompt"],
             "reference_binding": clip["reference_binding"],
@@ -69,6 +70,7 @@ def _build_clip(index: int, shots: List[Dict], task: Dict, bible: Dict) -> Dict:
     video_refs = _video_reference_images(task, scene_ids, characters)
     space_refs = _space_anchor_refs(task, scene_ids, bible)
     frame_specs = _frame_specs(shots, bible, timing)
+    storyboard_execution_map = _storyboard_execution_map(shots)
     martial_arts_layer = build_martial_arts_layer(
         "；".join(shot.get("visual", "") for shot in shots),
         _clip_storyboard_card(shots),
@@ -79,6 +81,7 @@ def _build_clip(index: int, shots: List[Dict], task: Dict, bible: Dict) -> Dict:
         "clip_id": clip_id,
         "order": index,
         "shot_ids": [shot.get("shot_id", "") for shot in shots],
+        "storyboard_execution_map": storyboard_execution_map,
         "timing": timing,
         "visual": "；".join(shot.get("visual", "") for shot in shots if shot.get("visual")),
         "characters": characters,
@@ -93,10 +96,10 @@ def _build_clip(index: int, shots: List[Dict], task: Dict, bible: Dict) -> Dict:
         "martial_arts_layer": martial_arts_layer,
         "previous_clip_end_frame": _previous_clip_end_frame(task, index, clip_id),
         "continuity_state": continuity_state,
-        "clip_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs, martial_arts_layer, frame_specs),
-        "i2v_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs, martial_arts_layer, frame_specs),
-        "seedance_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs, martial_arts_layer, frame_specs),
-        "t2v_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs, martial_arts_layer, frame_specs),
+        "clip_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs, martial_arts_layer, frame_specs, storyboard_execution_map),
+        "i2v_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs, martial_arts_layer, frame_specs, storyboard_execution_map),
+        "seedance_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs, martial_arts_layer, frame_specs, storyboard_execution_map),
+        "t2v_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs, martial_arts_layer, frame_specs, storyboard_execution_map),
         "negative_prompt": _merge_negative_prompt(shots),
         "retry_advice": _dedupe([item for shot in shots for item in (shot.get("retry_advice") or [])]),
         "quality_checks": _clip_quality_checks(),
@@ -129,6 +132,7 @@ def _clip_prompt(
     space_refs: List[Dict],
     martial_arts_layer: Dict,
     frame_specs: Dict,
+    storyboard_execution_map: List[Dict],
 ) -> str:
     shot_lines = []
     for order, shot in enumerate(shots, start=1):
@@ -142,6 +146,7 @@ def _clip_prompt(
         f"结束状态：{continuity_state.get('current_end_state')}。"
         f"视频生成参考：{video_ref_note}。"
         f"空间锚点：{space_ref_note}；全景图用于校准空间布局、地标和光源方向，默认不要作为直接生成画面。"
+        f"{_storyboard_execution_text(storyboard_execution_map)}"
         f"{_frame_specs_text(frame_specs)}"
         f"{_optional_sentence('武戏调度', martial_arts_text(martial_arts_layer))}"
         "保持同一角色脸、发型、服饰、道具、场景布局、光影色调和屏幕方向；片段内部动作连续，不要跳切、不要重置空间。"
@@ -149,6 +154,44 @@ def _clip_prompt(
         "换景别时必须继承上一段的人物状态、服饰、道具所在手、动作余势、光源方向、曝光、白平衡和色彩，不要把切镜头误生成换场景。"
         "声音只保留现场环境声与拟音，例如风声、雨声、脚步、衣料摩擦、呼吸、门响和道具轻响；禁止背景音乐、歌曲、音乐铺底。"
         "画面禁止字幕、伪文字、水印、片头片尾、标题卡和解释性文字。"
+    )
+
+
+def _storyboard_execution_map(shots: List[Dict]) -> List[Dict]:
+    rows = []
+    for order, shot in enumerate(shots, start=1):
+        card = shot.get("storyboard_card") or {}
+        rows.append(
+            {
+                "video_shot_order": order,
+                "storyboard_shot_id": shot.get("shot_id", ""),
+                "start_sec": shot.get("timing", {}).get("start_sec"),
+                "end_sec": shot.get("timing", {}).get("end_sec"),
+                "visual": shot.get("visual", ""),
+                "framing": card.get("framing", ""),
+                "camera_motion": card.get("camera_motion", ""),
+                "execution_rule": "must_execute_in_order; do_not_delete; do_not_merge_away; do_not_reorder; revise_storyboard_first_if_needed",
+            }
+        )
+    return rows
+
+
+def _storyboard_execution_text(storyboard_execution_map: List[Dict]) -> str:
+    if not storyboard_execution_map:
+        return ""
+    rows = []
+    for item in storyboard_execution_map:
+        rows.append(
+            f"视频镜头{item.get('video_shot_order')} = 故事板分镜 {item.get('storyboard_shot_id')}，"
+            f"时间 {item.get('start_sec')}-{item.get('end_sec')} 秒，"
+            f"景别={item.get('framing')}，运镜={item.get('camera_motion')}，画面={item.get('visual')}"
+        )
+    return (
+        "故事板执行映射（强制）："
+        + "；".join(rows)
+        + "。必须按故事板顺序执行每个分镜；不得为了凑 15 秒长镜头而删除、合并掉、改顺序或改动作。"
+        "如果一个 15 秒 clip 无法准确执行全部分镜，必须拆成更短生成单元，而不是改故事板。"
+        "提示词只能强化参考图和故事板已有内容细节，不能新增、修改或减少画面内容。"
     )
 
 
@@ -390,6 +433,7 @@ def _clip_quality_checks() -> List[str]:
         "720 全景图是否保留在 space_anchor_refs，且未被默认当作直接生成画面",
         "视频声音是否只保留环境声和拟音，且没有背景音乐或歌曲",
         "画面是否没有字幕、伪文字、水印、片头片尾和标题卡",
+        "storyboard_execution_map 是否覆盖 clip 内每个 shot_id，且视频执行顺序未删除、未合并掉、未改顺序",
         "武戏段落是否看清起势、距离、一次攻防、重心变化和收势落点",
         "角色脸、发型、服饰、道具、空间布局和光源方向是否跨 clip 一致",
     ]

@@ -41,6 +41,17 @@ For 2+ characters, each shot must also include:
 
 Do not write isolated video prompts that can drift across shots.
 
+## Mandatory Storyboard Execution Gate
+
+Storyboard is the execution blueprint, not optional inspiration. Once a storyboard, shot table, or manga-line board exists, every generated video clip must carry `storyboard_execution_map`.
+
+- Every clip-level provider request must map `video shot 1 = storyboard shot_xxx`, `video shot 2 = storyboard shot_xxx`, and so on.
+- Do not delete, merge away, reorder, or rewrite storyboard shots just to make a 15-second generation easier.
+- If a 15-second clip cannot accurately execute all included storyboard shots, split it into shorter generated units instead of changing the storyboard.
+- Storyboard refs lock shot design, composition, blocking, action phase, screen direction, and edit order; character identity still comes from the locked reference policy.
+- Prompt text may only strengthen existing reference and storyboard details. It must not add, modify, or reduce the content established by the references and storyboard.
+- For paid/live clip generation, stop if `storyboard_execution_map` is missing or does not exactly match the clip `shot_ids`.
+
 ## Mandatory Video Continuation Gate
 
 Before proposing or preparing any multi-clip video workflow, read `references/workflows.md` and inspect the relevant provider/clip fields in `scripts/clip_plan.py` and `scripts/video_provider.py`. Do not reduce continuity to "use the previous clip tail frame as the next clip first frame." For every clip boundary, explicitly choose one continuation mode:

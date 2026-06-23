@@ -47,6 +47,7 @@ def run_video_generation(task: Dict, config: VideoProviderConfig) -> Dict:
             "request": request,
             "logs": ["prepared video provider request; no external API call executed"],
         }
+    _guard_storyboard_execution_map(task, request)
     _guard_live_reference_strength(task, request)
     _guard_characterless_first_frame(task, request)
     if provider == "poyo_video":
@@ -75,6 +76,28 @@ def run_video_generation(task: Dict, config: VideoProviderConfig) -> Dict:
         f"Live video generation for provider '{provider}' is not implemented yet. "
         "Use dry_run=true to inspect the provider request."
     )
+
+
+def _guard_storyboard_execution_map(task: Dict, request: Dict) -> None:
+    if task.get("allow_missing_storyboard_execution_map"):
+        return
+    if request.get("provider") != "poyo_video":
+        return
+    if request.get("unit_kind") != "clip":
+        return
+    shot_ids = [item for item in request.get("shot_ids") or [] if item]
+    execution_map = request.get("storyboard_execution_map") or []
+    mapped_ids = [item.get("storyboard_shot_id") for item in execution_map if item.get("storyboard_shot_id")]
+    if not execution_map:
+        raise RuntimeError(
+            "Live clip video generation is blocked because storyboard_execution_map is missing. "
+            "Storyboard is the execution blueprint; every paid clip must map video shot order to storyboard shot IDs."
+        )
+    if shot_ids and mapped_ids != shot_ids:
+        raise RuntimeError(
+            "Live clip video generation is blocked because storyboard_execution_map does not exactly match shot_ids. "
+            "Do not delete, merge away, reorder, or alter storyboard shots without an approved storyboard revision."
+        )
 
 
 def _guard_live_reference_strength(task: Dict, request: Dict) -> None:
@@ -144,7 +167,7 @@ def _base_request(task: Dict, unit: Dict, provider: str, prompt_kind: str, confi
     unit_id = unit.get("clip_id") or unit.get("shot_id") or "video_unit"
     frame_specs = _unit_frame_specs(unit)
     prompt = _with_reference_image_bindings(
-        _with_frame_specs(_prompt_for_kind(unit, prompt_kind), frame_specs),
+        _with_storyboard_execution_map(_with_frame_specs(_prompt_for_kind(unit, prompt_kind), frame_specs), unit.get("storyboard_execution_map", [])),
         image_urls=image_urls,
         reference_image_urls=reference_image_urls,
         all_purpose_reference=all_purpose_reference,
@@ -155,6 +178,7 @@ def _base_request(task: Dict, unit: Dict, provider: str, prompt_kind: str, confi
         "unit_kind": "clip" if unit.get("clip_id") else "shot",
         "clip_id": unit.get("clip_id", ""),
         "shot_id": unit.get("shot_id", ""),
+        "shot_ids": unit.get("shot_ids", []),
         "unit_id": unit_id,
         "model": task.get("model") or config.default_model or _default_model(provider),
         "prompt_kind": prompt_kind,
@@ -173,6 +197,7 @@ def _base_request(task: Dict, unit: Dict, provider: str, prompt_kind: str, confi
         "video_reference_images": unit.get("video_reference_images", []),
         "space_anchor_refs": unit.get("space_anchor_refs", []),
         "storyboard_panel_refs": unit.get("storyboard_panel_refs", []),
+        "storyboard_execution_map": unit.get("storyboard_execution_map", []),
         "previous_clip_end_frame": unit.get("previous_clip_end_frame"),
         "previous_clip_reference_frame": unit.get("previous_clip_reference_frame"),
         "first_frame_spec": frame_specs.get("first_frame_spec", {}),
@@ -187,6 +212,26 @@ def _base_request(task: Dict, unit: Dict, provider: str, prompt_kind: str, confi
         "retry_advice": unit.get("retry_advice", []),
         "output_filename": task.get("output_filename") or f"{unit_id}.mp4",
     }
+
+
+def _with_storyboard_execution_map(prompt: str, storyboard_execution_map: List[Dict]) -> str:
+    if not storyboard_execution_map or "故事板执行映射" in prompt:
+        return prompt
+    rows = []
+    for item in storyboard_execution_map:
+        rows.append(
+            f"视频镜头{item.get('video_shot_order')} = 故事板分镜 {item.get('storyboard_shot_id')}，"
+            f"时间 {item.get('start_sec')}-{item.get('end_sec')} 秒，"
+            f"景别={item.get('framing')}，运镜={item.get('camera_motion')}，画面={item.get('visual')}"
+        )
+    text = (
+        "故事板执行映射（强制）："
+        + "；".join(rows)
+        + "。必须按故事板顺序执行每个分镜；不得删除、合并掉、改顺序或改动作。"
+        "如果一个 15 秒 clip 无法准确执行全部分镜，必须拆成更短生成单元。"
+        "提示词只能强化参考图和故事板已有内容细节，不能新增、修改或减少画面内容。"
+    )
+    return "\n\n".join([prompt, text])
 
 
 def _uses_all_purpose_reference(task: Dict, unit_or_request: Optional[Dict] = None) -> bool:

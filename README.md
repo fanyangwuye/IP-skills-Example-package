@@ -123,6 +123,8 @@ For live character video generation, obey the project reference policy exactly. 
 
 Single-frame extraction is only for clip-to-clip continuity reference. It cannot replace all-purpose references and cannot become the default first-frame generation path.
 
+Storyboard is fixed as the video execution blueprint once generated. Each live clip must carry `storyboard_execution_map`, mapping video shot order to storyboard shot IDs exactly. Do not delete, merge away, reorder, or rewrite storyboard shots to make a 15-second generation easier; split into shorter generated units instead. Prompts may only strengthen details already present in references and storyboard, not add, modify, or reduce locked content.
+
 ## Quick Checks
 
 Run local tests without spending image-generation credits:

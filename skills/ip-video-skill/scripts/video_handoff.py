@@ -84,6 +84,7 @@ def build_edit_decision_list(task: Dict, shots: List[Dict], clips: List[Dict] = 
                 "order": clip.get("order"),
                 "clip_id": clip.get("clip_id"),
                 "shot_ids": clip.get("shot_ids"),
+                "storyboard_execution_map": clip.get("storyboard_execution_map", []),
                 "start_sec": clip.get("timing", {}).get("start_sec"),
                 "end_sec": clip.get("timing", {}).get("end_sec"),
                 "duration_sec": clip.get("timing", {}).get("duration_sec"),
@@ -114,9 +115,11 @@ def build_edit_decision_list(task: Dict, shots: List[Dict], clips: List[Dict] = 
             "字幕和旁白使用每镜 sound_subtitle 字段。",
             "BGM 优先使用 music_ref；缺失时使用主题曲或场景 BGM fallback。",
             "拼接前检查每个片段首尾状态是否符合 continuity_start/continuity_end。",
+            "每个 clip 的 storyboard_execution_map 必须完整覆盖 clip_timeline.shot_ids，视频镜头顺序必须等于故事板顺序。",
+            "不得为了凑 15 秒长镜头而删除、合并掉、改顺序或改动作；需要调整时先修订故事板并获得确认。",
             "每个 clip 的首帧、中段、尾帧应同时对齐 first_frame_spec、mid_frame_spec、last_frame_spec。",
             "如 bridge_timeline 存在，先用桥接空镜/道具特写缓冲上下镜头，再切入下一人物镜头。",
-            "跨 clip 续接时，优先抽取上一 clip 最后一帧作为下一 clip 的 previous_clip_end_frame。",
+            "跨 clip 续接时先声明 continuation_mode；单帧截取只服务连续性参考，除 hard_first_frame 外不得自动变成下一段首帧。",
         ],
     }
 

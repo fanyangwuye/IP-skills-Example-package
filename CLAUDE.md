@@ -30,6 +30,9 @@ Rules:
 - Use `image_urls[0]` first-frame/keyframe only when the project explicitly selects that policy; never substitute it for all-purpose reference.
 - Treat extracted single frames only as clip-boundary continuity references; never use them as identity locks, default first frames, or replacements for all-purpose references.
 - Storyboard crops are layout references only; do not treat line-art storyboard style as final video style.
+- Storyboard is the execution blueprint once it exists. Every live clip must carry `storyboard_execution_map`, and video shot order must exactly match storyboard `shot_ids`.
+- Do not delete, merge away, reorder, or rewrite storyboard shots to fit a 15-second clip. Split into shorter generated units or revise the storyboard with user approval.
+- Prompt text may only strengthen details already present in references and storyboard; it must not add, modify, or reduce locked content.
 - Keep video model audio limited to ambient sound and foley. Do not generate background music, songs, subtitles, title cards, fake text, or watermarks.
 - Never commit `.env`, `outputs/`, `logs/`, generated videos, generated images, or API keys.
 - Use `python scripts/setup_doctor.py` for environment checks.

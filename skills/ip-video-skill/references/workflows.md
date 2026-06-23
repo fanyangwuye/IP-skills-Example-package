@@ -22,6 +22,15 @@ Use this before any prompt writing.
 9. Create `i2v_prompt`, `t2v_prompt`, `seedance_prompt`, and `clip_prompts`.
 10. Create an EDL for later ffmpeg/provider assembly.
 
+## Storyboard Execution Rules
+
+- Treat storyboard boards and shot tables as the video execution blueprint after they exist, not as loose visual inspiration.
+- Each `clip_plan` entry must include `storyboard_execution_map` with one row per `shot_id`, preserving storyboard order exactly.
+- Every paid/live clip request must expose that mapping and bind video shot order to storyboard shot IDs, for example `video shot 1 = storyboard shot_008`.
+- Do not delete, merge away, reorder, or change storyboard shots without an approved storyboard revision.
+- If a 15-second clip cannot accurately execute every mapped storyboard shot, split it into shorter generation units instead of changing the storyboard.
+- Prompt text may only strengthen details that already exist in the reference images and storyboard. It must not add, modify, or reduce locked content.
+
 ## Storyboard Boards And Panel References
 
 - Use character design sheets to lock identity and normal scene references to lock the environment.

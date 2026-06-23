@@ -145,6 +145,7 @@ def test_build_video_handoff_has_required_shot_fields():
     assert len(handoff["clip_plan"]) == 1
     assert len(handoff["storyboard_image_tasks"]) == 1
     assert handoff["clip_prompts"][0]["clip_id"] == "clip_001"
+    assert handoff["clip_prompts"][0]["storyboard_execution_map"][0]["storyboard_shot_id"] == "shot_001"
     assert handoff["clip_plan"][0]["video_reference_images"]
     assert handoff["clip_plan"][0]["space_anchor_refs"]
     assert handoff["clip_plan"][0]["first_frame_spec"]["alignment_checks"]
@@ -153,6 +154,8 @@ def test_build_video_handoff_has_required_shot_fields():
     assert handoff["clip_plan"][0]["first_frame_spec"]["action_phase_lock"]
     assert handoff["clip_plan"][0]["mid_frame_spec"]["source_shot_id"]
     assert handoff["clip_plan"][0]["last_frame_spec"]["source_shot_id"]
+    assert handoff["clip_plan"][0]["storyboard_execution_map"][0]["storyboard_shot_id"] == "shot_001"
+    assert "故事板执行映射" in handoff["clip_plan"][0]["clip_prompt"]
     assert "first_frame_spec" in handoff["clip_prompts"][0]
     for shot in handoff["shots"]:
         assert shot["visual_lock"]
@@ -359,6 +362,8 @@ def test_prepare_video_generation_request_offline():
     assert request["transport"]["type"] == "dry_run"
     assert request["reference_binding"]["scene_lock"]
     assert request["first_frame_spec"]["alignment_checks"]
+    assert request["storyboard_execution_map"][0]["storyboard_shot_id"] == "shot_001"
+    assert "故事板执行映射" in request["prompt"]
 
 
 def test_storyboard_panel_refs_crop_and_bind_to_provider_request():
@@ -1058,6 +1063,30 @@ def test_prepare_reference_reframe_request_uses_previous_frame_as_reference_imag
     assert "近景、特写、全景、远景、背影、反打、空镜、道具插入或手部局部" in request["prompt"]
     assert "换景别时仍必须继承同一角色" in request["prompt"]
 
+
+def test_live_video_blocks_missing_storyboard_execution_map():
+    config = VideoProviderConfig("poyo_video", "test", "https://api.example", "", "seedance-2", "9:16", "480p", 1, 5)
+    try:
+        run_video_generation(
+            {
+                "mode": "run_video_generation",
+                "provider": "poyo_video",
+                "clip": {
+                    "clip_id": "clip_999",
+                    "shot_ids": ["shot_001"],
+                    "timing": {"duration_sec": 5},
+                    "clip_prompt": "测试片段",
+                    "visual_lock": {},
+                },
+                "dry_run": False,
+                "image_urls": [{"url": "https://files.example/first.png", "role": "first_frame"}],
+            },
+            config,
+        )
+    except RuntimeError as exc:
+        assert "storyboard_execution_map is missing" in str(exc)
+    else:
+        raise AssertionError("live clip video should require storyboard_execution_map")
 
 def test_live_video_blocks_reference_only_generation_by_default():
     handoff = build_video_handoff(_task())
