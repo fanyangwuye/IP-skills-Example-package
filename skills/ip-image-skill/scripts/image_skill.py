@@ -7,6 +7,7 @@ try:
     from .asset_pack import build_ip_asset_pack_tasks
     from .config import load_image_provider_config
     from .character_sheet import build_asset_bundle_tasks
+    from .panorama_seam import make_horizontally_seamless
     from .poyo_client import PoYoClient
     from .prompt_builder import build_task_prompt, load_style_card
     from .split_grid import grid_to_rows_cols, save_tiles, split_image
@@ -14,6 +15,7 @@ except ImportError:
     from asset_pack import build_ip_asset_pack_tasks
     from config import load_image_provider_config
     from character_sheet import build_asset_bundle_tasks
+    from panorama_seam import make_horizontally_seamless
     from poyo_client import PoYoClient
     from prompt_builder import build_task_prompt, load_style_card
     from split_grid import grid_to_rows_cols, save_tiles, split_image
@@ -390,14 +392,56 @@ def _run_ip_asset_pack(task: Dict, output_dir: str, client: PoYoClient) -> Dict:
     max_batch = int(task.get("max_batch", 20) or 20)
     total = len(child_tasks)
 
+    # Video scene references must be conditioned on their panorama, so they run in a
+    # second wave after the panoramas they depend on. Everything else runs first.
+    independent = [t for t in child_tasks if not t.get("derive_from_panorama")]
+    dependent = [t for t in child_tasks if t.get("derive_from_panorama")]
+
     artifacts: List[Dict] = []
     logs: List[str] = []
     children: List[Dict] = []
+    produced_paths: Dict[str, str] = {}
 
+    _run_asset_pack_wave(independent, output_dir, client, max_batch, 0, total, artifacts, children, logs, produced_paths)
+
+    if dependent:
+        for child_task in dependent:
+            panorama_path = produced_paths.get(child_task.get("panorama_filename"))
+            if panorama_path:
+                refs = list(child_task.get("reference_image_paths") or [])
+                refs.append(panorama_path)
+                child_task["reference_image_paths"] = refs
+        _run_asset_pack_wave(dependent, output_dir, client, max_batch, len(independent), total, artifacts, children, logs, produced_paths)
+
+    return {
+        "status": "success",
+        "skill": "ip-image-skill",
+        "mode": "ip_asset_pack",
+        "task_id": task.get("task_id", "ip_asset_pack"),
+        "artifacts": artifacts,
+        "logs": logs,
+        "handoff": {
+            "items": children,
+        },
+    }
+
+
+def _run_asset_pack_wave(
+    child_tasks: List[Dict],
+    output_dir: str,
+    client: PoYoClient,
+    max_batch: int,
+    index_offset: int,
+    total: int,
+    artifacts: List[Dict],
+    children: List[Dict],
+    logs: List[str],
+    produced_paths: Dict[str, str],
+) -> None:
     # Submit each chunk in full before waiting on any result, so up to max_batch
     # tasks run concurrently on the provider instead of one-submit-one-wait serial.
-    for chunk_start in range(0, total, max_batch):
-        chunk = list(enumerate(child_tasks[chunk_start:chunk_start + max_batch], start=chunk_start + 1))
+    for chunk_start in range(0, len(child_tasks), max_batch):
+        chunk = list(enumerate(child_tasks[chunk_start:chunk_start + max_batch], start=index_offset + chunk_start + 1))
 
         submitted: List[Dict] = []
         for index, child_task in chunk:
@@ -411,10 +455,15 @@ def _run_ip_asset_pack(task: Dict, output_dir: str, client: PoYoClient) -> Dict:
             index = item["index"]
             child_task = item["task"]
             artifact = _download_submitted_text_to_image(item, output_dir, client)
+            if child_task.get("make_seamless"):
+                make_horizontally_seamless(artifact["path"])
+                artifact["meta"]["seam_blended"] = True
             label = child_task.get("bundle_item_label") or os.path.splitext(child_task.get("filename", f"asset_{index:02d}.jpg"))[0]
             artifact["meta"]["asset_pack_label"] = label
             artifact["meta"]["asset_target"] = child_task.get("asset_target", {})
             artifacts.append(artifact)
+            if child_task.get("filename"):
+                produced_paths[child_task["filename"]] = artifact["path"]
             children.append(
                 {
                     "label": label,
@@ -425,18 +474,6 @@ def _run_ip_asset_pack(task: Dict, output_dir: str, client: PoYoClient) -> Dict:
                 }
             )
             logs.append(f"Generated asset pack item {index}/{total}: {label}")
-
-    return {
-        "status": "success",
-        "skill": "ip-image-skill",
-        "mode": "ip_asset_pack",
-        "task_id": task.get("task_id", "ip_asset_pack"),
-        "artifacts": artifacts,
-        "logs": logs,
-        "handoff": {
-            "items": children,
-        },
-    }
 
 
 def _load_presets() -> Dict[str, Dict]:

@@ -2,6 +2,8 @@ import os
 import sys
 import tempfile
 
+from PIL import Image
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from asset_pack import build_ip_asset_pack_tasks  # noqa: E402
 from prompt_builder import build_task_prompt  # noqa: E402
@@ -27,9 +29,13 @@ class _RecordingClient:
 
     def download_file(self, file_url, out_path):
         os.makedirs(os.path.dirname(out_path), exist_ok=True)
-        with open(out_path, "wb") as fh:
-            fh.write(file_url.encode("utf-8"))
+        # Write a real (small) image so downstream post-processing can open it.
+        Image.new("RGB", (16, 8), (90, 90, 90)).save(out_path)
         return out_path
+
+    def upload_file_stream(self, file_path, upload_path=None, file_name=None):
+        self.events.append(("upload", file_path))
+        return {"file_url": f"https://example.test/upload/{os.path.basename(file_path)}"}
 
 
 def test_build_ip_asset_pack_tasks():
@@ -69,11 +75,19 @@ def test_build_ip_asset_pack_tasks():
     assert "少量清晰大字标签" in tasks[0]["visible_text_requirements"][1]
     assert tasks[0]["props"][0]["name"] == "menu ledger"
     assert tasks[2]["asset_kind"] == "720_seamless_panorama_scene"
-    assert tasks[2]["size"] == "21:9"
+    # True 2:1 via custom WIDTHxHEIGHT; the provider rejects a "2:1" ratio string.
+    assert tasks[2]["size"] == "3840x1920"
+    w, hgt = (int(v) for v in tasks[2]["size"].split("x"))
+    assert w == 2 * hgt
     assert tasks[2]["resolution"] == "4K"
+    assert tasks[2]["make_seamless"] is True
     assert tasks[3]["asset_kind"] == "video_scene_reference"
     assert tasks[3]["size"] == "16:9"
     assert any("normal perspective environment reference" in item for item in tasks[3]["asset_requirements"])
+    # The video scene reference is linked to its panorama so they describe one place.
+    assert tasks[3]["derive_from_panorama"] is True
+    assert tasks[3]["panorama_filename"] == tasks[2]["filename"]
+    assert any("SAME location" in item for item in tasks[3]["asset_requirements"])
 
 
 def test_asset_pack_prompt_contains_specs():
@@ -158,6 +172,40 @@ def test_asset_pack_chunks_respect_max_batch():
     kinds = [kind for kind, _ in client.events]
     # Two chunks of size 2 and 1: submits and waits stay grouped per chunk.
     assert kinds == ["submit", "submit", "wait", "wait", "submit", "wait"]
+
+
+def test_video_reference_is_conditioned_on_panorama():
+    pack = {
+        "scenes": [
+            {"scene_id": "hall", "description": "a floating immortal hall in clouds"}
+        ]
+    }
+    with tempfile.TemporaryDirectory() as output_dir:
+        client = _RecordingClient()
+        result = _run_ip_asset_pack(pack, output_dir, client)
+
+    assert result["status"] == "success"
+    assert len(result["artifacts"]) == 2
+    kinds = [kind for kind, _ in client.events]
+    # Panorama generates first (wave 1); its file is uploaded as a reference before
+    # the video scene reference is submitted (wave 2).
+    assert kinds == ["submit", "wait", "upload", "submit", "wait"]
+    uploaded_path = client.events[2][1]
+    assert uploaded_path.endswith("hall_720_panorama.jpg")
+
+
+def test_video_reference_can_opt_out_of_panorama_match():
+    pack = {
+        "scenes": [
+            {"scene_id": "hall", "description": "a hall", "match_panorama": False}
+        ]
+    }
+    with tempfile.TemporaryDirectory() as output_dir:
+        client = _RecordingClient()
+        _run_ip_asset_pack(pack, output_dir, client)
+
+    # No panorama upload step: the two scene assets stay independent.
+    assert [kind for kind, _ in client.events] == ["submit", "submit", "wait", "wait"]
 
 
 if __name__ == "__main__":

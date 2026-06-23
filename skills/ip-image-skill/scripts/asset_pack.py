@@ -45,6 +45,15 @@ DEFAULT_VIDEO_SCENE_REQUIREMENTS = [
     "clear foreground, midground, and background layers for camera planning",
 ]
 
+# Added when the video scene reference is conditioned on the matching panorama so
+# the two assets describe the same physical location instead of diverging.
+DEFAULT_PANORAMA_MATCH_REQUIREMENTS = [
+    "this normal-perspective frame must depict the SAME location shown in the provided reference panorama image",
+    "match the reference panorama's architecture layout, landmark positions, horizon line, and light direction",
+    "keep the same materials, palette, and key structures as the reference panorama",
+    "do not invent a different building layout from the reference panorama",
+]
+
 
 def build_ip_asset_pack_tasks(pack: Dict, output_dir: str) -> List[Dict]:
     tasks: List[Dict] = []
@@ -168,24 +177,27 @@ def _build_scene_panorama_task(scene: Dict, common: Dict, output_dir: str) -> Di
         "creation_stage": "scene_panorama_asset_pack",
         "current_focus": f"generate 720 seamless panorama scene: {scene_id}",
         "asset_kind": "720_seamless_panorama_scene",
+        # The runner feathers the left/right edges after download so the panorama
+        # actually wrap-tiles; the prompt alone does not guarantee a seamless seam.
+        "make_seamless": scene.get("make_seamless", True),
         "scene_profile": copy.deepcopy(scene),
         "asset_target": {
             "type": "720 seamless panorama",
             "purpose": scene.get("purpose", "environment reference and camera movement planning"),
             "scene": scene.get("description", scene.get("name", "")),
         },
-        "camera": "equirectangular 720-degree panorama, horizon centered",
+        "camera": "equirectangular 720-degree panorama, horizon centered, 2:1 aspect ratio",
         "composition": "continuous environment wrapping horizontally, no foreground character occlusion",
         "lighting": scene.get("lighting", ""),
         "asset_requirements": asset_requirements,
         "gpt_image_2_spec": {
             "model": "gpt-image-2",
-            "recommended_size": scene.get("size", "21:9"),
+            "recommended_size": scene.get("size", "3840x1920"),
             "recommended_resolution": scene.get("resolution", "4K"),
-            "note": "Use 21:9 or custom wide size for panorama-style output; prompt requires seamless left-right edges.",
+            "note": "Use a true 2:1 custom WIDTHxHEIGHT (e.g. 3840x1920) for equirectangular panorama; the provider rejects a '2:1' ratio string. Left-right edges are feathered seamless in post-processing.",
         },
         "quality": scene.get("quality", common.get("quality", "high")),
-        "size": scene.get("size", "21:9"),
+        "size": scene.get("size", "3840x1920"),
         "resolution": scene.get("resolution", common.get("resolution", "4K")),
         "filename": scene.get("filename", f"{scene_id}_720_panorama.jpg"),
         "output_dir": output_dir,
@@ -194,7 +206,11 @@ def _build_scene_panorama_task(scene: Dict, common: Dict, output_dir: str) -> Di
 
 def _build_video_scene_reference_task(scene: Dict, common: Dict, output_dir: str) -> Dict:
     scene_id = _safe_label(scene.get("scene_id") or scene.get("name") or "scene")
+    match_panorama = scene.get("match_panorama", True)
+    panorama_filename = scene.get("filename", f"{scene_id}_720_panorama.jpg")
     asset_requirements = list(DEFAULT_VIDEO_SCENE_REQUIREMENTS)
+    if match_panorama:
+        asset_requirements.extend(DEFAULT_PANORAMA_MATCH_REQUIREMENTS)
     asset_requirements.extend(scene.get("video_reference_requirements") or [])
     return {
         **copy.deepcopy(common),
@@ -202,6 +218,10 @@ def _build_video_scene_reference_task(scene: Dict, common: Dict, output_dir: str
         "creation_stage": "scene_video_reference_asset_pack",
         "current_focus": f"generate normal video scene reference: {scene_id}",
         "asset_kind": "video_scene_reference",
+        # The runner generates the panorama first, then attaches it as a reference
+        # image so this normal-perspective frame depicts the same physical location.
+        "derive_from_panorama": match_panorama,
+        "panorama_filename": panorama_filename,
         "scene_profile": copy.deepcopy(scene),
         "asset_target": {
             "type": "normal perspective video scene reference",
