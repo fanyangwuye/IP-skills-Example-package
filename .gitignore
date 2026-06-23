@@ -2,6 +2,9 @@
 .env.*
 !.env.example
 
+# Machine-specific junctions/symlinks for Claude Code skill discovery
+.claude/skills/
+
 __pycache__/
 *.py[cod]
 *$py.class

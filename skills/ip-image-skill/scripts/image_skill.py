@@ -29,8 +29,8 @@ def _artifact(path: str, artifact_type: str, meta: Dict) -> Dict:
 
 def run_task(task: Dict) -> Dict:
     mode = task.get("mode")
-    if mode not in {"text_to_image", "grid_enhance", "single_image_refine", "character_create", "character_refine", "character_asset_bundle", "ip_asset_pack"}:
-        raise ValueError("mode must be one of: text_to_image, grid_enhance, single_image_refine, character_create, character_refine, character_asset_bundle, ip_asset_pack")
+    if mode not in {"text_to_image", "grid_enhance", "single_image_refine", "character_create", "character_refine", "character_asset_bundle", "ip_asset_pack", "image_batch"}:
+        raise ValueError("mode must be one of: text_to_image, grid_enhance, single_image_refine, character_create, character_refine, character_asset_bundle, ip_asset_pack, image_batch")
 
     config = load_image_provider_config()
     if config.provider != "poyo":
@@ -42,6 +42,8 @@ def run_task(task: Dict) -> Dict:
 
     if mode in {"text_to_image", "character_create"}:
         return _run_text_to_image(task, output_dir, client)
+    if mode == "image_batch":
+        return _run_image_batch(task, output_dir, client)
     if mode in {"single_image_refine", "character_refine"}:
         return _run_single_image_refine(task, output_dir, client)
     if mode == "character_asset_bundle":
@@ -53,52 +55,117 @@ def run_task(task: Dict) -> Dict:
 
 def _run_text_to_image(task: Dict, output_dir: str, client: PoYoClient) -> Dict:
     result_mode = task.get("mode", "text_to_image")
-    style_card = load_style_card(
-        task.get("ip_id"),
-        task.get("style_card_path"),
-        task.get("style_preset"),
-    )
-    prompt = build_task_prompt(task, style_card)
-    quality = task.get("quality", "high")
-    size = task.get("size", "1:1")
-    resolution = task.get("resolution", "2K")
-    filename = task.get("filename", "generated_image.jpg")
-    reference_image_urls = _collect_reference_image_urls(task, client)
-
-    task_id = client.submit_text_to_image(
-        prompt=prompt,
-        quality=quality,
-        size=size,
-        resolution=resolution,
-        image_urls=reference_image_urls,
-    )
-    result = client.wait_for_task(task_id)
-    files = result.get("files", [])
-    if not files:
-        raise RuntimeError(f"No files returned for task {task_id}")
-
-    final_path = os.path.join(output_dir, filename)
-    client.download_file(files[0]["file_url"], final_path)
+    submitted = _submit_text_to_image_task(task, client)
+    task_id = submitted["task_id"]
+    artifact = _download_submitted_text_to_image(submitted, output_dir, client)
 
     return {
         "status": "success",
         "skill": "ip-image-skill",
         "mode": result_mode,
         "task_id": task_id,
-        "artifacts": [
-            _artifact(
-                final_path,
-                "image",
-                {
-                    "provider": "poyo",
-                    "remote_url": files[0]["file_url"],
-                    "prompt_used": prompt,
-                    "style_preset": task.get("style_preset", ""),
-                    "reference_image_urls": reference_image_urls,
-                },
-            )
-        ],
+        "artifacts": [artifact],
         "logs": [f"Completed text_to_image task {task_id}"],
+    }
+
+
+def _submit_text_to_image_task(task: Dict, client: PoYoClient) -> Dict:
+    style_card = load_style_card(
+        task.get("ip_id"),
+        task.get("style_card_path"),
+        task.get("style_preset"),
+    )
+    prompt = build_task_prompt(task, style_card)
+    reference_image_urls = _collect_reference_image_urls(task, client)
+    task_id = client.submit_text_to_image(
+        prompt=prompt,
+        quality=task.get("quality", "high"),
+        size=task.get("size", "1:1"),
+        resolution=task.get("resolution", "2K"),
+        image_urls=reference_image_urls,
+    )
+    return {
+        "task_id": task_id,
+        "task": task,
+        "prompt": prompt,
+        "reference_image_urls": reference_image_urls,
+    }
+
+
+def _download_submitted_text_to_image(submitted: Dict, output_dir: str, client: PoYoClient) -> Dict:
+    task = submitted["task"]
+    task_id = submitted["task_id"]
+    result = client.wait_for_task(task_id)
+    files = result.get("files", [])
+    if not files:
+        raise RuntimeError(f"No files returned for task {task_id}")
+
+    final_path = os.path.join(task.get("output_dir") or output_dir, task.get("filename", "generated_image.jpg"))
+    client.download_file(files[0]["file_url"], final_path)
+    return _artifact(
+        final_path,
+        "image",
+        {
+            "provider": "poyo",
+            "remote_url": files[0]["file_url"],
+            "prompt_used": submitted["prompt"],
+            "style_preset": task.get("style_preset", ""),
+            "reference_image_urls": submitted["reference_image_urls"],
+            "source_mode": task.get("mode", "text_to_image"),
+            "asset_kind": task.get("asset_kind", ""),
+            "asset_target": task.get("asset_target", {}),
+        },
+    )
+
+
+def _run_image_batch(task: Dict, output_dir: str, client: PoYoClient) -> Dict:
+    child_tasks = task.get("tasks") or []
+    if not child_tasks:
+        raise ValueError("image_batch requires a non-empty tasks list")
+    max_batch = int(task.get("max_batch", 20) or 20)
+    if len(child_tasks) > max_batch:
+        raise ValueError(f"image_batch supports at most {max_batch} tasks per run")
+
+    submitted: List[Dict] = []
+    logs: List[str] = []
+    for index, child_task in enumerate(child_tasks, start=1):
+        child_mode = child_task.get("mode")
+        if child_mode not in {"text_to_image", "character_create"}:
+            raise ValueError(f"image_batch child {index} has unsupported mode: {child_mode}")
+        os.makedirs(child_task.get("output_dir") or output_dir, exist_ok=True)
+        item = _submit_text_to_image_task(child_task, client)
+        item["index"] = index
+        submitted.append(item)
+        logs.append(f"Submitted batch item {index}/{len(child_tasks)}: {item['task_id']}")
+
+    artifacts: List[Dict] = []
+    children: List[Dict] = []
+    for item in submitted:
+        artifact = _download_submitted_text_to_image(item, output_dir, client)
+        artifacts.append(artifact)
+        child_task = item["task"]
+        children.append(
+            {
+                "index": item["index"],
+                "task_id": item["task_id"],
+                "mode": child_task.get("mode"),
+                "asset_kind": child_task.get("asset_kind", ""),
+                "filename": child_task.get("filename", ""),
+                "path": artifact["path"],
+            }
+        )
+        logs.append(f"Downloaded batch item {item['index']}/{len(submitted)}: {item['task_id']}")
+
+    return {
+        "status": "success",
+        "skill": "ip-image-skill",
+        "mode": "image_batch",
+        "task_id": task.get("task_id", "image_batch"),
+        "artifacts": artifacts,
+        "logs": logs,
+        "handoff": {
+            "items": children,
+        },
     }
 
 
@@ -320,27 +387,44 @@ def _run_ip_asset_pack(task: Dict, output_dir: str, client: PoYoClient) -> Dict:
     if not child_tasks:
         raise ValueError("ip_asset_pack requires at least one character, scene, or standalone prop")
 
+    max_batch = int(task.get("max_batch", 20) or 20)
+    total = len(child_tasks)
+
     artifacts: List[Dict] = []
     logs: List[str] = []
     children: List[Dict] = []
 
-    for index, child_task in enumerate(child_tasks, start=1):
-        child_result = _run_text_to_image(child_task, output_dir, client)
-        label = child_task.get("bundle_item_label") or os.path.splitext(child_task.get("filename", f"asset_{index:02d}.jpg"))[0]
-        for artifact in child_result["artifacts"]:
+    # Submit each chunk in full before waiting on any result, so up to max_batch
+    # tasks run concurrently on the provider instead of one-submit-one-wait serial.
+    for chunk_start in range(0, total, max_batch):
+        chunk = list(enumerate(child_tasks[chunk_start:chunk_start + max_batch], start=chunk_start + 1))
+
+        submitted: List[Dict] = []
+        for index, child_task in chunk:
+            os.makedirs(child_task.get("output_dir") or output_dir, exist_ok=True)
+            item = _submit_text_to_image_task(child_task, client)
+            item["index"] = index
+            submitted.append(item)
+            logs.append(f"Submitted asset pack item {index}/{total}: {item['task_id']}")
+
+        for item in submitted:
+            index = item["index"]
+            child_task = item["task"]
+            artifact = _download_submitted_text_to_image(item, output_dir, client)
+            label = child_task.get("bundle_item_label") or os.path.splitext(child_task.get("filename", f"asset_{index:02d}.jpg"))[0]
             artifact["meta"]["asset_pack_label"] = label
             artifact["meta"]["asset_target"] = child_task.get("asset_target", {})
             artifacts.append(artifact)
-        children.append(
-            {
-                "label": label,
-                "mode": child_task.get("mode"),
-                "filename": child_task.get("filename"),
-                "task_id": child_result["task_id"],
-                "asset_target": child_task.get("asset_target", {}),
-            }
-        )
-        logs.append(f"Generated asset pack item {index}/{len(child_tasks)}: {label}")
+            children.append(
+                {
+                    "label": label,
+                    "mode": child_task.get("mode"),
+                    "filename": child_task.get("filename"),
+                    "task_id": item["task_id"],
+                    "asset_target": child_task.get("asset_target", {}),
+                }
+            )
+            logs.append(f"Generated asset pack item {index}/{total}: {label}")
 
     return {
         "status": "success",
@@ -363,19 +447,37 @@ def _load_presets() -> Dict[str, Dict]:
 
 
 def _collect_reference_image_urls(task: Dict, client: PoYoClient) -> List[str]:
-    image_urls = list(task.get("reference_image_urls") or [])
+    image_urls = []
+    for item in task.get("reference_image_urls") or []:
+        if isinstance(item, str):
+            image_urls.append(item)
+            continue
+        if not isinstance(item, dict):
+            raise ValueError(f"Unsupported reference_image_urls item: {item}")
+        if item.get("url"):
+            image_urls.append(item["url"])
+            continue
+        path = item.get("path")
+        if path:
+            image_urls.append(_upload_reference_path(path, client, item.get("upload_path")))
+            continue
+        raise ValueError(f"reference_image_urls item must contain url or path: {item}")
     local_paths = list(task.get("style_reference_paths") or [])
     local_paths.extend(task.get("reference_image_paths") or [])
     for path in local_paths:
-        if not os.path.exists(path):
-            raise FileNotFoundError(path)
-        upload = client.upload_file_stream(
-            path,
-            upload_path="image-skill/references",
-            file_name=os.path.basename(path),
-        )
-        image_urls.append(upload["file_url"])
+        image_urls.append(_upload_reference_path(path, client, "image-skill/references"))
     return image_urls
+
+
+def _upload_reference_path(path: str, client: PoYoClient, upload_path: str = None) -> str:
+    if not os.path.exists(path):
+        raise FileNotFoundError(path)
+    upload = client.upload_file_stream(
+        path,
+        upload_path=upload_path or "image-skill/references",
+        file_name=os.path.basename(path),
+    )
+    return upload["file_url"]
 
 
 def _cli() -> None:

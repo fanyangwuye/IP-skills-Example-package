@@ -13,7 +13,7 @@ Build the offline video structure layer for IP workflows:
 - `build_video_handoff`: turn `blueprint`, `polished_script`, `ip_asset_pack`, `image_handoff`, and `music_handoff` into executable video tasks.
 - `build_shot_plan`: create continuity-aware storyboard cards.
 - `build_clip_plan`: group shots into 5-15 second continuity clips so generation is not split into too many tiny fragments.
-- `storyboard_image_tasks`: create image-generation tasks for clip-level storyboard content design sheets.
+- `storyboard_image_tasks`: create image-generation tasks for clip-level storyboard boards, shot-table storyboards, and martial-arts action breakdown boards that share first/mid/last frame specs with video generation.
 - `martial_arts_layer`: enhance martial-arts/action clips with readable combat beats, distance, footwork, weight shift, impact feedback, and safe visual constraints.
 - `build_i2v_prompts`: create image-to-video prompts from locked references.
 - `build_t2v_prompts`: create text-to-video prompts when no usable image reference exists.
@@ -41,13 +41,27 @@ For 2+ characters, each shot must also include:
 
 Do not write isolated video prompts that can drift across shots.
 
+## Hard Identity Gate
+
+For any paid/live clip that contains a named or locked character, do not rely on text prompts or weak `reference_image_urls` alone. First generate or provide a reviewed character keyframe from the character design sheet plus normal scene reference, then pass that image as `image_urls[0]`.
+
+- Character design sheets lock identity upstream; storyboard panel crops lock layout only.
+- `reference_image_urls` can help plan or experiment, but they are not enough to validate face, hair, costume, or IP continuity in live video.
+- A character clip must not start from a characterless cutaway. Split the cutaway into a separate bridge clip, then start the character clip from a real character first-frame/keyframe image.
+- Inspect provider prompts for explicit `@Image` binding. `image_urls[0]` is the first-frame/keyframe input; `reference_image_urls` are weaker supporting references.
+- If face, hairstyle, costume, or character age drifts, stop live generation and regenerate the keyframe or character reference set before spending another video call.
+
 For actual video generation, prefer clip-level generation over tiny shot-level generation:
 
 - Keep `shots` for storyboard, subtitles, and edit checks.
 - Use `clip_plan` for provider calls; each clip should usually be 5-15 seconds and may contain multiple shots.
 - Preserve panorama scene images as `space_anchor_refs` for spatial overview and human consistency checks.
 - Use normal perspective scene references as `video_reference_images` for model input.
-- Generate storyboard content design sheets when visual planning is needed; each sheet should show start state, main action beat, and end state for one clip.
+- Generate professional storyboard boards when visual planning is needed; each board should map to real clip keyframes and carry `first_frame_spec`, `mid_frame_spec`, and `last_frame_spec`.
+- The first storyboard panel must match the intended video first frame: same composition, camera height, camera angle, subject scale, screen direction, scene anchors, and light direction.
+- Supported storyboard asset kinds are `clip_storyboard_board`, `shot_table_storyboard`, and `martial_action_storyboard`.
+- After generating a storyboard board, pass `storyboard_image_path` or `storyboard_image_paths` into `prepare_video_generation` / `run_video_generation`; the provider layer will crop first/mid/last panels into layout references automatically.
+- Storyboard panel crops are composition references only. They lock framing, camera angle, subject scale, blocking, pose phase, screen direction, and scene anchors; they must not copy line-art style, table borders, labels, arrows, handwritten marks, or storyboard text into the generated video.
 - For martial-arts clips, keep the action readable: starting stance, distance, one attack-defense beat, reaction pause, and ending pose. Do not hide action with chaotic camera motion.
 - Test real IP video with image-to-video only after generating character and scene reference images; text-to-video is only useful for provider connectivity checks, not IP consistency.
 - For clip 2+, pass the previous clip's extracted last frame as `previous_clip_end_frame`; provider requests should map it to the first-frame slot when supported.
@@ -123,6 +137,8 @@ Use `prepare_video_generation` to inspect a single-shot or single-clip provider 
 - video reference images
 - space anchor refs
 - previous clip end frame
+- first frame spec, mid frame spec, and last frame spec
+- storyboard panel layout references when available
 - reference binding
 - continuity state
 - visual lock
@@ -149,6 +165,7 @@ Default video resolution is `480p` to keep test clips low-cost. Raise to `720p` 
 - `scripts/shot_plan.py`: shot/storyboard/prompt builder
 - `scripts/clip_plan.py`: clip grouping, clip prompts, video reference images, space anchors, and previous-frame handoff
 - `scripts/storyboard_assets.py`: clip-level storyboard design sheet image task builder
+- `scripts/storyboard_panel_refs.py`: local first/mid/last storyboard panel cropper for provider layout references
 - `scripts/martial_arts.py`: martial-arts scene detector and combat prompt layer
 - `scripts/prompt_quality.py`: prompt quality layers for performance, camera, light, sound, realism, constraints, and retry advice
 - `scripts/video_provider.py`: provider request builder and dry-run execution boundary

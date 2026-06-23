@@ -140,7 +140,11 @@ class PoYoClient:
         )
         self._raise_for_error(response)
         body = response.json()
-        return body["data"]["task_id"]
+        data = body.get("data") if isinstance(body, dict) else None
+        task_id = data.get("task_id") if isinstance(data, dict) else None
+        if not task_id:
+            raise RuntimeError(f"Provider submit did not return task_id: {body}")
+        return task_id
 
     @staticmethod
     def _raise_for_error(response: requests.Response) -> None:

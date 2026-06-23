@@ -67,7 +67,7 @@ def _build_character_locks(ip_asset_pack: Dict, image_handoff: Dict) -> Dict:
                 identity.get("age_range"),
                 identity.get("gender_presentation"),
             ),
-            "hair_lock": appearance.get("hair", "保持同一发型轮廓和发色"),
+            "hair_lock": styling.get("hair") or appearance.get("hair") or "保持同一发型轮廓和发色",
             "body_temperament_lock": _join_parts(appearance.get("body_type"), personality.get("temperament"), personality.get("aura")),
             "costume_lock": _join_parts(styling.get("wardrobe"), styling.get("materials")),
             "palette_lock": styling.get("palette", ""),
@@ -137,8 +137,8 @@ def _build_scene_locks(ip_asset_pack: Dict, image_handoff: Dict, blueprint: Dict
             "layout_lock": scene.get("description") or scene.get("name") or "",
             "landmark_lock": _infer_landmarks(scene.get("description") or scene.get("name") or ""),
             "lighting_lock": scene.get("lighting", ""),
-            "weather_atmosphere_lock": _infer_atmosphere(scene.get("description") or scene.get("lighting") or ""),
-            "palette_lock": _infer_palette(scene.get("description") or scene.get("lighting") or ""),
+            "weather_atmosphere_lock": scene.get("atmosphere") or scene.get("weather") or _infer_atmosphere(scene.get("description") or scene.get("lighting") or ""),
+            "palette_lock": scene.get("palette") or _infer_palette(scene.get("description") or scene.get("lighting") or ""),
             "panorama_rule": "如果使用全景参考，左右边缘必须无缝衔接，不出现明显接缝。",
             "reference_binding": {"scene": f"{scene_id}:scene", "style": "global:style"},
         }
@@ -257,14 +257,22 @@ def _infer_lighting(text: str) -> str:
 def _infer_atmosphere(text: str) -> str:
     if "雨" in text:
         return "雨水、湿地反光、空气潮湿"
-    if any(word in text for word in ["雾", "黑", "地府", "黄泉"]):
+    if any(word in text for word in ["云雾", "云海", "仙鹤", "修仙", "仙侠", "宗门"]):
+        return "云海、山风、轻雾、仙侠日外空气感"
+    if "烟尘" in text or "战后" in text:
+        return "战后烟尘、低空尘粒、受损宗门压迫感"
+    if any(word in text for word in ["黑", "地府", "黄泉"]):
         return "黑雾、低饱和、诡异压迫"
+    if "雾" in text:
+        return "轻雾、空气颗粒、低饱和环境氛围"
     return "与上游场景描述一致"
 
 
 def _infer_palette(text: str) -> str:
     if any(word in text for word in ["红", "地府", "黄泉"]):
         return "冷暗基调加克制红色幽光"
+    if any(word in text for word in ["云海", "云雾", "修仙", "仙侠", "宗门", "石阶"]):
+        return "冷白天光、淡金侧逆光、云雾蓝灰、低饱和仙侠写实色调"
     if any(word in text for word in ["雨", "霓虹", "夜"]):
         return "冷蓝雨夜与少量霓虹暖色"
     return "自然电影色调，低漂移"

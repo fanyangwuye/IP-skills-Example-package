@@ -38,7 +38,26 @@ This repository is private by default. See `NOTICE.md` before redistributing, pu
 python -m pip install -r requirements.txt
 ```
 
-Host agents such as OpenClaw, Claude, or Codex should be configured to read the relevant `SKILL.md` files under `skills/` and run the Python entrypoints described there.
+Install the skills once for Codex auto-discovery:
+
+```bash
+python scripts/install_agent_skills.py --force
+```
+
+By default this copies `skills/ip-*` into `CODEX_HOME/skills` or `~/.codex/skills`.
+For another agent, pass its skills/tools directory explicitly:
+
+```bash
+python scripts/install_agent_skills.py --target "PATH_TO_AGENT_SKILLS" --force
+```
+
+After installation, a new agent window can be invoked with a short instruction such as:
+
+```text
+Use the installed IP skills to run the full IP workflow. Do not skip character sheets, scene refs, storyboard/shot table, keyframes, I2V, tail-frame handoff, or continuity checks.
+```
+
+Agents that do not support auto-discovered skills should be configured to read the relevant `SKILL.md` files under `skills/` and run the Python entrypoints described there.
 
 ## Setup Doctor
 
@@ -94,9 +113,11 @@ VIDEO_POLL_TIMEOUT_SEC=600
 
 Video defaults to `480p` to keep test clips low-cost. Set `VIDEO_DEFAULT_RESOLUTION=720p` for clearer review clips when needed.
 
-Video generation is clip-first by default: `clip_plan` groups shots into 5-15 second continuity clips. Panorama scene images are preserved as `space_anchor_refs`; normal perspective scene references are used for video model input. `storyboard_image_tasks` can generate clip-level storyboard content design sheets before I2V. Martial-arts clips get a dedicated action layer for stance, distance, attack-defense beats, footwork, weight shift, and safe impact feedback. Real IP video tests should start from generated image references and I2V; text-to-video is only a provider connectivity check.
+Video generation is clip-first by default: `clip_plan` groups shots into 5-15 second continuity clips. Panorama scene images are preserved as `space_anchor_refs`; normal perspective scene references are used for video model input. `storyboard_image_tasks` can generate clip-level storyboard content design sheets before I2V, but storyboard panels must function as a shot blueprint: the first panel should match the intended video first-frame composition, camera angle, subject scale, screen direction, and scene anchors. Martial-arts clips get a dedicated action layer for stance, distance, attack-defense beats, footwork, weight shift, and safe impact feedback. Real IP video tests should start from generated image references and I2V; text-to-video is only a provider connectivity check.
 
 Video prompts keep only ambient sound and foley for generated audio. Background music, songs, music beds, on-screen subtitles, title cards, fake text, and watermarks are forbidden; BGM and subtitles belong in post-production/EDL.
+
+For live character video generation, do not rely on weak reference-only runs. Generate or provide a reviewed first-frame/keyframe image and pass it as `image_urls[0]`; character sheets, scene references, and storyboard panel crops should then be used as supporting references. Reference-only live generation is blocked by default for character-bearing clips.
 
 ## Quick Checks
 

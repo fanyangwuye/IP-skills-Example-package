@@ -70,7 +70,8 @@ def _build_shot(index: int, segment: Dict, bible: Dict, previous_end_state: str)
     visual = segment.get("visual") or segment.get("action") or segment.get("scene") or ""
     spoken = segment.get("voiceover") or segment.get("subtitle") or ""
     text = " ".join([visual, spoken, str(segment.get("asset_goal") or "")])
-    character_ids = find_character_ids_in_text(text, bible.get("character_locks") or {})
+    character_locks = bible.get("character_locks") or {}
+    character_ids = [] if _is_characterless_visual(visual, character_locks) else find_character_ids_in_text(text, character_locks)
     scene_id = choose_scene_id(text, bible.get("scene_locks") or {})
     duration = _duration(segment)
     timing = {
@@ -149,6 +150,17 @@ def _source_segments(task: Dict) -> List[Dict]:
     if draft.get("scenes"):
         return draft["scenes"]
     return task.get("scene_cards") or []
+
+
+def _is_characterless_visual(visual: str, character_locks: Dict) -> bool:
+    text = str(visual or "")
+    if not any(marker in text for marker in ("空镜", "环境", "道具插入", "场景插入", "风景", "石阶纹理", "云雾掠过")):
+        return False
+    for lock in character_locks.values():
+        name = str(lock.get("name") or "")
+        if name and name in text:
+            return False
+    return True
 
 
 def _duration(segment: Dict) -> float:

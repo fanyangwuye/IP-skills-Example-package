@@ -39,6 +39,9 @@ def build_clip_prompts(clips: List[Dict]) -> List[Dict]:
             "reference_binding": clip["reference_binding"],
             "video_reference_images": clip["video_reference_images"],
             "space_anchor_refs": clip["space_anchor_refs"],
+            "first_frame_spec": clip.get("first_frame_spec", {}),
+            "mid_frame_spec": clip.get("mid_frame_spec", {}),
+            "last_frame_spec": clip.get("last_frame_spec", {}),
             "martial_arts_layer": clip.get("martial_arts_layer", {}),
             "previous_clip_end_frame": clip.get("previous_clip_end_frame"),
             "continuity_state": clip["continuity_state"],
@@ -65,6 +68,7 @@ def _build_clip(index: int, shots: List[Dict], task: Dict, bible: Dict) -> Dict:
     reference_binding = _merge_reference_binding(shots)
     video_refs = _video_reference_images(task, scene_ids, characters)
     space_refs = _space_anchor_refs(task, scene_ids, bible)
+    frame_specs = _frame_specs(shots, bible, timing)
     martial_arts_layer = build_martial_arts_layer(
         "；".join(shot.get("visual", "") for shot in shots),
         _clip_storyboard_card(shots),
@@ -83,13 +87,16 @@ def _build_clip(index: int, shots: List[Dict], task: Dict, bible: Dict) -> Dict:
         "reference_binding": reference_binding,
         "video_reference_images": video_refs,
         "space_anchor_refs": space_refs,
+        "first_frame_spec": frame_specs["first_frame_spec"],
+        "mid_frame_spec": frame_specs["mid_frame_spec"],
+        "last_frame_spec": frame_specs["last_frame_spec"],
         "martial_arts_layer": martial_arts_layer,
         "previous_clip_end_frame": _previous_clip_end_frame(task, index, clip_id),
         "continuity_state": continuity_state,
-        "clip_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs, martial_arts_layer),
-        "i2v_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs, martial_arts_layer),
-        "seedance_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs, martial_arts_layer),
-        "t2v_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs, martial_arts_layer),
+        "clip_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs, martial_arts_layer, frame_specs),
+        "i2v_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs, martial_arts_layer, frame_specs),
+        "seedance_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs, martial_arts_layer, frame_specs),
+        "t2v_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs, martial_arts_layer, frame_specs),
         "negative_prompt": _merge_negative_prompt(shots),
         "retry_advice": _dedupe([item for shot in shots for item in (shot.get("retry_advice") or [])]),
         "quality_checks": _clip_quality_checks(),
@@ -121,6 +128,7 @@ def _clip_prompt(
     video_refs: List[Dict],
     space_refs: List[Dict],
     martial_arts_layer: Dict,
+    frame_specs: Dict,
 ) -> str:
     shot_lines = []
     for order, shot in enumerate(shots, start=1):
@@ -134,10 +142,135 @@ def _clip_prompt(
         f"结束状态：{continuity_state.get('current_end_state')}。"
         f"视频生成参考：{video_ref_note}。"
         f"空间锚点：{space_ref_note}；全景图用于校准空间布局、地标和光源方向，默认不要作为直接生成画面。"
+        f"{_frame_specs_text(frame_specs)}"
         f"{_optional_sentence('武戏调度', martial_arts_text(martial_arts_layer))}"
         "保持同一角色脸、发型、服饰、道具、场景布局、光影色调和屏幕方向；片段内部动作连续，不要跳切、不要重置空间。"
+        "跨 clip 衔接不等于每段都复制上一段构图；除非明确使用 hard_first_frame，否则允许用近景、特写、全景、远景、背影、反打、空镜、道具插入或手部局部来承接。"
+        "换景别时必须继承上一段的人物状态、服饰、道具所在手、动作余势、光源方向、曝光、白平衡和色彩，不要把切镜头误生成换场景。"
         "声音只保留现场环境声与拟音，例如风声、雨声、脚步、衣料摩擦、呼吸、门响和道具轻响；禁止背景音乐、歌曲、音乐铺底。"
         "画面禁止字幕、伪文字、水印、片头片尾、标题卡和解释性文字。"
+    )
+
+
+def _frame_specs(shots: List[Dict], bible: Dict, timing: Dict) -> Dict:
+    first = shots[0]
+    mid = shots[len(shots) // 2]
+    last = shots[-1]
+    start = float(timing.get("start_sec", 0))
+    end = float(timing.get("end_sec", start + timing.get("duration_sec", 1)))
+    mid_time = start + max(end - start, 1.0) / 2
+    return {
+        "first_frame_spec": _frame_spec("first_frame", start, first, bible, "video first frame; storyboard panel 1 must match this composition"),
+        "mid_frame_spec": _frame_spec("mid_frame", mid_time, mid, bible, "video middle frame; keep the same camera side and space anchors"),
+        "last_frame_spec": _frame_spec("last_frame", end, last, bible, "video tail frame; becomes continuity handoff for the next clip"),
+    }
+
+
+def _frame_spec(kind: str, time_sec: float, shot: Dict, bible: Dict, purpose: str) -> Dict:
+    card = shot.get("storyboard_card") or {}
+    scene_id = shot.get("scene_id", "")
+    scene_lock = (bible.get("scene_locks") or {}).get(scene_id) or {}
+    characters = shot.get("characters") or []
+    return {
+        "kind": kind,
+        "time_sec": round(float(time_sec), 2),
+        "source_shot_id": shot.get("shot_id", ""),
+        "purpose": purpose,
+        "composition": shot.get("visual", ""),
+        "framing": card.get("framing", ""),
+        "camera_motion_context": card.get("camera_motion", ""),
+        "camera_angle_lock": _camera_angle_lock(card),
+        "camera_height_lock": "same camera height across storyboard panel and generated video frame",
+        "subject_scale_lock": _subject_scale_lock(card, characters),
+        "pose_lock": _pose_lock(kind, shot, characters),
+        "blocking_lock": _blocking_lock(shot, characters),
+        "action_phase_lock": _action_phase_lock(kind),
+        "screen_direction_lock": card.get("screen_direction") or shot.get("screen_direction", {}),
+        "eyeline_lock": card.get("eyeline") or shot.get("eyeline", {}),
+        "axis_lock": card.get("axis") or shot.get("axis", {}),
+        "scene_anchor_lock": {
+            "scene_id": scene_id,
+            "layout": scene_lock.get("layout_lock", ""),
+            "landmarks": scene_lock.get("landmark_lock", []),
+            "lighting": scene_lock.get("lighting_lock", ""),
+            "palette": scene_lock.get("palette_lock", ""),
+        },
+        "continuity_state": {
+            "start": (shot.get("continuity_state") or {}).get("current_start_state", ""),
+            "action": (shot.get("continuity_state") or {}).get("main_action_transition", ""),
+            "end": (shot.get("continuity_state") or {}).get("current_end_state", ""),
+        },
+        "alignment_checks": [
+            "first frame composition alignment" if kind == "first_frame" else f"{kind} composition alignment",
+            "camera angle lock",
+            "subject scale lock",
+            "screen direction lock",
+            "scene anchor lock",
+            "lighting direction lock",
+        ],
+    }
+
+
+def _camera_angle_lock(card: Dict) -> str:
+    framing = card.get("framing", "")
+    camera_motion = card.get("camera_motion", "")
+    return f"{framing}; maintain one camera side and angle while allowing only the planned motion: {camera_motion}".strip("; ")
+
+
+def _subject_scale_lock(card: Dict, characters: List[str]) -> str:
+    subject = "、".join(characters) if characters else "主要环境主体"
+    return f"{subject} size in frame follows {card.get('framing', 'planned framing')}; do not suddenly zoom wider or tighter than the frame spec"
+
+
+def _pose_lock(kind: str, shot: Dict, characters: List[str]) -> str:
+    visual = shot.get("visual", "")
+    primary = characters[0] if characters else "主体"
+    secondary = characters[1] if len(characters) >= 2 else "另一角色"
+    if kind == "first_frame" and any(word in visual for word in ["猛然睁眼", "惊醒", "醒来"]) and "床" in visual:
+        return (
+            f"{primary} is on the bed at the first instant of waking, lying or half-lying with eyes just opening; "
+            f"do not show {primary} already fully sitting upright. {secondary} stays in the established opposite/right-side position."
+        )
+    if kind == "first_frame":
+        return "show the start pose before the main action completes; do not skip ahead to the middle or ending pose"
+    if kind == "mid_frame":
+        return "show the main action in progress, after the first pose but before the ending pose"
+    return "show the ending pose and result of the action, ready for the next continuity handoff"
+
+
+def _blocking_lock(shot: Dict, characters: List[str]) -> str:
+    visual = shot.get("visual", "")
+    card = shot.get("storyboard_card") or {}
+    screen = card.get("screen_direction") or shot.get("screen_direction", {})
+    subject = "、".join(characters) if characters else "主体"
+    bed_note = " bed remains the primary foreground anchor;" if "床" in visual else ""
+    return (
+        f"{subject} blocking follows screen_direction_lock and eyeline_lock;{bed_note} "
+        "keep furniture, doors, windows, desk, lamps, and wall signs in stable positions across first/mid/last frames"
+        f"; screen_direction={screen}"
+    )
+
+
+def _action_phase_lock(kind: str) -> str:
+    if kind == "first_frame":
+        return "first frame is the pre-action or action-start frame; storyboard panel 1 must not depict the mid-frame or tail-frame result"
+    if kind == "mid_frame":
+        return "middle frame is the action-development frame; keep the same camera side and spatial layout"
+    return "last frame is the action-result frame; it must preserve continuity for the next clip"
+
+
+def _frame_specs_text(frame_specs: Dict) -> str:
+    first = frame_specs.get("first_frame_spec") or {}
+    mid = frame_specs.get("mid_frame_spec") or {}
+    last = frame_specs.get("last_frame_spec") or {}
+    return (
+        "关键帧构图规格："
+        f"首帧必须执行 first frame composition alignment，画面={first.get('composition', '')}，"
+        f"机位={first.get('camera_angle_lock', '')}，主体尺度={first.get('subject_scale_lock', '')}，"
+        f"姿态={first.get('pose_lock', '')}，调度={first.get('blocking_lock', '')}，动作相位={first.get('action_phase_lock', '')}，"
+        f"屏幕方向={first.get('screen_direction_lock', '')}；"
+        f"中段保持同一空间锚点和光源方向，画面={mid.get('composition', '')}；"
+        f"尾帧用于下一段续接，画面={last.get('composition', '')}。"
     )
 
 

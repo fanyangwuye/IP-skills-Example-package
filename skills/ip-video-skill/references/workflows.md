@@ -18,17 +18,20 @@ Use this before any prompt writing.
 5. Group shots into `clip_plan` entries, usually 5-15 seconds each, so video generation is not split into too many tiny fragments.
 6. Keep panorama scene images in `space_anchor_refs` for spatial overview; use normal perspective scene images in `video_reference_images` for model generation.
 7. Create `storyboard_image_tasks` when clip-level visual planning images are needed.
-8. Create `i2v_prompt`, `t2v_prompt`, `seedance_prompt`, and `clip_prompts`.
-9. Create an EDL for later ffmpeg/provider assembly.
+8. After generating a storyboard board image, pass its path as `storyboard_image_path` or `storyboard_image_paths` when preparing or running video generation.
+9. Create `i2v_prompt`, `t2v_prompt`, `seedance_prompt`, and `clip_prompts`.
+10. Create an EDL for later ffmpeg/provider assembly.
 
-## Storyboard Content Design Sheets
+## Storyboard Boards And Panel References
 
 - Use character design sheets to lock identity and normal scene references to lock the environment.
-- Generate one storyboard content design sheet per clip when the user wants visual planning before video generation.
-- Each sheet should contain three panels: start state, main action beat, end state.
+- Generate one storyboard board per clip when the user wants visual planning before video generation.
+- Each board should map first/mid/last panels to real clip keyframes.
 - Keep production labels short, Chinese by default, and outside panel image areas.
 - Do not put dialogue subtitles, title cards, fake UI, decorative text, or watermarks inside panels.
-- Treat storyboard sheets as planning references, not final video frames.
+- Treat the full storyboard board as a planning sheet, not a direct video frame.
+- Crop storyboard panels into layout references for video generation. The crops lock composition, camera angle, subject scale, blocking, pose phase, screen direction, and scene anchors only.
+- Do not copy line-art style, table borders, labels, arrows, handwritten marks, grayscale texture, or storyboard text into the generated video.
 
 ## Martial-Arts Enhancement
 
@@ -43,12 +46,21 @@ Use this before any prompt writing.
 ## Clip Continuity Rules
 
 - Generate video at the `clip_plan` level by default; use shot-level requests only for troubleshooting.
-- For clip 1, use locked character refs and normal scene refs. Do not use text-to-video as an IP consistency test.
+- For clip 1, use locked character refs and normal scene refs to generate a reviewed character first-frame/keyframe image, then pass that keyframe as `image_urls[0]`. Do not use text-to-video or weak reference-only video as an IP consistency test.
 - For clip 2+, extract the previous clip's final frame and pass it as `previous_clip_end_frame`; provider requests should map it to the first-frame slot when supported.
 - If a provider disallows first-frame input together with reference images, prefer the previous final frame for clip continuation and keep the normal refs in metadata/prompt checks.
+- If a new angle or closer shot is needed for clip 2+, use the previous tail frame as `previous_clip_reference_frame` for color, light, costume, and action momentum, then generate a new reviewed character keyframe for the new composition before live I2V.
+- Split bridge/cutaway clips from character clips. A cutaway may hide a jump in axis, color, or camera size, but it must not be the first frame of a clip where the character later appears.
 - Preserve 720 panorama assets as `space_anchor_refs`; do not discard them and do not default to feeding them as direct generation frames.
 - Check every clip boundary for face, hairstyle, costume, prop hand, scene layout, light direction, and current_start_state/current_end_state continuity.
 - Keep generated-video audio limited to ambient sound and foley. Background music, songs, music beds, on-screen subtitles, fake text, title cards, and watermarks are forbidden in video prompts.
+
+## Bridge Clip Rules
+
+- Use bridge clips only when they serve a concrete edit function: carry action momentum, mask a planned camera/scale change, unify color and exposure, introduce a story object, or set the next eyeline.
+- Derive bridge visuals from the previous clip's end state and the next clip's start state. Do not write generic empty scenery such as unrelated cloud, stone, rain, or wall inserts.
+- Keep bridge clips face-light: environment, prop, hand, sleeve, back, side edge, shadow, light, dust, wind, floor reflection, or object movement are safer than a new frontal face.
+- Bridge audio should continue the same ambience and foley. It must not introduce BGM, songs, automatic dialogue, subtitles, title cards, or fake text.
 
 ## Prompt Quality Layers
 
@@ -100,13 +112,17 @@ Use this flow before any paid video generation:
 
 1. Build or generate the image assets first: character design refs and normal perspective scene refs. Keep 720 panoramas as space anchors.
 2. Build `video_handoff`.
-3. Optionally run image generation on `storyboard_image_tasks[0]` to create a clip storyboard content design sheet.
-4. Prefer one `clip_id` or `clip_index` for normal generation; use `shot_id` or `shot_index` only for troubleshooting.
-5. Run `prepare_video_generation`.
-6. Inspect `provider_request.prompt`, `reference_images`, `video_reference_images`, `space_anchor_refs`, `continuity_state`, and `transport`.
-7. Confirm the prompt says ambient sound/foley only and forbids BGM, songs, subtitles, title cards, fake text, and watermarks.
-8. For martial-arts clips, confirm the prompt includes `武戏调度` and only one readable attack-defense beat.
-9. Generate only one short I2V test clip after the provider adapter is confirmed.
+3. Generate the storyboard board when visual planning is needed; it is a composition blueprint, not an identity reference.
+4. Generate the real video first-frame/keyframe image for any character clip from the character design sheet, scene reference, and first_frame_spec. Review face, hair, costume, scene, color, and pose before video.
+5. If a storyboard board was generated, pass `storyboard_image_path` or `storyboard_image_paths`; the provider layer crops first/mid/last panel layout refs automatically.
+6. Prefer one `clip_id` or `clip_index` for normal generation; use `shot_id` or `shot_index` only for troubleshooting.
+7. Run `prepare_video_generation`.
+8. Inspect `provider_request.prompt`, `image_urls`, `reference_images`, `reference_image_urls`, `storyboard_panel_refs`, `video_reference_images`, `space_anchor_refs`, `continuity_state`, and `transport`.
+9. Confirm `@Image` bindings are explicit: the first-frame/keyframe image is identified as the video starting frame, character refs are identity refs, scene refs are space refs, and storyboard crops are layout-only refs.
+10. Confirm the prompt says storyboard panel refs only lock layout and forbids copying line art, labels, table borders, arrows, and text.
+11. Confirm the prompt says ambient sound/foley only and forbids BGM, songs, subtitles, title cards, fake text, and watermarks.
+12. For martial-arts clips, confirm the prompt includes `武戏调度` and only one readable attack-defense beat.
+13. Generate only one short I2V test clip after the provider adapter is confirmed.
 
 Supported provider request shapes:
 

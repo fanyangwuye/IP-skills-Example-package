@@ -4,20 +4,34 @@
   "positive_prompt_fragments": [
     "realistic actor portrait",
     "natural skin texture",
+    "visible pores and tiny skin imperfections",
+    "natural nasolabial folds and slight under-eye shadows",
     "subtle asymmetry",
     "real-world light falloff",
     "candid facial expression",
-    "production still realism"
+    "production still realism",
+    "original non-celebrity actress-like casting"
   ],
   "realism_constraints": [
     "avoid porcelain skin",
     "avoid over-retouched beauty lighting",
     "avoid doll-like facial symmetry",
+    "avoid celebrity lookalike face",
+    "avoid generic influencer makeup",
+    "avoid glassy doll eyes and heavy false eyelashes",
+    "avoid over-sharpened facial features",
+    "keep slight facial asymmetry and natural skin texture",
     "avoid generic AI fantasy polish",
     "keep clothing wearable and story-specific"
   ],
   "forbidden_elements": [
     "plastic skin",
+    "over-smoothing",
+    "over-symmetry",
+    "celebrity face",
+    "generic influencer face",
+    "Barbie-doll face",
+    "studio glamour portrait look",
     "anime-real hybrid face",
     "over-smooth facial features",
     "generic influencer styling",
@@ -28,6 +42,10 @@
     "waxy skin",
     "oversharpened eyes",
     "perfectly symmetrical face",
+    "glassy doll eyes",
+    "heavy false eyelashes",
+    "internet celebrity makeup",
+    "celebrity lookalike",
     "generic fantasy armor"
   ]
 }

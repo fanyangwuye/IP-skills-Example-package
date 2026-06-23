@@ -4,12 +4,16 @@ import sys
 import tempfile
 import copy
 
+from PIL import Image
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 from continuity import build_continuity_bible  # noqa: E402
 from config import VideoProviderConfig  # noqa: E402
 from poyo_video_client import PoYoVideoClient  # noqa: E402
-from video_provider import prepare_video_generation_request  # noqa: E402
+from storyboard_panel_refs import build_storyboard_panel_refs  # noqa: E402
+from video_provider import prepare_video_generation_request, run_video_generation  # noqa: E402
+import video_sequence  # noqa: E402
 from video_handoff import build_video_handoff  # noqa: E402
 from video_skill import run_task  # noqa: E402
 
@@ -119,6 +123,22 @@ def test_build_continuity_bible_outputs_locks():
     assert bible["global_visual_lock"]["style_preset"] == "realistic_short_drama"
 
 
+def test_continuity_bible_uses_styling_hair_lock():
+    task = copy.deepcopy(_task())
+    task["ip_asset_pack"]["characters"][0]["character_profile"]["styling"]["hair"] = "黑色古风半束长发，木簪固定，禁止现代短发"
+    bible = build_continuity_bible(task)
+    assert bible["character_locks"]["lin_que"]["hair_lock"] == "黑色古风半束长发，木簪固定，禁止现代短发"
+
+
+def test_continuity_bible_infers_xianxia_cloud_atmosphere():
+    task = copy.deepcopy(_task())
+    task["ip_asset_pack"]["scenes"][0]["description"] = "东方修仙宗门云海石阶，宗门石柱、仙鹤、山风和日外冷白天光"
+    bible = build_continuity_bible(task)
+    scene = bible["scene_locks"]["huangquan_hall_720"]
+    assert scene["weather_atmosphere_lock"] == "云海、山风、轻雾、仙侠日外空气感"
+    assert scene["palette_lock"] == "冷白天光、淡金侧逆光、云雾蓝灰、低饱和仙侠写实色调"
+
+
 def test_build_video_handoff_has_required_shot_fields():
     handoff = build_video_handoff(_task())
     assert len(handoff["shots"]) == 2
@@ -127,6 +147,13 @@ def test_build_video_handoff_has_required_shot_fields():
     assert handoff["clip_prompts"][0]["clip_id"] == "clip_001"
     assert handoff["clip_plan"][0]["video_reference_images"]
     assert handoff["clip_plan"][0]["space_anchor_refs"]
+    assert handoff["clip_plan"][0]["first_frame_spec"]["alignment_checks"]
+    assert handoff["clip_plan"][0]["first_frame_spec"]["pose_lock"]
+    assert handoff["clip_plan"][0]["first_frame_spec"]["blocking_lock"]
+    assert handoff["clip_plan"][0]["first_frame_spec"]["action_phase_lock"]
+    assert handoff["clip_plan"][0]["mid_frame_spec"]["source_shot_id"]
+    assert handoff["clip_plan"][0]["last_frame_spec"]["source_shot_id"]
+    assert "first_frame_spec" in handoff["clip_prompts"][0]
     for shot in handoff["shots"]:
         assert shot["visual_lock"]
         assert shot["continuity_state"]
@@ -145,17 +172,42 @@ def test_storyboard_image_task_for_clip_design_sheet():
     handoff = build_video_handoff(_task())
     task = handoff["storyboard_image_tasks"][0]
     assert task["mode"] == "text_to_image"
-    assert task["asset_kind"] == "storyboard_content_design_sheet"
-    assert task["filename"] == "clip_001_storyboard_design_sheet.jpg"
+    assert task["asset_kind"] == "clip_storyboard_board"
+    assert task["filename"] == "clip_001_clip_storyboard_board.jpg"
     assert task["visual_text_language"] == "zh-CN"
     assert "storyboard_profile" in task
     assert task["storyboard_profile"]["clip_id"] == "clip_001"
+    assert task["storyboard_profile"]["storyboard_type"] == "clip_storyboard_board"
+    assert task["storyboard_profile"]["panel_count"] == 5
+    assert task["storyboard_profile"]["first_frame_spec"]["kind"] == "first_frame"
+    assert "first frame composition alignment" in task["storyboard_profile"]["first_frame_spec"]["alignment_checks"]
     assert "start_state" in task["storyboard_profile"]
     assert "main_action" in task["storyboard_profile"]
     assert "end_state" in task["storyboard_profile"]
     assert task["video_reference_images"]
     assert task["space_anchor_refs"]
     assert any("no dialogue subtitles" in item for item in task["asset_requirements"])
+    assert any("first frame composition alignment" in item for item in task["asset_requirements"])
+    assert any("camera angle lock" in item for item in task["asset_requirements"])
+    assert any("subject scale lock" in item for item in task["asset_requirements"])
+    assert any("pose lock" in item for item in task["asset_requirements"])
+    assert any("blocking lock" in item for item in task["asset_requirements"])
+    assert any("screen direction lock" in item for item in task["asset_requirements"])
+    assert "5-panel short-drama storyboard board" in task["composition"]
+    assert "panel 1 must match the intended video first frame composition" in task["composition"]
+    assert "pose lock=" in task["composition"]
+    assert "action phase lock=" in task["composition"]
+
+
+def test_shot_table_storyboard_type_has_table_columns():
+    task_data = _task()
+    task_data["storyboard_type"] = "shot_table_storyboard"
+    handoff = build_video_handoff(task_data)
+    task = handoff["storyboard_image_tasks"][0]
+    assert task["asset_kind"] == "shot_table_storyboard"
+    assert task["storyboard_profile"]["storyboard_type"] == "shot_table_storyboard"
+    assert "镜头号 / 画面与构图 / 摄影机运动 / 动作表演 / 台词声音 / 时长或时间点" in task["composition"]
+    assert any("shot_table_storyboard" in item for item in task["asset_requirements"])
 
 
 def test_multi_character_shot_has_axis_screen_direction_and_eyeline():
@@ -172,12 +224,33 @@ def test_multi_character_shot_has_axis_screen_direction_and_eyeline():
     assert "光线与质感" in shot["seedance_prompt"]
 
 
+def test_cutaway_visual_without_character_name_keeps_empty_character_list():
+    task = copy.deepcopy(_task())
+    task["blueprint"]["segments"] = [
+        {
+            "index": 1,
+            "start_sec": 0,
+            "end_sec": 5,
+            "visual": "空镜/道具插入，云雾掠过石阶，残旗在宗门石柱旁晃动。",
+            "voiceover": "系统即将出现。",
+        }
+    ]
+    handoff = build_video_handoff(task)
+    shot = handoff["shots"][0]
+    assert shot["characters"] == []
+    assert shot["screen_direction"] == {"environment": "空镜保持空间方向清楚"}
+    assert shot["visual_lock"]["characters"] == {}
+
+
 def test_prompts_include_quality_layers_and_retry_advice():
     handoff = build_video_handoff(_task())
     shot = handoff["shots"][1]
     assert "动作流程" in shot["i2v_prompt"]
     assert "真实感锚点" in shot["i2v_prompt"]
+    assert "不要完美模板脸" in shot["i2v_prompt"]
     assert "不要塑料皮肤" in shot["negative_prompt"]
+    assert "不要AI模板脸" in shot["negative_prompt"]
+    assert "不要玻璃珠眼睛" in shot["negative_prompt"]
     assert any("脸漂移" in item for item in shot["retry_advice"])
     assert handoff["seedance_prompts"][1]["prompt"] == shot["seedance_prompt"]
 
@@ -195,7 +268,30 @@ def test_martial_arts_layer_enhances_shot_clip_and_storyboard():
     assert clip["martial_arts_layer"]["scene_type"] == "martial_arts"
     assert "武戏调度" in clip["clip_prompt"]
     assert storyboard_task["storyboard_profile"]["martial_arts_layer"]["scene_type"] == "martial_arts"
+    assert storyboard_task["asset_kind"] == "martial_action_storyboard"
+    assert storyboard_task["storyboard_profile"]["panel_count"] == 12
     assert any("starting stance" in item for item in storyboard_task["asset_requirements"])
+    assert any("red arrows" in item for item in storyboard_task["asset_requirements"])
+
+
+def test_plain_slap_does_not_trigger_martial_arts_layer():
+    task = copy.deepcopy(_task())
+    task["blueprint"]["global_style"]["tone"] = "东方仙侠古风短剧"
+    task["blueprint"]["segments"] = [
+        {
+            "index": 1,
+            "start_sec": 0,
+            "end_sec": 5,
+            "visual": "陈凡站在云端石阶上，摸脸后给自己一巴掌，确认不是做梦。",
+        }
+    ]
+    handoff = build_video_handoff(task)
+    shot = handoff["shots"][0]
+    clip = handoff["clip_plan"][0]
+    assert shot["prompt_profile"]["martial_arts_layer"] == {}
+    assert "武戏调度" not in shot["i2v_prompt"]
+    assert clip["martial_arts_layer"] == {}
+    assert "武戏调度" not in clip["clip_prompt"]
 
 
 def test_video_prompts_preserve_ambient_sound_and_forbid_bgm_subtitles():
@@ -210,6 +306,10 @@ def test_video_prompts_preserve_ambient_sound_and_forbid_bgm_subtitles():
     assert "不要背景音乐" in shot["negative_prompt"]
     assert "声音只保留现场环境声与拟音" in clip["clip_prompt"]
     assert "画面禁止字幕" in clip["clip_prompt"]
+    assert "first frame composition alignment" in clip["clip_prompt"]
+    assert "动作相位" in clip["clip_prompt"]
+    assert "跨 clip 衔接不等于每段都复制上一段构图" in clip["clip_prompt"]
+    assert "近景、特写、全景、远景、背影、反打、空镜、道具插入或手部局部" in clip["clip_prompt"]
 
 
 def test_run_task_writes_video_handoff_json():
@@ -244,17 +344,75 @@ def test_prepare_video_generation_request_offline():
         {
             "mode": "prepare_video_generation",
             "video_handoff": handoff,
-            "shot_index": 2,
+            "clip_index": 1,
             "prompt_kind": "seedance",
         },
         config,
     )
     assert request["provider"] == "offline"
-    assert request["shot_id"] == "shot_002"
+    assert request["clip_id"] == "clip_001"
+    assert request["unit_kind"] == "clip"
     assert request["mode"] == "image_to_video"
-    assert "空间连续性" in request["prompt"]
+    assert "first frame composition alignment" in request["prompt"]
+    assert "pose lock=" in request["prompt"]
+    assert "action phase lock=" in request["prompt"]
     assert request["transport"]["type"] == "dry_run"
     assert request["reference_binding"]["scene_lock"]
+    assert request["first_frame_spec"]["alignment_checks"]
+
+
+def test_storyboard_panel_refs_crop_and_bind_to_provider_request():
+    handoff = build_video_handoff(_task())
+    with tempfile.TemporaryDirectory() as output_dir:
+        storyboard_path = os.path.join(output_dir, "clip_001_clip_storyboard_board.jpg")
+        Image.new("RGB", (1200, 600), "white").save(storyboard_path)
+        refs = build_storyboard_panel_refs(
+            {
+                "storyboard_image_path": storyboard_path,
+                "output_dir": output_dir,
+                "storyboard_panel_count": 3,
+                "storyboard_panel_top_ratio": 0.1,
+                "storyboard_panel_bottom_ratio": 0.5,
+                "storyboard_panel_left_ratio": 0.08,
+                "storyboard_panel_right_ratio": 0.98,
+            },
+            handoff["clip_plan"][0],
+        )
+        assert [ref["role"] for ref in refs] == ["first_frame_layout_ref", "mid_frame_layout_ref", "last_frame_layout_ref"]
+        assert all(os.path.exists(ref["path"]) for ref in refs)
+
+        config = VideoProviderConfig(
+            provider="offline",
+            api_key="",
+            api_base="",
+            output_root="",
+            default_model="offline-preview",
+            default_aspect_ratio="9:16",
+            default_resolution="480p",
+            poll_interval_sec=1,
+            poll_timeout_sec=5,
+        )
+        request = prepare_video_generation_request(
+            {
+                "mode": "prepare_video_generation",
+                "video_handoff": handoff,
+                "clip_index": 1,
+                "storyboard_image_path": storyboard_path,
+                "output_dir": output_dir,
+                "storyboard_panel_count": 3,
+                "storyboard_panel_top_ratio": 0.1,
+                "storyboard_panel_bottom_ratio": 0.5,
+                "storyboard_panel_left_ratio": 0.08,
+                "storyboard_panel_right_ratio": 0.98,
+            },
+            config,
+        )
+        roles = [ref["role"] for ref in request["reference_image_urls"]]
+        assert "first_frame_layout_ref" in roles
+        assert "mid_frame_layout_ref" in roles
+        assert "last_frame_layout_ref" in roles
+        assert "故事板裁图构图参考" in request["prompt"]
+        assert "禁止复制线稿风格" in request["prompt"]
 
 
 def test_prepare_video_generation_request_dreamina_cli_shape():
@@ -326,6 +484,45 @@ def test_prepare_video_generation_request_poyo_seedance2_shape():
     assert request["transport"]["status_url"].endswith("/api/generate/status/{task_id}")
 
 
+def test_poyo_reference_images_are_bound_with_image_markers():
+    handoff = build_video_handoff(_task())
+    config = VideoProviderConfig(
+        provider="poyo_video",
+        api_key="test",
+        api_base="https://api.example",
+        output_root="",
+        default_model="seedance-2-fast",
+        default_aspect_ratio="9:16",
+        default_resolution="480p",
+        poll_interval_sec=1,
+        poll_timeout_sec=5,
+    )
+    request = prepare_video_generation_request(
+        {
+            "video_handoff": handoff,
+            "provider": "poyo_video",
+            "generation_mode": "multimodal_to_video",
+            "reference_image_urls": [
+                {"url": "https://files.example/lin_que_design_sheet.jpg", "role": "character_design_sheet"},
+                {"url": "https://files.example/hall_video_scene_reference.jpg", "role": "video_scene_reference"},
+            ],
+            "duration_sec": 5,
+        },
+        config,
+    )
+    prompt = request["transport"]["json"]["input"]["prompt"]
+    assert "@Image1 是角色身份参考图" in prompt
+    assert "@Image2 是场景空间参考图" in prompt
+    assert "可见地标、材质状态、光源方向和整体色调" in prompt
+    assert "雨夜湿地反光" not in prompt
+    assert "禁止把参考图角色替换成明星脸" in prompt
+    assert "同一脸型、眼型、鼻型、唇形、发型系统" in prompt
+    assert request["transport"]["json"]["input"]["reference_image_urls"] == [
+        "https://files.example/lin_que_design_sheet.jpg",
+        "https://files.example/hall_video_scene_reference.jpg",
+    ]
+
+
 def test_clip_plan_groups_30_seconds_into_two_clips():
     task = copy.deepcopy(_task())
     task["target_clip_duration_sec"] = 15
@@ -341,6 +538,30 @@ def test_clip_plan_groups_30_seconds_into_two_clips():
     assert clips[1]["continuity_state"]["current_start_state"] == handoff["shots"][3]["continuity_state"]["current_start_state"]
     assert clips[0]["space_anchor_refs"]
     assert clips[0]["video_reference_images"]
+
+
+def test_bridge_clip_policy_adds_cutaway_between_clips():
+    task = copy.deepcopy(_task())
+    task["target_clip_duration_sec"] = 5
+    task["bridge_clip_policy"] = "always"
+    task["bridge_clip_duration_sec"] = 2
+    task["blueprint"]["segments"] = [
+        {"index": idx + 1, "start_sec": idx * 5, "end_sec": (idx + 1) * 5, "visual": f"陈渊在值班房连续动作 {idx + 1}"}
+        for idx in range(2)
+    ]
+    handoff = build_video_handoff(task)
+    assert len(handoff["clip_plan"]) == 2
+    assert len(handoff["bridge_clips"]) == 1
+    bridge = handoff["bridge_clips"][0]
+    assert bridge["bridge_clip"] is True
+    assert bridge["after_clip_id"] == "clip_001"
+    assert bridge["before_clip_id"] == "clip_002"
+    assert bridge["timing"]["duration_sec"] == 2
+    assert "不要背景音乐" in bridge["negative_prompt"]
+    assert "环境、道具、背影、手部或局部动作" in bridge["clip_prompt"]
+    assert "近景、特写、远景、全景、反打或侧背角度" in bridge["clip_prompt"]
+    assert "减少人脸漂移和AI模板脸风险" in bridge["clip_prompt"]
+    assert handoff["edit_decision_list"]["bridge_timeline"][0]["clip_id"] == bridge["clip_id"]
 
 
 def test_prepare_clip_generation_uses_previous_clip_end_frame_and_keeps_panorama_as_anchor():
@@ -376,6 +597,44 @@ def test_prepare_clip_generation_uses_previous_clip_end_frame_and_keeps_panorama
     assert request["reference_image_urls"] == []
     assert request["space_anchor_refs"]
     assert request["video_reference_images"]
+    assert request["first_frame_spec"]["kind"] == "first_frame"
+    assert "色彩、曝光、白平衡、对比度" in request["prompt"]
+    assert "不要色彩跳变" in request["negative_prompt"]
+    input_obj = request["transport"]["json"]["input"]
+    assert input_obj["image_urls"] == ["https://files.example/clip001_last.png"]
+    assert "reference_image_urls" not in input_obj
+
+
+def test_poyo_previous_frame_drops_explicit_reference_images_for_transport():
+    task = copy.deepcopy(_task())
+    task["target_clip_duration_sec"] = 5
+    task["previous_clip_end_frames"] = {
+        "clip_001": {"url": "https://files.example/clip001_last.png", "role": "previous_clip_end_frame"}
+    }
+    handoff = build_video_handoff(task)
+    config = VideoProviderConfig(
+        provider="poyo_video",
+        api_key="test",
+        api_base="https://api.example",
+        output_root="",
+        default_model="seedance-2",
+        default_aspect_ratio="9:16",
+        default_resolution="480p",
+        poll_interval_sec=1,
+        poll_timeout_sec=5,
+    )
+    request = prepare_video_generation_request(
+        {
+            "video_handoff": handoff,
+            "provider": "poyo_video",
+            "clip_index": 2,
+            "reference_image_urls": [{"url": "https://files.example/character.jpg", "role": "character_design_sheet"}],
+        },
+        config,
+    )
+    assert request["image_urls"][0]["url"] == "https://files.example/clip001_last.png"
+    assert request["reference_image_urls"] == []
+    assert "不要曝光跳变" in request["negative_prompt"]
     input_obj = request["transport"]["json"]["input"]
     assert input_obj["image_urls"] == ["https://files.example/clip001_last.png"]
     assert "reference_image_urls" not in input_obj
@@ -491,6 +750,352 @@ def test_run_task_prepare_video_generation_writes_json():
             saved = json.load(fh)
         assert saved["provider"] == "offline"
         assert saved["shot_id"] == "shot_001"
+
+
+def test_run_video_sequence_carries_previous_clip_end_frame_between_clips():
+    task = copy.deepcopy(_task())
+    task["target_clip_duration_sec"] = 5
+    task["blueprint"]["segments"] = [
+        {"index": idx + 1, "start_sec": idx * 5, "end_sec": (idx + 1) * 5, "visual": f"陈渊在值班房连续动作 {idx + 1}"}
+        for idx in range(2)
+    ]
+    handoff = build_video_handoff(task)
+
+    calls = []
+    original_run = video_sequence.run_video_generation
+    original_extract = video_sequence._extract_frame
+
+    with tempfile.TemporaryDirectory() as output_dir:
+        def fake_run_video_generation(clip_task, config):
+            calls.append(clip_task)
+            clip_id = clip_task["clip"]["clip_id"]
+            video_path = os.path.join(output_dir, f"{clip_id}.mp4")
+            with open(video_path, "wb") as fh:
+                fh.write(b"fake mp4")
+            return {
+                "status": "success",
+                "dry_run": False,
+                "request": {"clip_id": clip_id, "previous_clip_end_frame": clip_task["clip"].get("previous_clip_end_frame")},
+                "result": {"task_id": f"task_{clip_id}", "credits_amount": 1, "local_paths": [video_path]},
+                "artifacts": [{"type": "video", "path": video_path}],
+            }
+
+        def fake_extract_frame(video_path, out_dir, clip_id, label, seek):
+            path = os.path.join(out_dir, f"{clip_id}_{label}_frame.jpg")
+            with open(path, "wb") as fh:
+                fh.write(b"frame")
+            return path
+
+        video_sequence.run_video_generation = fake_run_video_generation
+        video_sequence._extract_frame = fake_extract_frame
+        try:
+            config = VideoProviderConfig(
+                provider="offline",
+                api_key="",
+                api_base="",
+                output_root=output_dir,
+                default_model="offline-preview",
+                default_aspect_ratio="9:16",
+                default_resolution="480p",
+                poll_interval_sec=1,
+                poll_timeout_sec=5,
+            )
+            result = video_sequence.run_video_sequence(
+                {
+                    "mode": "run_video_sequence",
+                    "video_handoff": handoff,
+                    "max_clips": 2,
+                    "continuation_mode": "hard_first_frame",
+                    "dry_run": False,
+                    "output_dir": output_dir,
+                },
+                config,
+            )
+        finally:
+            video_sequence.run_video_generation = original_run
+            video_sequence._extract_frame = original_extract
+
+    assert len(result["clip_results"]) == 2
+    assert calls[0]["generate_audio"] is True
+    assert calls[1]["generate_audio"] is True
+    assert calls[0]["clip"].get("previous_clip_end_frame") is None
+    prev = calls[1]["clip"].get("previous_clip_end_frame")
+    assert prev["role"] == "previous_clip_end_frame"
+    assert prev["source_clip_id"] == "clip_001"
+    assert prev["path"].endswith("clip_001_last_frame.jpg")
+
+
+def test_run_video_sequence_can_use_provided_clip_video_for_continuation_dry_run():
+    task = copy.deepcopy(_task())
+    task["target_clip_duration_sec"] = 5
+    task["blueprint"]["segments"] = [
+        {"index": idx + 1, "start_sec": idx * 5, "end_sec": (idx + 1) * 5, "visual": f"陈渊在值班房连续动作 {idx + 1}"}
+        for idx in range(2)
+    ]
+    handoff = build_video_handoff(task)
+    calls = []
+    original_run = video_sequence.run_video_generation
+    original_extract = video_sequence._extract_frame
+
+    with tempfile.TemporaryDirectory() as output_dir:
+        provided_video = os.path.join(output_dir, "provided_clip_001.mp4")
+        with open(provided_video, "wb") as fh:
+            fh.write(b"fake mp4")
+
+        def fake_run_video_generation(clip_task, config):
+            calls.append(clip_task)
+            return {
+                "status": "success",
+                "dry_run": True,
+                "request": {"clip_id": clip_task["clip"]["clip_id"], "image_urls": []},
+                "artifacts": [],
+                "result": {},
+            }
+
+        def fake_extract_frame(video_path, out_dir, clip_id, label, seek):
+            path = os.path.join(out_dir, f"{clip_id}_{label}_frame.jpg")
+            with open(path, "wb") as fh:
+                fh.write(b"frame")
+            return path
+
+        video_sequence.run_video_generation = fake_run_video_generation
+        video_sequence._extract_frame = fake_extract_frame
+        try:
+            config = VideoProviderConfig("offline", "", "", output_dir, "offline-preview", "9:16", "480p", 1, 5)
+            result = video_sequence.run_video_sequence(
+                {
+                    "video_handoff": handoff,
+                    "max_clips": 2,
+                    "continuation_mode": "hard_first_frame",
+                    "provided_clip_video_paths": {"1": provided_video},
+                    "output_dir": output_dir,
+                },
+                config,
+            )
+        finally:
+            video_sequence.run_video_generation = original_run
+            video_sequence._extract_frame = original_extract
+
+    assert result["clip_results"][0]["last_frame"].endswith("clip_001_last_frame.jpg")
+    assert calls[1]["clip"]["previous_clip_end_frame"]["path"].endswith("clip_001_last_frame.jpg")
+
+
+def test_run_video_sequence_interleaves_bridge_clips():
+    task = copy.deepcopy(_task())
+    task["target_clip_duration_sec"] = 5
+    task["bridge_clip_policy"] = "always"
+    task["blueprint"]["segments"] = [
+        {"index": idx + 1, "start_sec": idx * 5, "end_sec": (idx + 1) * 5, "visual": f"陈渊在值班房连续动作 {idx + 1}"}
+        for idx in range(2)
+    ]
+    handoff = build_video_handoff(task)
+    calls = []
+    original_run = video_sequence.run_video_generation
+    original_extract = video_sequence._extract_frame
+
+    with tempfile.TemporaryDirectory() as output_dir:
+        def fake_run_video_generation(clip_task, config):
+            calls.append(clip_task)
+            video_path = os.path.join(output_dir, f"{clip_task['clip']['clip_id']}.mp4")
+            with open(video_path, "wb") as fh:
+                fh.write(b"fake mp4")
+            return {"status": "success", "dry_run": True, "request": {}, "artifacts": [{"type": "video", "path": video_path}], "result": {}}
+
+        def fake_extract_frame(video_path, out_dir, clip_id, label, seek):
+            path = os.path.join(out_dir, f"{clip_id}_{label}_frame.jpg")
+            with open(path, "wb") as fh:
+                fh.write(b"frame")
+            return path
+
+        video_sequence.run_video_generation = fake_run_video_generation
+        video_sequence._extract_frame = fake_extract_frame
+        try:
+            config = VideoProviderConfig("offline", "", "", output_dir, "offline-preview", "9:16", "480p", 1, 5)
+            result = video_sequence.run_video_sequence(
+                {"video_handoff": handoff, "include_bridge_clips": True, "max_clips": 3, "output_dir": output_dir},
+                config,
+            )
+        finally:
+            video_sequence.run_video_generation = original_run
+            video_sequence._extract_frame = original_extract
+
+    assert [call["clip"]["clip_id"] for call in calls] == ["clip_001", "bridge_001_002", "clip_002"]
+    assert calls[1]["clip"]["bridge_clip"] is True
+    assert calls[1]["duration_sec"] == 2.0
+    assert result["clip_results"][1]["bridge_clip"] is True
+
+
+def test_bridge_clip_visual_uses_transition_states_not_generic_cutaway():
+    task = copy.deepcopy(_task())
+    task["target_clip_duration_sec"] = 5
+    task["bridge_clip_policy"] = "always"
+    task["blueprint"]["global_style"]["tone"] = "东方仙侠古风短剧"
+    task["blueprint"]["segments"] = [
+        {"index": 1, "start_sec": 0, "end_sec": 5, "visual": "陈凡站在云海石阶上抬手，袖口被山风带起。"},
+        {"index": 2, "start_sec": 5, "end_sec": 10, "visual": "陈凡看向石柱旁亮起的淡蓝系统光幕。"},
+    ]
+    handoff = build_video_handoff(task)
+    bridge = handoff["bridge_clips"][0]
+    assert "上一镜尾态" in bridge["visual"]
+    assert "下一镜开始" in bridge["visual"]
+    assert "桥接画面必须由上一镜尾态和下一镜信息目标推导" in bridge["clip_prompt"]
+    assert "不能只拍无关云雾" in bridge["clip_prompt"]
+    assert "云雾、山门、石阶、窗边光、门外冷光、雨水或地面反光" not in bridge["visual"]
+
+
+def test_run_video_sequence_reference_reframe_uses_previous_frame_as_reference_not_first_frame():
+    task = copy.deepcopy(_task())
+    task["target_clip_duration_sec"] = 5
+    task["blueprint"]["segments"] = [
+        {"index": idx + 1, "start_sec": idx * 5, "end_sec": (idx + 1) * 5, "visual": f"陈渊在值班房连续动作 {idx + 1}"}
+        for idx in range(2)
+    ]
+    handoff = build_video_handoff(task)
+    calls = []
+    original_run = video_sequence.run_video_generation
+    original_extract = video_sequence._extract_frame
+
+    with tempfile.TemporaryDirectory() as output_dir:
+        def fake_run_video_generation(clip_task, config):
+            calls.append(clip_task)
+            video_path = os.path.join(output_dir, f"{clip_task['clip']['clip_id']}.mp4")
+            with open(video_path, "wb") as fh:
+                fh.write(b"fake mp4")
+            return {
+                "status": "success",
+                "dry_run": True,
+                "request": {},
+                "artifacts": [{"type": "video", "path": video_path}],
+                "result": {},
+            }
+
+        def fake_extract_frame(video_path, out_dir, clip_id, label, seek):
+            path = os.path.join(out_dir, f"{clip_id}_{label}_frame.jpg")
+            with open(path, "wb") as fh:
+                fh.write(b"frame")
+            return path
+
+        video_sequence.run_video_generation = fake_run_video_generation
+        video_sequence._extract_frame = fake_extract_frame
+        try:
+            config = VideoProviderConfig("offline", "", "", output_dir, "offline-preview", "9:16", "480p", 1, 5)
+            video_sequence.run_video_sequence({"video_handoff": handoff, "max_clips": 2, "output_dir": output_dir}, config)
+        finally:
+            video_sequence.run_video_generation = original_run
+            video_sequence._extract_frame = original_extract
+
+    assert calls[1]["clip"].get("previous_clip_end_frame") is None
+    prev_ref = calls[1]["clip"].get("previous_clip_reference_frame")
+    assert prev_ref["role"] == "previous_clip_reference_frame"
+    assert "do not copy" in prev_ref["use"]
+
+
+def test_prepare_reference_reframe_request_uses_previous_frame_as_reference_image():
+    handoff = build_video_handoff(_task())
+    clip = dict(handoff["clip_plan"][0])
+    clip["previous_clip_reference_frame"] = {
+        "url": "https://files.example/clip001_last.png",
+        "role": "previous_clip_reference_frame",
+    }
+    config = VideoProviderConfig("poyo_video", "test", "https://api.example", "", "seedance-2", "9:16", "480p", 1, 5)
+    request = prepare_video_generation_request(
+        {
+            "provider": "poyo_video",
+            "clip": clip,
+            "reference_image_urls": [{"url": "https://files.example/character.jpg", "role": "character_design_sheet"}],
+        },
+        config,
+    )
+    assert request["image_urls"] == []
+    assert [ref["role"] for ref in request["reference_image_urls"]] == [
+        "character_design_sheet",
+        "previous_clip_reference_frame",
+    ]
+    assert "上一镜连续性参考帧" in request["prompt"]
+    assert "不要把上一帧当作当前首帧" in request["prompt"]
+    assert "近景、特写、全景、远景、背影、反打、空镜、道具插入或手部局部" in request["prompt"]
+    assert "换景别时仍必须继承同一角色" in request["prompt"]
+
+
+def test_live_video_blocks_reference_only_generation_by_default():
+    handoff = build_video_handoff(_task())
+    config = VideoProviderConfig("poyo_video", "test", "https://api.example", "", "seedance-2", "9:16", "480p", 1, 5)
+    try:
+        run_video_generation(
+            {
+                "mode": "run_video_generation",
+                "provider": "poyo_video",
+                "video_handoff": handoff,
+                "clip_index": 1,
+                "dry_run": False,
+                "reference_image_urls": [
+                    {"url": "https://files.example/character.jpg", "role": "character_design_sheet"},
+                    {"url": "https://files.example/scene.jpg", "role": "video_scene_reference"},
+                ],
+            },
+            config,
+        )
+    except RuntimeError as exc:
+        assert "only has reference_image_urls and no image_urls first-frame input" in str(exc)
+    else:
+        raise AssertionError("reference-only live video should be blocked")
+
+
+def test_live_video_blocks_character_text_to_video_by_default():
+    handoff = build_video_handoff(_task())
+    config = VideoProviderConfig("poyo_video", "test", "https://api.example", "", "seedance-2", "9:16", "480p", 1, 5)
+    try:
+        run_video_generation(
+            {
+                "mode": "run_video_generation",
+                "provider": "poyo_video",
+                "video_handoff": handoff,
+                "clip_index": 1,
+                "dry_run": False,
+            },
+            config,
+        )
+    except RuntimeError as exc:
+        assert "locked characters but no image_urls first-frame/keyframe input" in str(exc)
+    else:
+        raise AssertionError("character live text-to-video should be blocked")
+
+
+def test_live_video_blocks_character_clip_with_cutaway_first_frame():
+    task = copy.deepcopy(_task())
+    task["blueprint"]["segments"] = [
+        {
+            "index": 1,
+            "start_sec": 0,
+            "end_sec": 5,
+            "visual": "空镜/道具插入，云雾掠过石阶，残旗在宗门石柱旁晃动。",
+        },
+        {
+            "index": 2,
+            "start_sec": 5,
+            "end_sec": 10,
+            "visual": "林缺站在石阶边看向淡蓝光幕。",
+        },
+    ]
+    task["target_clip_duration_sec"] = 10
+    handoff = build_video_handoff(task)
+    clip = handoff["clip_plan"][0]
+    config = VideoProviderConfig("poyo_video", "test", "https://api.example", "", "seedance-2", "9:16", "480p", 1, 5)
+    try:
+        run_video_generation(
+            {
+                "mode": "run_video_generation",
+                "provider": "poyo_video",
+                "clip": clip,
+                "dry_run": False,
+                "image_urls": [{"url": "https://files.example/cutaway_first_frame.jpg", "role": "first_frame"}],
+            },
+            config,
+        )
+    except RuntimeError as exc:
+        assert "first_frame_spec is a characterless cutaway" in str(exc)
+    else:
+        raise AssertionError("character clip with cutaway first frame should be blocked")
 
 
 if __name__ == "__main__":

@@ -1,11 +1,13 @@
 from typing import Dict, List
 
 try:
+    from .bridge_clips import build_bridge_clips
     from .clip_plan import build_clip_plan, build_clip_prompts
     from .continuity import build_continuity_bible
     from .shot_plan import build_i2v_prompts, build_shot_plan, build_t2v_prompts
     from .storyboard_assets import build_storyboard_image_tasks
 except ImportError:
+    from bridge_clips import build_bridge_clips
     from clip_plan import build_clip_plan, build_clip_prompts
     from continuity import build_continuity_bible
     from shot_plan import build_i2v_prompts, build_shot_plan, build_t2v_prompts
@@ -16,19 +18,21 @@ def build_video_handoff(task: Dict) -> Dict:
     bible = build_continuity_bible(task)
     shots = build_shot_plan(task, bible)
     clips = build_clip_plan(task, shots, bible)
+    bridge_clips = build_bridge_clips(task, clips)
     storyboard_image_tasks = build_storyboard_image_tasks(task, clips, bible)
     return {
         "source_title": bible.get("source_title", task.get("title", "")),
         "continuity_bible": bible,
         "shots": shots,
         "clip_plan": clips,
+        "bridge_clips": bridge_clips,
         "storyboard_image_tasks": storyboard_image_tasks,
         "i2v_prompts": build_i2v_prompts(shots),
         "t2v_prompts": build_t2v_prompts(shots),
         "seedance_prompts": build_seedance_prompts(shots),
         "clip_prompts": build_clip_prompts(clips),
-        "edit_decision_list": build_edit_decision_list(task, shots, clips),
-        "quality_checks": build_global_quality_checks(shots, clips),
+        "edit_decision_list": build_edit_decision_list(task, shots, clips, bridge_clips),
+        "quality_checks": build_global_quality_checks(shots, clips, bridge_clips),
     }
 
 
@@ -45,7 +49,7 @@ def build_seedance_prompts(shots: List[Dict]) -> List[Dict]:
     ]
 
 
-def build_edit_decision_list(task: Dict, shots: List[Dict], clips: List[Dict] = None) -> Dict:
+def build_edit_decision_list(task: Dict, shots: List[Dict], clips: List[Dict] = None, bridge_clips: List[Dict] = None) -> Dict:
     music_handoff = task.get("music_handoff") or {}
     music_tasks = music_handoff.get("music_tasks") or []
     shot_to_clip = {}
@@ -84,10 +88,25 @@ def build_edit_decision_list(task: Dict, shots: List[Dict], clips: List[Dict] = 
                 "end_sec": clip.get("timing", {}).get("end_sec"),
                 "duration_sec": clip.get("timing", {}).get("duration_sec"),
                 "previous_clip_end_frame": clip.get("previous_clip_end_frame"),
+                "first_frame_spec": clip.get("first_frame_spec", {}),
+                "mid_frame_spec": clip.get("mid_frame_spec", {}),
+                "last_frame_spec": clip.get("last_frame_spec", {}),
                 "continuity_start": clip.get("continuity_state", {}).get("current_start_state"),
                 "continuity_end": clip.get("continuity_state", {}).get("current_end_state"),
             }
             for clip in clips or []
+        ],
+        "bridge_timeline": [
+            {
+                "clip_id": bridge.get("clip_id"),
+                "after_clip_id": bridge.get("after_clip_id"),
+                "before_clip_id": bridge.get("before_clip_id"),
+                "bridge_type": bridge.get("bridge_type"),
+                "duration_sec": bridge.get("timing", {}).get("duration_sec"),
+                "visual": bridge.get("visual"),
+                "purpose": "遮挡跳切、统一色调、缓冲换机位或换景别",
+            }
+            for bridge in bridge_clips or []
         ],
         "assembly_notes": [
             "先按 EDL 顺序拼接生成片段。",
@@ -95,12 +114,14 @@ def build_edit_decision_list(task: Dict, shots: List[Dict], clips: List[Dict] = 
             "字幕和旁白使用每镜 sound_subtitle 字段。",
             "BGM 优先使用 music_ref；缺失时使用主题曲或场景 BGM fallback。",
             "拼接前检查每个片段首尾状态是否符合 continuity_start/continuity_end。",
+            "每个 clip 的首帧、中段、尾帧应同时对齐 first_frame_spec、mid_frame_spec、last_frame_spec。",
+            "如 bridge_timeline 存在，先用桥接空镜/道具特写缓冲上下镜头，再切入下一人物镜头。",
             "跨 clip 续接时，优先抽取上一 clip 最后一帧作为下一 clip 的 previous_clip_end_frame。",
         ],
     }
 
 
-def build_global_quality_checks(shots: List[Dict], clips: List[Dict] = None) -> Dict:
+def build_global_quality_checks(shots: List[Dict], clips: List[Dict] = None, bridge_clips: List[Dict] = None) -> Dict:
     return {
         "shots": [
         {
@@ -116,6 +137,15 @@ def build_global_quality_checks(shots: List[Dict], clips: List[Dict] = None) -> 
                 "must_pass": clip.get("quality_checks", []),
             }
             for clip in clips or []
+        ],
+        "bridges": [
+            {
+                "clip_id": bridge.get("clip_id"),
+                "after_clip_id": bridge.get("after_clip_id"),
+                "before_clip_id": bridge.get("before_clip_id"),
+                "must_pass": bridge.get("quality_checks", []),
+            }
+            for bridge in bridge_clips or []
         ],
     }
 

@@ -69,6 +69,18 @@ Supported Flow A task styles:
 3. Generate each bundle item with the same identity anchors and continuity rules
 4. Return all artifacts together for downstream use
 
+Character identity must be defined by face geometry, not only hair and clothing. For production characters, include these fields under `character_profile.appearance`:
+
+- `facial_proportions`: 三庭五眼、眼距、鼻口距离、下庭长短
+- `face_shape`: 脸型、下颌线、下巴
+- `brow_shape`: 眉型、眉峰、眉距
+- `eye_shape`: 眼型、眼尾、眼窝、眼神
+- `nose_shape`, `nose_bridge`, `nose_tip`: 鼻梁、鼻头、鼻翼
+- `mouth_shape`, `lip_shape`: 口型、唇峰、唇厚薄、嘴角
+- `cheekbones`, `facial_marks`: 颧骨、法令区、疤痕、痣、肤质特征
+
+Preserve these fields in role cards, design sheets, keyframes, and video prompts.
+
 ### Flow E: IP Asset Pack
 
 1. Load a structured list of characters, props, and scenes

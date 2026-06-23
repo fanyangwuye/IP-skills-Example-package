@@ -58,7 +58,8 @@ def compose_t2v_prompt(visual: str, profile: Dict, visual_lock: Dict) -> str:
     return "\n".join(
         [
             f"[镜头 | {profile['duration']}]",
-            "文生视频。按连续性圣经生成同一角色和同一场景，不能把新镜头当作独立重启。",
+            "文生视频仅用于快速构图和动作预览；如果需要角色脸、服装和质感稳定，必须改用角色参考图和正常场景参考图做图生视频。",
+            "按连续性圣经生成同一角色和同一场景，不能把新镜头当作独立重启。",
             f"叙事目标：{profile['narrative_intent']}。",
             f"画面内容：{visual}",
             f"动作流程：{profile['action_flow']}",
@@ -105,6 +106,13 @@ def build_negative_prompt(multichar: bool, action_scene: bool = False) -> str:
         "不要道具凭空出现或消失",
         "不要塑料皮肤",
         "不要过度磨皮",
+        "不要AI模板脸",
+        "不要网红脸",
+        "不要玻璃珠眼睛",
+        "不要蜡像感",
+        "不要影楼写真感",
+        "不要完美对称五官",
+        "不要干净棚拍质感",
         "不要夸张表情",
         "不要无意义镜头乱晃",
         "不要字幕乱码或伪文字",
@@ -173,6 +181,7 @@ def _performance_control(emotion: str, characters: Dict) -> str:
         f"{names}保持克制真实表演，当前情绪为{emotion}。"
         "只安排1-2个微动作，例如视线短暂停住、眼睑收紧、手指微收、下颌轻压、呼吸变浅。"
         "情绪主要放在眼神、嘴角、呼吸和停顿里，不做夸张舞台化表情。"
+        "动作不要瞬间到位，先有迟疑、判断或呼吸，再执行。"
     )
 
 
@@ -200,6 +209,7 @@ def _lighting_texture(scene: Dict, style: Dict) -> str:
     return (
         f"主光逻辑：{lighting}；色调：{palette}；环境：{atmosphere}。"
         "保留自然明暗层次，不要全脸打平。皮肤有毛孔、轻微眼周纹理和自然肤色变化；"
+        "眼睛不要玻璃珠高光，五官不要完美对称，脸部保留一侧眼睑略沉、嘴角轻微不对称、下颌与法令区自然层次；"
         "头发有碎发边缘，布料有压痕和褶皱，场景表面有灰尘、水痕、划痕或不规则反光。"
     )
 
@@ -221,7 +231,11 @@ def _sound_design(storyboard_card: Dict) -> str:
 def _realism_anchors(characters: Dict, scene: Dict) -> str:
     char_text = _character_lock_text(characters)
     scene_text = _scene_lock_text(scene)
-    return f"{char_text}。{scene_text}。人物不要完美模板脸，动作有轻微反应延迟，环境不要像干净棚拍。"
+    return (
+        f"{char_text}。{scene_text}。人物不要完美模板脸、网红脸、塑料皮肤或蜡像感；"
+        "保留毛孔、眼下轻微阴影、鼻翼和面颊自然肤色变化、嘴唇干湿不均、碎发和衣料压痕。"
+        "动作有轻微反应延迟，环境不要像干净棚拍。"
+    )
 
 
 def _execution_constraints(storyboard_card: Dict) -> str:
@@ -232,6 +246,7 @@ def _execution_constraints(storyboard_card: Dict) -> str:
         "禁止画面字幕、伪文字、水印、片头片尾和标题卡",
         "禁止背景音乐和歌曲；视频模型只处理现场环境声与拟音",
         "不要新增不在连续性圣经里的角色、服装、道具和地标",
+        "如果没有角色参考图，本镜只作为构图预览，不作为角色效果验收",
     ]
     if multichar:
         constraints.append("双人关系优先清楚，不用复杂运镜破坏轴线")

@@ -175,6 +175,41 @@ def test_build_ip_asset_pack_from_source_text():
         assert os.path.exists(os.path.join(output_dir, "ip_asset_pack.json"))
 
 
+def test_build_ip_asset_pack_from_screenplay_format():
+    source_text = """第一集
+场1-1 夜/内 巡捕房值班房、窄巷子
+出场人物：陈渊、赵德柱
+△夜雨淅沥，巡捕房值班房内，两人身影摇曳。
+陈渊（内心OS）：
+我这是穿越了？
+赵德柱VO：醒了？
+△陈渊迅速捂住脑袋，指尖用力按着太阳穴。
+场1-2 夜/外 乌水镇南市窄巷
+出场人物：陈渊、赵德柱、虎妖、系统
+△巷弄幽深，血腥味刺鼻。
+虎妖（狞笑）：这肉，挺嫩啊！
+"""
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                "mode": "build_ip_asset_pack",
+                "ip_id": "screenplay_demo",
+                "title": "剧本格式测试",
+                "source_text": source_text,
+                "output_dir": output_dir,
+            }
+        )
+        pack = result["handoff"]["ip_asset_pack"]
+        names = [item["character_profile"]["identity"]["name"] for item in pack["characters"]]
+        assert names[:4] == ["陈渊", "赵德柱", "虎妖", "系统"]
+        assert "出场人物" not in names
+        assert "指尖" not in names
+        scene_names = [scene["name"] for scene in pack["scenes"]]
+        assert len(scene_names) == 2
+        assert "场1-1 夜/内 巡捕房值班房、窄巷子" in scene_names
+        assert "场1-2 夜/外 乌水镇南市窄巷" in scene_names
+
+
 def test_build_ip_asset_pack_keeps_explicit_multi_characters():
     with tempfile.TemporaryDirectory() as output_dir:
         task = {
@@ -329,6 +364,33 @@ def test_build_script_draft_from_adaptation_state():
         assert script["target"] == "short_drama"
         assert script["scenes"][0]["voiceover"]
         assert script["handoff"]["scene_cards"]
+
+
+def test_build_script_draft_from_screenplay_uses_scene_cast_only():
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                "mode": "build_script_draft",
+                "title": "剧本场次测试",
+                "source_text": (
+                    "第一集\n"
+                    "场1-1 夜/内 巡捕房值班房、窄巷子\n"
+                    "出场人物：陈渊、赵德柱\n"
+                    "△陈渊在简陋木床上猛然睁眼。\n"
+                    "赵德柱VO：醒了？\n"
+                    "场1-2 夜/外 乌水镇南市窄巷\n"
+                    "出场人物：陈渊、赵德柱、虎妖、系统\n"
+                    "△阴影中，一头九尺高的灰毛虎妖凌空扑下！\n"
+                ),
+                "total_duration_sec": 12,
+                "output_dir": output_dir,
+            }
+        )
+        cards = result["handoff"]["script_draft"]["handoff"]["scene_cards"]
+        assert len(cards) == 2
+        assert "陈渊、赵德柱围绕该剧情点行动" in cards[0]["visual"]
+        assert "虎妖围绕该剧情点行动" not in cards[0]["visual"]
+        assert "陈渊、赵德柱、虎妖、系统围绕该剧情点行动" in cards[1]["visual"]
 
 
 def test_polish_script_draft_preserves_structure_and_strengthens_dialogue():

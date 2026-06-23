@@ -396,6 +396,10 @@ def _update_adaptation_state(task: Dict) -> Dict:
 
 
 def _build_adaptation_scene_cards(state: Dict, task: Dict) -> List[Dict]:
+    screenplay_cards = _build_screenplay_scene_cards(state, task)
+    if screenplay_cards:
+        return screenplay_cards
+
     total_cards = int(task.get("n_scene_cards", state.get("n_scene_cards", 5)) or 5)
     total_cards = max(3, min(total_cards, 8))
     beats = state.get("story_beats") or _build_story_beats(state.get("source_text", ""), state.get("creative_direction", {}))
@@ -428,6 +432,82 @@ def _build_adaptation_scene_cards(state: Dict, task: Dict) -> List[Dict]:
             }
         )
     return cards
+
+
+def _build_screenplay_scene_cards(state: Dict, task: Dict) -> List[Dict]:
+    sections = _extract_screenplay_sections(state.get("source_text", ""))
+    if not sections:
+        return []
+    direction = state.get("creative_direction", {}) or {}
+    tone = direction.get("tone", "强钩子、节奏清晰")
+    viewpoint = direction.get("viewpoint", "主角视角")
+    total_duration = float(task.get("total_duration_sec", 0) or state.get("duration_sec", 0) or max(len(sections) * 6, 6))
+    duration = round(total_duration / max(len(sections), 1), 3)
+
+    cards: List[Dict] = []
+    for index, section in enumerate(sections):
+        cast = section.get("cast") or []
+        character_names = "、".join(cast) if cast else "本场角色"
+        beat = section.get("summary") or section.get("body", "")
+        visual = _scene_visual_from_beat(beat, {"name": section["header"], "description": section["header"]}, character_names, tone)
+        voiceover = _voiceover_from_beat(beat, viewpoint, index, len(sections))
+        cards.append(
+            {
+                "visual": visual,
+                "voiceover": voiceover,
+                "music_cue": _music_cue_for_index(index, len(sections), tone),
+                "subtitle": voiceover,
+                "duration_sec": duration,
+                "characters": [{"name": name} for name in cast],
+                "asset_goal": {
+                    "type": "adapted scene key frame",
+                    "purpose": "screenplay scene beat",
+                    "expression": _expression_for_index(index, len(sections)),
+                    "scene": section["header"],
+                },
+            }
+        )
+    return cards
+
+
+def _extract_screenplay_sections(text: str) -> List[Dict]:
+    sections: List[Dict] = []
+    current: Optional[Dict] = None
+    body_lines: List[str] = []
+    for raw_line in str(text or "").splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if re.match(r"^场\s*\d+(?:[-－]\d+)?\s+", line):
+            if current:
+                current["body"] = "\n".join(body_lines).strip()
+                current["summary"] = _screenplay_section_summary(body_lines)
+                sections.append(current)
+            current = {"header": line, "cast": []}
+            body_lines = []
+            continue
+        if current and line.startswith("出场人物"):
+            current["cast"] = _extract_cast_line_characters(line)
+            continue
+        if current:
+            body_lines.append(line)
+    if current:
+        current["body"] = "\n".join(body_lines).strip()
+        current["summary"] = _screenplay_section_summary(body_lines)
+        sections.append(current)
+    return sections
+
+
+def _screenplay_section_summary(lines: List[str]) -> str:
+    meaningful = []
+    for line in lines:
+        text = str(line or "").strip()
+        if not text or text in {"闪回：", "闪出。"}:
+            continue
+        meaningful.append(text)
+        if len(meaningful) >= 3:
+            break
+    return " ".join(meaningful)
 
 
 def _build_script_draft(scene_cards: List[Dict], state: Dict, task: Dict) -> Dict:
@@ -853,7 +933,7 @@ def _normalize_character_card(card: Dict, task: Dict, source_text: str) -> Dict:
 
     identity_anchors = card.get("identity_anchors") or [
         f"保持{name}的同一人物识别",
-        "后续所有资产保持同一脸型、发型轮廓和服装身份",
+        "后续所有资产保持同一五官比例、脸型、眉型、眼型、鼻型、口型、发型轮廓和服装身份",
     ]
     continuity_rules = card.get("continuity_rules") or [
         "不要把该角色和其他角色混合",
@@ -901,6 +981,9 @@ def _normalize_scene_card(scene: Dict, index: int) -> Dict:
 def _extract_character_candidates(source_text: str) -> List[str]:
     text = source_text or ""
     candidates: List[str] = []
+
+    candidates.extend(_extract_cast_line_characters(text))
+    candidates.extend(_extract_dialogue_speakers(text))
 
     quoted = re.findall(r"[《「“\"]([^《》「」“”\"]{1,12})[》」”\"]", text)
     candidates.extend(_looks_like_character_name(item) for item in quoted)
@@ -970,11 +1053,72 @@ def _is_valid_character_candidate(name: str) -> bool:
         "大厅",
         "厨房",
         "门口",
+        "指尖",
+        "脑袋",
+        "太阳穴",
+        "眼睛",
+        "目光",
+        "然后",
+        "窗外",
+        "桌上",
+        "屏幕",
     }
     if name in blocked_exact:
         return False
-    blocked_parts = ("手里", "柜台", "背包", "菜单", "账本", "探测", "异常", "能量")
+    blocked_parts = (
+        "手里",
+        "柜台",
+        "背包",
+        "菜单",
+        "账本",
+        "探测",
+        "异常",
+        "能量",
+        "指尖",
+        "脑袋",
+        "太阳穴",
+        "目光",
+    )
     return not any(part in name for part in blocked_parts)
+
+
+def _extract_cast_line_characters(text: str) -> List[str]:
+    names: List[str] = []
+    for line in str(text or "").splitlines():
+        line = line.strip()
+        if not line.startswith("出场人物"):
+            continue
+        _, _, tail = line.partition("：")
+        if not tail:
+            _, _, tail = line.partition(":")
+        for item in re.split(r"[、,，/／\s]+", tail):
+            cleaned = _clean_speaker_name(item)
+            if cleaned:
+                names.append(cleaned)
+    return names
+
+
+def _extract_dialogue_speakers(text: str) -> List[str]:
+    names: List[str] = []
+    for line in str(text or "").splitlines():
+        line = line.strip()
+        match = re.match(r"^([\u4e00-\u9fffA-Za-z0-9_]{1,12})(?:（[^）]*）|\([^)]*\)|VO|OS)?[：:]", line)
+        if not match:
+            continue
+        cleaned = _clean_speaker_name(match.group(1))
+        if cleaned:
+            names.append(cleaned)
+    return names
+
+
+def _clean_speaker_name(value: str) -> str:
+    text = str(value or "").strip(" \t，。！？,.!?:;；")
+    text = re.sub(r"(?:VO|OS)$", "", text, flags=re.IGNORECASE).strip()
+    text = re.sub(r"[（(].*?[）)]", "", text).strip()
+    blocked = {"闪回", "闪出", "特写", "屏幕", "旁白", "内心", "场", "第一集", "出场人物"}
+    if text in blocked:
+        return ""
+    return text
 
 
 def _looks_like_character_name(value: str) -> str:
@@ -1004,6 +1148,9 @@ def _extract_scene_candidates(source_text: str) -> List[str]:
         "荒原",
     ]
     scenes: List[str] = []
+    script_headers = _extract_script_scene_headers(text)
+    if script_headers:
+        return _dedupe_list(script_headers)
     for keyword in scene_keywords:
         if keyword in text:
             scenes.append(_scene_description_for_keyword(keyword, text))
@@ -1022,6 +1169,15 @@ def _extract_scene_candidates(source_text: str) -> List[str]:
             deduped.append(scene)
             seen.add(scene)
     return deduped
+
+
+def _extract_script_scene_headers(text: str) -> List[str]:
+    scenes: List[str] = []
+    for line in str(text or "").splitlines():
+        line = line.strip()
+        if re.match(r"^场\s*\d+(?:[-－]\d+)?\s+", line):
+            scenes.append(line)
+    return scenes
 
 
 def _scene_description_for_keyword(keyword: str, source_text: str) -> str:

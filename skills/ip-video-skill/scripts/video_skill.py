@@ -9,6 +9,7 @@ try:
     from .continuity import build_continuity_bible
     from .shot_plan import build_i2v_prompts, build_shot_plan, build_t2v_prompts
     from .video_provider import prepare_video_generation_request, run_video_generation
+    from .video_sequence import run_video_sequence
     from .video_handoff import build_edit_decision_list, build_video_handoff
 except ImportError:
     from clip_plan import build_clip_plan, build_clip_prompts
@@ -16,6 +17,7 @@ except ImportError:
     from continuity import build_continuity_bible
     from shot_plan import build_i2v_prompts, build_shot_plan, build_t2v_prompts
     from video_provider import prepare_video_generation_request, run_video_generation
+    from video_sequence import run_video_sequence
     from video_handoff import build_edit_decision_list, build_video_handoff
 
 
@@ -91,10 +93,22 @@ def run_task(task: Dict) -> Dict:
         response["artifacts"] = list(result.get("artifacts", [])) + response["artifacts"]
         return response
 
+    if mode == "run_video_sequence":
+        config = load_video_provider_config()
+        result = run_video_sequence(task, config)
+        path = os.path.join(output_dir, task.get("sequence_manifest_filename", "video_sequence_manifest.json"))
+        _write_json(path, result)
+        response = _result(mode, {"sequence_result": result}, path, "video_sequence_manifest")
+        response["artifacts"] = [
+            {"type": "video", "path": path, "meta": {"kind": "sequence_clip"}}
+            for path in result.get("generated_paths", [])
+        ] + response["artifacts"]
+        return response
+
     raise ValueError(
         "mode must be one of: build_continuity_bible, build_video_handoff, build_shot_plan, build_clip_plan, "
         "build_i2v_prompts, build_t2v_prompts, build_edit_decision_list, "
-        "prepare_video_generation, run_video_generation"
+        "prepare_video_generation, run_video_generation, run_video_sequence"
     )
 
 

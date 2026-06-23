@@ -8,14 +8,20 @@ DEFAULT_CHARACTER_DESIGN_REQUIREMENTS = [
     "no environment scene",
     "no cinematic background",
     "show clear face, full body silhouette, wardrobe details, and key handheld props",
+    "include a face structure callout that locks facial proportions, face shape, brow shape, eye shape, eye spacing, nose bridge, nose tip, mouth shape, lip shape, jaw/chin, cheekbones, and any facial marks",
+    "same character identity must be defined by stable facial geometry, not only hairstyle or costume",
     "production reference readability",
+    "original actress-like face, not a celebrity face and not a generic influencer face",
+    "preserve realistic skin texture, visible pores, tiny blemishes, natural nasolabial folds, slight under-eye shadow, and subtle facial asymmetry",
+    "no plastic skin, no over-smoothing, no over-symmetry, no glassy doll eyes, no heavy false eyelashes, no over-sharpening, no influencer makeup, no Barbie-doll face, no studio glamour portrait look",
+    "realistic suspense short-drama casting test close-up quality when face callouts are shown",
 ]
 
 
 DEFAULT_CHARACTER_TEXT_REQUIREMENTS = [
     "图片内所有可见文字默认使用简体中文，除非用户明确要求其他语言",
     "设定板只使用少量清晰大字标签，不要生成密集小段落、长说明、小字号正文或装饰性假文字",
-    "中文字段标题固定使用：角色名、身份、年龄、性格、气场、世界观、道具、色板、背面图",
+    "中文字段标题固定使用：角色名、身份、年龄、五官比例、脸型、眉眼、鼻型、口型、发型、服装、道具、色板、背面图",
     "道具名称和用途必须翻译成自然中文，避免英文标题和英文-only 标签",
     "所有中文标签必须横排、清晰、字号足够大，优先保证可读性而不是塞满信息",
     "如果文字无法清晰呈现，减少文字数量，保留角色名、身份、道具名这些核心标签",
