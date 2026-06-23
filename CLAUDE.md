@@ -33,6 +33,7 @@ Rules:
 - Storyboard is the execution blueprint once it exists. Every live clip must carry `storyboard_execution_map`, and video shot order must exactly match storyboard `shot_ids`.
 - Do not delete, merge away, reorder, or rewrite storyboard shots to fit a 15-second clip. Split into shorter generated units or revise the storyboard with user approval.
 - Prompt text may only strengthen details already present in references and storyboard; it must not add, modify, or reduce locked content.
+- Paid/live PoYo video must default to `seedance-2`, not `seedance-2-fast`. Use `seedance-2-fast` only if the user explicitly asks for fast mode and the task sets `allow_fast_model=true`.
 - Keep video model audio limited to ambient sound and foley. Do not generate background music, songs, subtitles, title cards, fake text, or watermarks.
 - Never commit `.env`, `outputs/`, `logs/`, generated videos, generated images, or API keys.
 - Use `python scripts/setup_doctor.py` for environment checks.

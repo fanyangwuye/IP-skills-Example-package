@@ -18,6 +18,7 @@ def prepare_video_generation_request(task: Dict, config: VideoProviderConfig) ->
     provider = task.get("provider") or config.provider
     if provider not in SUPPORTED_PROVIDERS:
         raise RuntimeError(f"Unsupported VIDEO_PROVIDER: {provider}")
+    _guard_fast_model_policy(task, provider)
 
     handoff = task.get("video_handoff") or task.get("handoff") or {}
     unit = task.get("clip") or task.get("shot") or _select_generation_unit(handoff, task)
@@ -34,6 +35,16 @@ def prepare_video_generation_request(task: Dict, config: VideoProviderConfig) ->
         request["transport"] = {"type": "dry_run", "note": "No external API call will be made."}
     return request
 
+
+def _guard_fast_model_policy(task: Dict, provider: str) -> None:
+    if provider != "poyo_video":
+        return
+    model = str(task.get("provider_model_name") or task.get("model") or "").strip()
+    if model == "seedance-2-fast" and not task.get("allow_fast_model"):
+        raise RuntimeError(
+            "seedance-2-fast is not allowed by default for paid video generation. "
+            "Use seedance-2 unless the user explicitly asks for fast mode, then set allow_fast_model=true."
+        )
 
 def run_video_generation(task: Dict, config: VideoProviderConfig) -> Dict:
     request = prepare_video_generation_request(task, config)
@@ -435,7 +446,7 @@ def _default_model(provider: str) -> str:
     return {
         "jimeng_cli": "jimeng-video-default",
         "dreamina_cli": "dreamina-video-default",
-        "poyo_video": "video-default",
+        "poyo_video": "seedance-2",
         "offline": "offline-preview",
         "dry_run": "offline-preview",
     }.get(provider, "video-default")
@@ -573,6 +584,10 @@ def _dreamina_subcommand(request: Dict) -> str:
 
 def _poyo_video_transport(task: Dict, request: Dict, config: VideoProviderConfig) -> Dict:
     model = task.get("provider_model_name") or request.get("model") or "seedance-2"
+    if model == "seedance-2-fast" and not task.get("allow_fast_model"):
+        raise RuntimeError(
+            "seedance-2-fast is not allowed by default. Set allow_fast_model=true only when the user explicitly asks for fast mode."
+        )
     input_obj = {
         "prompt": request["prompt"],
         "resolution": request["resolution"],

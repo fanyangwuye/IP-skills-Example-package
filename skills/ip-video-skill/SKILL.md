@@ -184,6 +184,8 @@ Environment variables:
 
 Default video resolution is `480p` to keep test clips low-cost. Raise to `720p` only when a clearer review clip is needed.
 
+Paid/live PoYo video model policy is locked: default to `seedance-2`, not `seedance-2-fast`. Do not use `seedance-2-fast` unless the user explicitly asks for fast mode; in that case the task must set `allow_fast_model=true`.
+
 ## Resources
 
 - `scripts/continuity.py`: continuity bible builder

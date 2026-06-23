@@ -489,6 +489,65 @@ def test_prepare_video_generation_request_poyo_seedance2_shape():
     assert request["transport"]["status_url"].endswith("/api/generate/status/{task_id}")
 
 
+def test_poyo_defaults_to_seedance2_not_fast():
+    handoff = build_video_handoff(_task())
+    config = VideoProviderConfig(
+        provider="poyo_video",
+        api_key="test",
+        api_base="https://api.example",
+        output_root="",
+        default_model="",
+        default_aspect_ratio="9:16",
+        default_resolution="480p",
+        poll_interval_sec=1,
+        poll_timeout_sec=5,
+    )
+    request = prepare_video_generation_request(
+        {
+            "video_handoff": handoff,
+            "provider": "poyo_video",
+            "image_urls": ["https://files.example/first.png"],
+            "duration_sec": 5,
+        },
+        config,
+    )
+    assert request["model"] == "seedance-2"
+    assert request["transport"]["json"]["model"] == "seedance-2"
+
+
+def test_poyo_blocks_fast_model_unless_explicitly_allowed():
+    handoff = build_video_handoff(_task())
+    config = VideoProviderConfig("poyo_video", "test", "https://api.example", "", "seedance-2", "9:16", "480p", 1, 5)
+    try:
+        prepare_video_generation_request(
+            {
+                "video_handoff": handoff,
+                "provider": "poyo_video",
+                "model": "seedance-2-fast",
+                "image_urls": ["https://files.example/first.png"],
+                "duration_sec": 5,
+            },
+            config,
+        )
+    except RuntimeError as exc:
+        assert "seedance-2-fast is not allowed by default" in str(exc)
+    else:
+        raise AssertionError("fast model should require explicit user opt-in")
+
+    request = prepare_video_generation_request(
+        {
+            "video_handoff": handoff,
+            "provider": "poyo_video",
+            "model": "seedance-2-fast",
+            "allow_fast_model": True,
+            "image_urls": ["https://files.example/first.png"],
+            "duration_sec": 5,
+        },
+        config,
+    )
+    assert request["transport"]["json"]["model"] == "seedance-2-fast"
+
+
 def test_poyo_reference_images_are_bound_with_image_markers():
     handoff = build_video_handoff(_task())
     config = VideoProviderConfig(
@@ -496,7 +555,7 @@ def test_poyo_reference_images_are_bound_with_image_markers():
         api_key="test",
         api_base="https://api.example",
         output_root="",
-        default_model="seedance-2-fast",
+        default_model="seedance-2",
         default_aspect_ratio="9:16",
         default_resolution="480p",
         poll_interval_sec=1,
@@ -537,7 +596,7 @@ def test_all_purpose_reference_policy_does_not_fall_back_to_first_or_tail_frame(
         api_key="test",
         api_base="https://api.example",
         output_root="",
-        default_model="seedance-2-fast",
+        default_model="seedance-2",
         default_aspect_ratio="9:16",
         default_resolution="480p",
         poll_interval_sec=1,

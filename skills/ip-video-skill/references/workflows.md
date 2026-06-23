@@ -154,6 +154,7 @@ Request rules:
 
 - `prompt` is required.
 - `duration` is clamped to 4-15 seconds.
+- Default paid/live model is `seedance-2`. Do not use `seedance-2-fast` unless the user explicitly asks for fast mode and the task sets `allow_fast_model=true`.
 - `seedance-2-fast` downgrades `1080p` requests to `720p`.
 - Default project resolution is `480p` for low-cost test clips. Use `720p` only when the shot needs review-quality detail.
 - `image_urls` supports up to 2 first/last frame images.

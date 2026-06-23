@@ -115,6 +115,8 @@ VIDEO_POLL_TIMEOUT_SEC=600
 
 Video defaults to `480p` to keep test clips low-cost. Set `VIDEO_DEFAULT_RESOLUTION=720p` for clearer review clips when needed.
 
+Paid/live PoYo video defaults to `seedance-2`, not `seedance-2-fast`. Do not use `seedance-2-fast` unless the user explicitly asks for fast mode; then set `allow_fast_model=true`.
+
 Video generation is clip-first by default: `clip_plan` groups shots into 5-15 second continuity clips. Panorama scene images are preserved as `space_anchor_refs`; normal perspective scene references are used for video model input. `storyboard_image_tasks` can generate clip-level storyboard content design sheets before I2V, but storyboard panels must function as a shot blueprint: the first panel should match the intended video first-frame composition, camera angle, subject scale, screen direction, and scene anchors. Martial-arts clips get a dedicated action layer for stance, distance, attack-defense beats, footwork, weight shift, and safe impact feedback. Real IP video tests should start from generated image references and I2V; text-to-video is only a provider connectivity check.
 
 Video prompts keep only ambient sound and foley for generated audio. Background music, songs, music beds, on-screen subtitles, title cards, fake text, and watermarks are forbidden; BGM and subtitles belong in post-production/EDL.
