@@ -28,6 +28,7 @@ Rules:
 
 - Obey the locked project reference policy. If `reference_policy: all_purpose_reference` is set, live video must use `reference_image_urls` only and must not be rewritten into `image_urls`, first-frame, last-frame, previous-tail-frame, or keyframe I2V.
 - Use `image_urls[0]` first-frame/keyframe only when the project explicitly selects that policy; never substitute it for all-purpose reference.
+- Treat extracted single frames only as clip-boundary continuity references; never use them as identity locks, default first frames, or replacements for all-purpose references.
 - Storyboard crops are layout references only; do not treat line-art storyboard style as final video style.
 - Keep video model audio limited to ambient sound and foley. Do not generate background music, songs, subtitles, title cards, fake text, or watermarks.
 - Never commit `.env`, `outputs/`, `logs/`, generated videos, generated images, or API keys.

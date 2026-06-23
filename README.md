@@ -121,6 +121,8 @@ Video prompts keep only ambient sound and foley for generated audio. Background 
 
 For live character video generation, obey the project reference policy exactly. If the project sets `reference_policy: all_purpose_reference`, the provider request must use `reference_image_urls` only and must not be rewritten into `image_urls`, first-frame, last-frame, previous-tail-frame, or keyframe I2V. Character refs, scene refs, and storyboard refs are all-purpose references in that mode. Use first/last-frame `image_urls` only when the project explicitly selects that policy.
 
+Single-frame extraction is only for clip-to-clip continuity reference. It cannot replace all-purpose references and cannot become the default first-frame generation path.
+
 ## Quick Checks
 
 Run local tests without spending image-generation credits:

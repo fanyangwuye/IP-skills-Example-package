@@ -52,6 +52,8 @@ Before proposing or preparing any multi-clip video workflow, read `references/wo
 
 Each boundary decision must state why that mode is being used and which frame or reference carries the handoff. Storyboard boards and panel crops are layout references only; character identity must come from the project locked reference policy. If `reference_policy: all_purpose_reference` is set, character-bearing clips must use `reference_image_urls` as all-purpose references and must not be rewritten into `image_urls`, first-frame, last-frame, previous-tail-frame, or keyframe I2V.
 
+Single-frame extraction is only a clip-to-clip continuity aid. It may inform light, color, action momentum, screen direction, character state, and emotional residue at a boundary, but it must not become a character identity lock, a default first-frame input, or a replacement for all-purpose references.
+
 ## Locked Reference Policy Gate
 
 For any paid/live clip that contains named or locked characters, obey the project reference policy exactly. Do not silently substitute one reference mode for another.
