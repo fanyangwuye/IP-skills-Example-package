@@ -523,6 +523,48 @@ def test_poyo_reference_images_are_bound_with_image_markers():
     ]
 
 
+
+def test_all_purpose_reference_policy_does_not_fall_back_to_first_or_tail_frame():
+    handoff = build_video_handoff(_task())
+    handoff["clip_plan"][0]["previous_clip_end_frame"] = {"url": "https://files.example/previous_tail.png", "role": "previous_clip_end_frame"}
+    config = VideoProviderConfig(
+        provider="poyo_video",
+        api_key="test",
+        api_base="https://api.example",
+        output_root="",
+        default_model="seedance-2-fast",
+        default_aspect_ratio="9:16",
+        default_resolution="480p",
+        poll_interval_sec=1,
+        poll_timeout_sec=5,
+    )
+    request = prepare_video_generation_request(
+        {
+            "video_handoff": handoff,
+            "provider": "poyo_video",
+            "reference_policy": "all_purpose_reference",
+            "reference_image_urls": [
+                {"url": "https://files.example/zhouhao.jpg", "role": "character_reference"},
+                {"url": "https://files.example/storyboard.jpg", "role": "storyboard_layout_reference"},
+            ],
+            "duration_sec": 15,
+        },
+        config,
+    )
+    assert request["mode"] == "multimodal_to_video"
+    assert request["image_urls"] == []
+    assert [item["url"] for item in request["reference_image_urls"]] == [
+        "https://files.example/zhouhao.jpg",
+        "https://files.example/storyboard.jpg",
+    ]
+    input_obj = request["transport"]["json"]["input"]
+    assert "image_urls" not in input_obj
+    assert input_obj["reference_image_urls"] == [
+        "https://files.example/zhouhao.jpg",
+        "https://files.example/storyboard.jpg",
+    ]
+    assert "全能参考模式已锁定" in request["prompt"]
+    assert "不得自动替换、降级或改写为 image_urls" in request["prompt"]
 def test_clip_plan_groups_30_seconds_into_two_clips():
     task = copy.deepcopy(_task())
     task["target_clip_duration_sec"] = 15

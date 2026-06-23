@@ -78,6 +78,15 @@ def run_video_generation(task: Dict, config: VideoProviderConfig) -> Dict:
 
 
 def _guard_live_reference_strength(task: Dict, request: Dict) -> None:
+    if _uses_all_purpose_reference(task, request):
+        if request.get("image_urls"):
+            raise RuntimeError(
+                "All-purpose reference mode is fixed for this task, but image_urls were present. "
+                "Do not replace all-purpose reference with first/last-frame or previous-tail-frame inputs."
+            )
+        if not request.get("reference_image_urls"):
+            raise RuntimeError("All-purpose reference mode requires non-empty reference_image_urls.")
+        return
     if task.get("allow_reference_only_live_video"):
         return
     if request.get("provider") != "poyo_video":
@@ -123,8 +132,11 @@ def _guard_characterless_first_frame(task: Dict, request: Dict) -> None:
 
 def _base_request(task: Dict, unit: Dict, provider: str, prompt_kind: str, config: VideoProviderConfig) -> Dict:
     unit = _unit_with_storyboard_panel_refs(task, unit)
-    image_urls = _image_urls(task, unit)
+    all_purpose_reference = _uses_all_purpose_reference(task, unit)
+    image_urls = [] if all_purpose_reference else _image_urls(task, unit)
     reference_image_urls = _reference_image_urls(task, unit, image_urls)
+    if all_purpose_reference and not reference_image_urls:
+        raise ValueError("all_purpose_reference mode requires reference_image_urls")
     if provider == "poyo_video" and image_urls:
         reference_image_urls = []
     mode = task.get("generation_mode") or _infer_generation_mode(task, unit, image_urls, reference_image_urls)
@@ -135,6 +147,7 @@ def _base_request(task: Dict, unit: Dict, provider: str, prompt_kind: str, confi
         _with_frame_specs(_prompt_for_kind(unit, prompt_kind), frame_specs),
         image_urls=image_urls,
         reference_image_urls=reference_image_urls,
+        all_purpose_reference=all_purpose_reference,
     )
     return {
         "provider": provider,
@@ -176,16 +189,35 @@ def _base_request(task: Dict, unit: Dict, provider: str, prompt_kind: str, confi
     }
 
 
-def _with_reference_image_bindings(prompt: str, image_urls: List, reference_image_urls: List) -> str:
+def _uses_all_purpose_reference(task: Dict, unit_or_request: Optional[Dict] = None) -> bool:
+    policy = str(task.get("reference_policy") or task.get("reference_mode") or "").strip()
+    if policy == "all_purpose_reference" or task.get("all_purpose_reference") is True:
+        return True
+    binding = ((unit_or_request or {}).get("reference_binding") or {})
+    binding_policy = str(binding.get("reference_mode") or binding.get("reference_policy") or "").strip()
+    return binding_policy in {"all_purpose_reference", "all_purpose_reference_only"}
+
+
+def _with_reference_image_bindings(prompt: str, image_urls: List, reference_image_urls: List, all_purpose_reference: bool = False) -> str:
     refs = image_urls or reference_image_urls
     if not refs:
         return prompt
 
-    lines = [
-        "参考图绑定（必须严格遵守，不要只当风格参考）：",
-        "所有 @Image 编号按 provider 输入顺序绑定；image_urls 优先级高于 reference_image_urls，image_urls[0] 是视频首帧/关键帧时必须作为开头画面继承。",
-        "角色形象统一高于镜头自由发挥；有人物的付费视频必须先用角色设定图和场景图生成可审核真人物首帧/关键帧，再把该关键帧作为 image_urls[0]。",
-    ]
+    lines = ["参考图绑定（必须严格遵守，不要只当风格参考）："]
+    if all_purpose_reference:
+        lines.extend(
+            [
+                "全能参考模式已锁定：本次视频只能使用 reference_image_urls 作为全能参考，不得自动替换、降级或改写为 image_urls、首帧、尾帧、上一段尾帧或关键帧 I2V。",
+                "所有 @Image 编号按 provider 输入顺序绑定；角色图锁身份，场景图锁空间，故事板图只锁分镜构图、景别、动作相位和剪辑顺序。",
+            ]
+        )
+    else:
+        lines.extend(
+            [
+                "所有 @Image 编号按 provider 输入顺序绑定；image_urls 优先级高于 reference_image_urls，image_urls[0] 是视频首帧/关键帧时必须作为开头画面继承。",
+                "角色形象统一高于镜头自由发挥；有人物的付费视频必须先用角色设定图和场景图生成可审核真人物首帧/关键帧，再把该关键帧作为 image_urls[0]。",
+            ]
+        )
     for index, ref in enumerate(refs, start=1):
         role = _reference_role(ref)
         label = _reference_label(ref)

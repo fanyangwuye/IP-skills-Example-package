@@ -17,18 +17,17 @@ copy/script planning
 -> character design sheet
 -> scene reference
 -> storyboard / shot table
--> first-frame keyframe
+-> locked reference policy: all-purpose reference or explicitly approved keyframe
 -> I2V clip
 -> tail-frame extraction
 -> next clip / bridge clip
 -> continuity check
 ```
 
-Do not skip character sheets, scene refs, storyboard/shot table, reviewed keyframes, or tail-frame continuity checks.
+Do not skip character sheets, scene refs, storyboard/shot table, locked reference policy, or tail-frame continuity checks.
 
 For setup by agent type, read:
 
 ```text
 docs/agent_config.md
 ```
-

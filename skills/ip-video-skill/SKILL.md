@@ -50,17 +50,17 @@ Before proposing or preparing any multi-clip video workflow, read `references/wo
 - `bridge_cutaway`: split off a face-light bridge clip, such as environment, prop, hand, sleeve, shadow, floor reflection, door movement, dust, wind, or light shift, to mask a planned camera/scale/axis change.
 - `sound_bridge_or_hard_cut`: use sound, ambience, or a deliberate hard cut when the story moves to a different location or time state and visual tail-frame continuation would be misleading.
 
-Each boundary decision must state why that mode is being used and which frame or reference carries the handoff. Storyboard boards and panel crops are layout references only; character identity must come from reviewed character references or real keyframes. For live generation, character-bearing clips still require a real reviewed first-frame/keyframe image in `image_urls[0]` unless the clip is explicitly a characterless bridge/cutaway.
+Each boundary decision must state why that mode is being used and which frame or reference carries the handoff. Storyboard boards and panel crops are layout references only; character identity must come from the project locked reference policy. If `reference_policy: all_purpose_reference` is set, character-bearing clips must use `reference_image_urls` as all-purpose references and must not be rewritten into `image_urls`, first-frame, last-frame, previous-tail-frame, or keyframe I2V.
 
-## Hard Identity Gate
+## Locked Reference Policy Gate
 
-For any paid/live clip that contains a named or locked character, do not rely on text prompts or weak `reference_image_urls` alone. First generate or provide a reviewed character keyframe from the character design sheet plus normal scene reference, then pass that image as `image_urls[0]`.
+For any paid/live clip that contains named or locked characters, obey the project reference policy exactly. Do not silently substitute one reference mode for another.
 
-- Character design sheets lock identity upstream; storyboard panel crops lock layout only.
-- `reference_image_urls` can help plan or experiment, but they are not enough to validate face, hair, costume, or IP continuity in live video.
-- A character clip must not start from a characterless cutaway. Split the cutaway into a separate bridge clip, then start the character clip from a real character first-frame/keyframe image.
-- Inspect provider prompts for explicit `@Image` binding. `image_urls[0]` is the first-frame/keyframe input; `reference_image_urls` are weaker supporting references.
-- If face, hairstyle, costume, or character age drifts, stop live generation and regenerate the keyframe or character reference set before spending another video call.
+- If `reference_policy: all_purpose_reference` is set, the provider request must use `reference_image_urls` only. Do not add `image_urls`, do not use first-frame or last-frame inputs, do not map `previous_clip_end_frame` into the first-frame slot, and do not regenerate a keyframe just to satisfy an older I2V habit.
+- In all-purpose reference mode, character references lock identity, scene references lock space, and storyboard references lock shot design, composition, blocking, action phase, screen direction, and edit order. The prompt must explicitly bind every `@Image` role.
+- Storyboard boards and panel crops remain layout references only. Do not copy line-art style, table borders, labels, arrows, captions, handwritten marks, or sketch texture into final video.
+- Use `image_urls[0]` first-frame/keyframe only when the project explicitly selects first-frame/keyframe I2V. Never substitute first/last frames for all-purpose reference.
+- If face, hairstyle, costume, screen direction, or story action drifts, stop live generation and fix the reference binding or shot prompt before spending another video call.
 
 For actual video generation, prefer clip-level generation over tiny shot-level generation:
 
@@ -76,7 +76,7 @@ For actual video generation, prefer clip-level generation over tiny shot-level g
 - For shot-table or manga-line storyboard sheets, treat the sheet as a planning board, not the final video style. The generated video must not inherit table grids, labels, sketch texture, line-art style, captions, arrows, or handwritten marks.
 - For martial-arts clips, keep the action readable: starting stance, distance, one attack-defense beat, reaction pause, and ending pose. Do not hide action with chaotic camera motion.
 - Test real IP video with image-to-video only after generating character and scene reference images; text-to-video is only useful for provider connectivity checks, not IP consistency.
-- For clip 2+, pass the previous clip's extracted last frame as `previous_clip_end_frame`; provider requests should map it to the first-frame slot when supported.
+- For clip 2+, pass the previous clip tail frame only when the selected continuation mode requires it. If `reference_policy: all_purpose_reference` is locked, do not map any previous tail frame into `image_urls`; carry continuity in the prompt and allowed all-purpose references instead.
 - Do not discard panorama assets; they remain useful for layout, landmark, and light-direction anchoring.
 - Keep generated video audio limited to ambient sound and foley. Forbid background music, songs, music beds, on-screen subtitles, fake text, title cards, and watermarks in video prompts.
 

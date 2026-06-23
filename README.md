@@ -56,7 +56,7 @@ python scripts/install_agent_skills.py --target "PATH_TO_AGENT_SKILLS" --force
 After installation, a new agent window can be invoked with a short instruction such as:
 
 ```text
-Use the installed IP skills to run the full IP workflow. Do not skip character sheets, scene refs, storyboard/shot table, keyframes, I2V, tail-frame handoff, or continuity checks.
+Use the installed IP skills to run the full IP workflow. Do not skip character sheets, scene refs, storyboard/shot table, reference policy, I2V, tail-frame handoff, or continuity checks.
 ```
 
 Agents that do not support auto-discovered skills should be configured to read the relevant `SKILL.md` files under `skills/` and run the Python entrypoints described there.
@@ -119,7 +119,7 @@ Video generation is clip-first by default: `clip_plan` groups shots into 5-15 se
 
 Video prompts keep only ambient sound and foley for generated audio. Background music, songs, music beds, on-screen subtitles, title cards, fake text, and watermarks are forbidden; BGM and subtitles belong in post-production/EDL.
 
-For live character video generation, do not rely on weak reference-only runs. Generate or provide a reviewed first-frame/keyframe image and pass it as `image_urls[0]`; character sheets, scene references, and storyboard panel crops should then be used as supporting references. Reference-only live generation is blocked by default for character-bearing clips.
+For live character video generation, obey the project reference policy exactly. If the project sets `reference_policy: all_purpose_reference`, the provider request must use `reference_image_urls` only and must not be rewritten into `image_urls`, first-frame, last-frame, previous-tail-frame, or keyframe I2V. Character refs, scene refs, and storyboard refs are all-purpose references in that mode. Use first/last-frame `image_urls` only when the project explicitly selects that policy.
 
 ## Quick Checks
 

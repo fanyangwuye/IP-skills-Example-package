@@ -17,7 +17,7 @@ script/copy input
 -> character design sheet with facial-geometry lock
 -> scene reference image
 -> professional storyboard / shot table
--> reviewed first-frame or keyframe image
+-> locked reference policy: all-purpose reference or explicitly approved keyframe image
 -> I2V clip
 -> extracted tail frame
 -> next clip or bridge clip
@@ -26,8 +26,8 @@ script/copy input
 
 Rules:
 
-- Do not run live video from weak `reference_image_urls` only when a character is present.
-- Character video clips must start from a reviewed character keyframe passed as `image_urls[0]`.
+- Obey the locked project reference policy. If `reference_policy: all_purpose_reference` is set, live video must use `reference_image_urls` only and must not be rewritten into `image_urls`, first-frame, last-frame, previous-tail-frame, or keyframe I2V.
+- Use `image_urls[0]` first-frame/keyframe only when the project explicitly selects that policy; never substitute it for all-purpose reference.
 - Storyboard crops are layout references only; do not treat line-art storyboard style as final video style.
 - Keep video model audio limited to ambient sound and foley. Do not generate background music, songs, subtitles, title cards, fake text, or watermarks.
 - Never commit `.env`, `outputs/`, `logs/`, generated videos, generated images, or API keys.
@@ -37,6 +37,5 @@ Rules:
 Useful invocation:
 
 ```text
-Use the IP skills in this repository to run the full workflow. Do not skip character sheets, scene refs, storyboard/shot table, keyframes, I2V, tail-frame handoff, or continuity checks.
+Use the IP skills in this repository to run the full workflow. Do not skip character sheets, scene refs, storyboard/shot table, reference policy, I2V, tail-frame handoff, or continuity checks.
 ```
-

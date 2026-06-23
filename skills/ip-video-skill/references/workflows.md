@@ -26,7 +26,7 @@ Use this before any prompt writing.
 
 - Use character design sheets to lock identity and normal scene references to lock the environment.
 - Generate one storyboard board per clip when the user wants visual planning before video generation.
-- Each board should map first/mid/last panels to real clip keyframes.
+- Each board should map panels to shot beats and reference roles. If the project uses `reference_policy: all_purpose_reference`, panels are all-purpose layout references, not a requirement to create first/last-frame keyframes.
 - Keep production labels short, Chinese by default, and outside panel image areas.
 - Do not put dialogue subtitles, title cards, fake UI, decorative text, or watermarks inside panels.
 - Treat the full storyboard board as a planning sheet, not a direct video frame.
@@ -46,10 +46,10 @@ Use this before any prompt writing.
 ## Clip Continuity Rules
 
 - Generate video at the `clip_plan` level by default; use shot-level requests only for troubleshooting.
-- For clip 1, use locked character refs and normal scene refs to generate a reviewed character first-frame/keyframe image, then pass that keyframe as `image_urls[0]`. Do not use text-to-video or weak reference-only video as an IP consistency test.
-- For clip 2+, extract the previous clip's final frame and pass it as `previous_clip_end_frame`; provider requests should map it to the first-frame slot when supported.
-- If a provider disallows first-frame input together with reference images, prefer the previous final frame for clip continuation and keep the normal refs in metadata/prompt checks.
-- If a new angle or closer shot is needed for clip 2+, use the previous tail frame as `previous_clip_reference_frame` for color, light, costume, and action momentum, then generate a new reviewed character keyframe for the new composition before live I2V.
+- Before clip 1, lock the project reference policy. If `reference_policy: all_purpose_reference` is set, use `reference_image_urls` only for character, scene, and storyboard refs; do not convert the workflow to first-frame/keyframe `image_urls`.
+- For clip 2+, use the previous clip tail frame only when the selected continuation mode requires first-frame continuation. In all-purpose reference mode, do not map previous tail frames to `image_urls`; carry continuity through prompt constraints and allowed all-purpose references.
+- If a provider disallows mixing `image_urls` with `reference_image_urls`, obey the locked project policy. For all-purpose reference mode, keep `reference_image_urls` and do not fall back to first/last-frame inputs.
+- If a new angle or closer shot is needed for clip 2+, declare the new shot in the storyboard/shot table and lock screen direction, axis, and motion direction. In all-purpose reference mode, do not generate a replacement keyframe unless the user explicitly changes the reference policy.
 - Split bridge/cutaway clips from character clips. A cutaway may hide a jump in axis, color, or camera size, but it must not be the first frame of a clip where the character later appears.
 - Preserve 720 panorama assets as `space_anchor_refs`; do not discard them and do not default to feeding them as direct generation frames.
 - Check every clip boundary for face, hairstyle, costume, prop hand, scene layout, light direction, and current_start_state/current_end_state continuity.
@@ -113,12 +113,12 @@ Use this flow before any paid video generation:
 1. Build or generate the image assets first: character design refs and normal perspective scene refs. Keep 720 panoramas as space anchors.
 2. Build `video_handoff`.
 3. Generate the storyboard board when visual planning is needed; it is a composition blueprint, not an identity reference.
-4. Generate the real video first-frame/keyframe image for any character clip from the character design sheet, scene reference, and first_frame_spec. Review face, hair, costume, scene, color, and pose before video.
+4. Apply the locked reference policy. If `reference_policy: all_purpose_reference` is set, prepare character, scene, and storyboard refs under `reference_image_urls`; verify the request has no `image_urls`.
 5. If a storyboard board was generated, pass `storyboard_image_path` or `storyboard_image_paths`; the provider layer crops first/mid/last panel layout refs automatically.
 6. Prefer one `clip_id` or `clip_index` for normal generation; use `shot_id` or `shot_index` only for troubleshooting.
 7. Run `prepare_video_generation`.
 8. Inspect `provider_request.prompt`, `image_urls`, `reference_images`, `reference_image_urls`, `storyboard_panel_refs`, `video_reference_images`, `space_anchor_refs`, `continuity_state`, and `transport`.
-9. Confirm `@Image` bindings are explicit: the first-frame/keyframe image is identified as the video starting frame, character refs are identity refs, scene refs are space refs, and storyboard crops are layout-only refs.
+9. Confirm `@Image` bindings are explicit: in all-purpose reference mode, character refs are identity refs, scene refs are space refs, storyboard refs are layout/edit refs, and no first-frame/keyframe binding appears unless explicitly selected.
 10. Confirm the prompt says storyboard panel refs only lock layout and forbids copying line art, labels, table borders, arrows, and text.
 11. Confirm the prompt says ambient sound/foley only and forbids BGM, songs, subtitles, title cards, fake text, and watermarks.
 12. For martial-arts clips, confirm the prompt includes `武戏调度` and only one readable attack-defense beat.
