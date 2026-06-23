@@ -18,7 +18,7 @@ Design goals:
 
 ## Copyright And Usage
 
-This repository is all-rights-reserved by default. See `LICENSE` and `NOTICE.md` before redistributing, publishing, or using generated outputs commercially.
+This repository is all-rights-reserved by default. Public visibility does not grant commercial use, redistribution, resale, or sublicensing rights. See `LICENSE`, `COMMERCIAL_LICENSE.md`, and `NOTICE.md` before redistributing, publishing, or using the package or generated outputs commercially.
 
 ## Repository Layout
 

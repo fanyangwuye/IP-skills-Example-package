@@ -7,6 +7,7 @@ This repository is an agent-facing IP creation workflow package. It contains ski
 ## Code And Skill Package
 
 - The code, skill structure, prompt templates, examples, and documentation in this repository are not granted for public reuse, redistribution, resale, or sublicensing unless the repository owner provides a separate written license.
+- Commercial use, paid deployment, redistribution, resale, sublicensing, or packaging into another product requires separate written authorization. See `COMMERCIAL_LICENSE.md`.
 - Installing this package into an agent runtime such as OpenClaw, Claude, or Codex does not transfer ownership of the package or its embedded workflow design.
 - Do not remove copyright notices, provider notices, or attribution text from redistributed internal copies.
 
