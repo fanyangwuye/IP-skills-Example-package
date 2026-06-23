@@ -18,7 +18,7 @@ Design goals:
 
 ## Copyright And Usage
 
-This repository is private by default. See `NOTICE.md` before redistributing, publishing, or using generated outputs commercially.
+This repository is all-rights-reserved by default. See `LICENSE` and `NOTICE.md` before redistributing, publishing, or using generated outputs commercially.
 
 ## Repository Layout
 
@@ -83,7 +83,7 @@ IMAGE_API_KEY=your_provider_key
 IMAGE_API_BASE=https://api.poyo.ai
 IMAGE_GEN_MODEL=gpt-image-2
 IMAGE_EDIT_MODEL=gpt-image-2-edit
-IMAGE_OUTPUT_ROOT=E:\Plans for 2026\ip-skills\outputs
+IMAGE_OUTPUT_ROOT=<repo>\outputs
 ```
 
 Required for live music generation:
@@ -92,7 +92,7 @@ Required for live music generation:
 MUSIC_PROVIDER=poyo
 MUSIC_API_KEY=your_provider_key
 MUSIC_API_BASE=https://api.poyo.ai
-MUSIC_OUTPUT_ROOT=E:\Plans for 2026\ip-skills\outputs
+MUSIC_OUTPUT_ROOT=<repo>\outputs
 MUSIC_DEFAULT_MODEL_VERSION=V5
 MUSIC_FFMPEG_BIN=optional_ffmpeg_path_for_local_audio_upload
 ```
@@ -103,7 +103,7 @@ Optional for video provider request preparation:
 VIDEO_PROVIDER=offline
 VIDEO_API_KEY=optional_for_future_live_provider
 VIDEO_API_BASE=optional_for_future_live_provider
-VIDEO_OUTPUT_ROOT=E:\Plans for 2026\ip-skills\outputs
+VIDEO_OUTPUT_ROOT=<repo>\outputs
 VIDEO_DEFAULT_MODEL=optional_provider_model
 VIDEO_DEFAULT_ASPECT_RATIO=9:16
 VIDEO_DEFAULT_RESOLUTION=480p

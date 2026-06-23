@@ -23,3 +23,5 @@ logs/*
 *.zip
 *.7z
 *.rar
+# Local/internal continuation notes
+docs/续接开发说明.md

@@ -189,6 +189,6 @@
 
 默认：
 
-`E:\Plans for 2026\ip-skills\outputs`
+`<repo>\outputs`
 
 如果未配置环境变量，代码默认回退到项目根目录下的 `outputs`。

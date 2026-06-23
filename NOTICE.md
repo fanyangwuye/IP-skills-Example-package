@@ -1,8 +1,8 @@
 # Copyright And Usage Notice
 
-Copyright (c) 2026 fanyangwuye. All rights reserved unless a separate license file says otherwise.
+Copyright (c) 2026 fanyangwuye. All rights reserved unless a separate written license says otherwise.
 
-This repository is a private IP creation workflow package. It contains skill definitions, scripts, prompts, schemas, examples, and workflow documentation for agent-assisted IP development.
+This repository is an agent-facing IP creation workflow package. It contains skill definitions, scripts, prompts, schemas, examples, and workflow documentation for agent-assisted IP development.
 
 ## Code And Skill Package
 
