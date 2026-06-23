@@ -38,6 +38,8 @@ This repository is private by default. See `NOTICE.md` before redistributing, pu
 python -m pip install -r requirements.txt
 ```
 
+See `docs/agent_config.md` for Codex, Claude Code, OpenClaw, and generic agent setup.
+
 Install the skills once for Codex auto-discovery:
 
 ```bash
