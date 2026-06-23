@@ -10,7 +10,7 @@ CheckResult = Dict[str, object]
 
 
 def run_checks(env: Optional[Dict[str, str]] = None, which: Optional[Callable[[str], Optional[str]]] = None) -> Dict:
-    env = dict(os.environ if env is None else env)
+    env = _runtime_env() if env is None else dict(env)
     which = which or shutil.which
     checks: List[CheckResult] = []
 
@@ -118,14 +118,14 @@ def _dreamina_checks(env: Dict[str, str], which: Callable[[str], Optional[str]])
 
 def _output_checks(env: Dict[str, str]) -> List[CheckResult]:
     output_roots = [
-        ("image.output_root", _env(env, "IMAGE_OUTPUT_ROOT")),
-        ("music.output_root", _env(env, "MUSIC_OUTPUT_ROOT")),
-        ("video.output_root", _env(env, "VIDEO_OUTPUT_ROOT")),
+        ("image.output_root", _env(env, "IMAGE_OUTPUT_ROOT") or _env(env, "IP_SKILLS_OUTPUT_ROOT")),
+        ("music.output_root", _env(env, "MUSIC_OUTPUT_ROOT") or _env(env, "IP_SKILLS_OUTPUT_ROOT")),
+        ("video.output_root", _env(env, "VIDEO_OUTPUT_ROOT") or _env(env, "IP_SKILLS_OUTPUT_ROOT")),
     ]
     checks = []
     for name, path in output_roots:
         if not path:
-            checks.append(_check(name, "info", f"{name} is not set.", "Default project outputs/ will be used where supported."))
+            checks.append(_check(name, "info", f"{name} is not set.", "Set IP_SKILLS_OUTPUT_ROOT to keep generated assets off C: where possible."))
             continue
         parent = path if os.path.isdir(path) else os.path.dirname(path) or path
         exists_or_parent_exists = os.path.isdir(path) or os.path.isdir(parent)
@@ -163,6 +163,34 @@ def _check(name: str, status: str, message: str, fix: str = "") -> CheckResult:
 def _env(env: Dict[str, str], name: str, default: str = "") -> str:
     return str(env.get(name, default) or "").strip()
 
+
+def _runtime_env() -> Dict[str, str]:
+    env = dict(os.environ)
+    for name, value in _windows_user_environment().items():
+        if value and not env.get(name):
+            env[name] = value
+    return env
+
+
+def _windows_user_environment() -> Dict[str, str]:
+    if os.name != "nt":
+        return {}
+    try:
+        import winreg
+
+        values: Dict[str, str] = {}
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as key:
+            index = 0
+            while True:
+                try:
+                    name, value, _kind = winreg.EnumValue(key, index)
+                except OSError:
+                    break
+                values[str(name)] = str(value or "").strip()
+                index += 1
+        return values
+    except (OSError, ImportError, TypeError, ValueError):
+        return {}
 
 def _dedupe(items: List[str]) -> List[str]:
     result = []

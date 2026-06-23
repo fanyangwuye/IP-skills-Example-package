@@ -14,8 +14,21 @@ class ImageProviderConfig:
     poll_timeout_sec: int
 
 
+def _windows_user_env(name: str) -> str:
+    if os.name != "nt":
+        return ""
+    try:
+        import winreg
+
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as key:
+            value, _kind = winreg.QueryValueEx(key, name)
+            return str(value or "").strip()
+    except (OSError, ImportError, TypeError, ValueError):
+        return ""
+
+
 def _env(name: str, default: str = "") -> str:
-    return os.environ.get(name, default).strip()
+    return os.environ.get(name, "").strip() or _windows_user_env(name) or default
 
 
 def scripts_root() -> str:
@@ -31,7 +44,7 @@ def project_root() -> str:
 
 
 def default_output_root() -> str:
-    return os.path.join(project_root(), "outputs")
+    return _env("IP_SKILLS_OUTPUT_ROOT") or os.path.join(project_root(), "outputs")
 
 
 def load_image_provider_config() -> ImageProviderConfig:

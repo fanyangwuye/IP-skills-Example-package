@@ -14,7 +14,7 @@ Design goals:
 - No UI layer
 - Agent-callable modules and scripts
 - Provider-configurable via environment variables
-- All generated outputs stored under the configured output root
+- All generated outputs stored under the configured output root; for this workflow prefer `IP_SKILLS_OUTPUT_ROOT` on a non-C drive such as `E:\Plans for 2026\ip-skills\outputs`.
 
 ## Copyright And Usage
 
@@ -83,7 +83,7 @@ IMAGE_API_KEY=your_provider_key
 IMAGE_API_BASE=https://api.poyo.ai
 IMAGE_GEN_MODEL=gpt-image-2
 IMAGE_EDIT_MODEL=gpt-image-2-edit
-IMAGE_OUTPUT_ROOT=<repo>\outputs
+IMAGE_OUTPUT_ROOT=optional_override_or_leave_empty_to_use_IP_SKILLS_OUTPUT_ROOT
 ```
 
 Required for live music generation:
@@ -92,7 +92,7 @@ Required for live music generation:
 MUSIC_PROVIDER=poyo
 MUSIC_API_KEY=your_provider_key
 MUSIC_API_BASE=https://api.poyo.ai
-MUSIC_OUTPUT_ROOT=<repo>\outputs
+MUSIC_OUTPUT_ROOT=optional_override_or_leave_empty_to_use_IP_SKILLS_OUTPUT_ROOT
 MUSIC_DEFAULT_MODEL_VERSION=V5
 MUSIC_FFMPEG_BIN=optional_ffmpeg_path_for_local_audio_upload
 ```
@@ -103,7 +103,7 @@ Optional for video provider request preparation:
 VIDEO_PROVIDER=offline
 VIDEO_API_KEY=optional_for_future_live_provider
 VIDEO_API_BASE=optional_for_future_live_provider
-VIDEO_OUTPUT_ROOT=<repo>\outputs
+VIDEO_OUTPUT_ROOT=optional_override_or_leave_empty_to_use_IP_SKILLS_OUTPUT_ROOT
 VIDEO_DEFAULT_MODEL=optional_provider_model
 VIDEO_DEFAULT_ASPECT_RATIO=9:16
 VIDEO_DEFAULT_RESOLUTION=480p
@@ -112,6 +112,8 @@ VIDEO_POLL_TIMEOUT_SEC=600
 ```
 
 `POYO_API_KEY` can be used as a shared key fallback for image, music, and future video providers.
+
+For local production runs, do not write new project assets or generated videos under C:\\Users unless the user explicitly chooses that path. Set IP_SKILLS_OUTPUT_ROOT to an E/D/G drive project directory, and only use skill-specific *_OUTPUT_ROOT values when overriding it deliberately.
 
 Video defaults to `480p` to keep test clips low-cost. Set `VIDEO_DEFAULT_RESOLUTION=720p` for clearer review clips when needed.
 
