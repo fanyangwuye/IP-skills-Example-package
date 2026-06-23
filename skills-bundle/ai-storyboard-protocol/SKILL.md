@@ -51,6 +51,23 @@ The instant a scene has **2 or more characters**, apply this protocol's axis / s
 6. **Multi-character check**: run the axis / eyeline / blocking checklist before output.
 7. **Emit Seedance fields**: per card, output copyable prompt + negative constraints + retry rule.
 
+## Storyboard Sheet Protocol
+
+When the user asks for 故事板, 分镜故事板, storyboard sheet, shot-table storyboard, or line-art manga storyboard, output a board plan rather than isolated still images unless they explicitly request separate keyframes. A sheet should normally contain 3-5 shot rows or panels with columns for 镜头号, 画面/构图, 摄影机运动, 动作/表演, 台词/声音, and 时长/时间点.
+
+Storyboard sheets are planning artifacts. They lock composition, camera side, subject scale, blocking, action phase, screen direction, eyeline, space anchors, and timing. They do not lock final character identity by themselves. For video generation, bind real character references or reviewed keyframes separately; do not let the video copy table borders, labels, sketch texture, captions, arrows, handwritten marks, or line-art style unless the final deliverable is intentionally a line-art animation.
+
+## Clip Boundary Continuation Protocol
+
+For multi-clip video, do not default to copying the previous clip tail frame into the next clip. At every boundary, choose and write one explicit continuation mode:
+
+- `hard_first_frame`: direct action/space continuation; previous final frame becomes the next first-frame input.
+- `previous_reference_reframe`: previous tail or selected frame is a continuity reference only, while the next shot rebuilds a new wide/full/medium/close/close-up/reverse/back-view/insert/cutaway composition.
+- `bridge_cutaway`: a face-light environment, prop, hand, sleeve, shadow, floor reflection, door, dust, wind, or light-change insert masks a planned camera/scale/axis change.
+- `sound_bridge_or_hard_cut`: ambience, foley, or a deliberate hard cut carries a location/time/state change where visual continuation would be misleading.
+
+Each boundary must name the carried frame/reference and state what it inherits: face/costume state when characters are visible, prop hand, action momentum, screen direction, scene layout, light direction, exposure, white balance, palette, and sound bed.
+
 ## Unified Storyboard Card (心脏)
 
 Every skill emits THIS structure:

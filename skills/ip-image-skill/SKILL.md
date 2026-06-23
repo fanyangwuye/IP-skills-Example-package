@@ -93,10 +93,18 @@ Preserve these fields in role cards, design sheets, keyframes, and video prompts
 ### Flow F: Storyboard Content Design Sheet
 
 1. Load a `storyboard_image_tasks` item from `ip-video-skill`.
-2. Generate a 3-panel storyboard design sheet for one clip: start state, main action beat, end state.
+2. Generate either a 3-panel clip storyboard design sheet (start state, main action beat, end state) or a shot-table storyboard sheet when `asset_kind=shot_table_storyboard`.
 3. Keep character, costume, props, scene layout, light direction, and palette consistent with the continuity bible.
 4. Keep Chinese production labels short and outside the image panels.
 5. Do not create dialogue subtitles, title cards, watermarks, fake UI, or decorative text inside panels.
+
+For `shot_table_storyboard`, generate a production storyboard board, not loose keyframes:
+
+- Use one complete landscape board image with clean table/grid layout.
+- Include 3-5 shot rows unless the task explicitly requests another count.
+- Keep columns such as shot number, picture/composition, camera movement, action/performance, dialogue/sound, and timing.
+- Use grayscale manga line art or sketch panels only when requested; keep labels outside panel drawings.
+- Preserve character and scene continuity from the task, but remember storyboard sheets are layout/planning assets only. Do not treat them as final identity references for live video.
 
 ### Flow B: Grid Split And Enhance
 

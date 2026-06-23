@@ -41,6 +41,17 @@ For 2+ characters, each shot must also include:
 
 Do not write isolated video prompts that can drift across shots.
 
+## Mandatory Video Continuation Gate
+
+Before proposing or preparing any multi-clip video workflow, read `references/workflows.md` and inspect the relevant provider/clip fields in `scripts/clip_plan.py` and `scripts/video_provider.py`. Do not reduce continuity to "use the previous clip tail frame as the next clip first frame." For every clip boundary, explicitly choose one continuation mode:
+
+- `hard_first_frame`: use the previous clip final frame as the next clip's true first-frame input when the same action, space, camera side, and subject scale should continue directly.
+- `previous_reference_reframe`: use the previous clip tail frame or another reviewed frame only as a continuity reference for color, light, costume, prop hand, character state, and action momentum; then rebuild the next composition as a new wide, full, medium, close, close-up, reverse, back-view, insert, or cutaway shot.
+- `bridge_cutaway`: split off a face-light bridge clip, such as environment, prop, hand, sleeve, shadow, floor reflection, door movement, dust, wind, or light shift, to mask a planned camera/scale/axis change.
+- `sound_bridge_or_hard_cut`: use sound, ambience, or a deliberate hard cut when the story moves to a different location or time state and visual tail-frame continuation would be misleading.
+
+Each boundary decision must state why that mode is being used and which frame or reference carries the handoff. Storyboard boards and panel crops are layout references only; character identity must come from reviewed character references or real keyframes. For live generation, character-bearing clips still require a real reviewed first-frame/keyframe image in `image_urls[0]` unless the clip is explicitly a characterless bridge/cutaway.
+
 ## Hard Identity Gate
 
 For any paid/live clip that contains a named or locked character, do not rely on text prompts or weak `reference_image_urls` alone. First generate or provide a reviewed character keyframe from the character design sheet plus normal scene reference, then pass that image as `image_urls[0]`.
@@ -62,6 +73,7 @@ For actual video generation, prefer clip-level generation over tiny shot-level g
 - Supported storyboard asset kinds are `clip_storyboard_board`, `shot_table_storyboard`, and `martial_action_storyboard`.
 - After generating a storyboard board, pass `storyboard_image_path` or `storyboard_image_paths` into `prepare_video_generation` / `run_video_generation`; the provider layer will crop first/mid/last panels into layout references automatically.
 - Storyboard panel crops are composition references only. They lock framing, camera angle, subject scale, blocking, pose phase, screen direction, and scene anchors; they must not copy line-art style, table borders, labels, arrows, handwritten marks, or storyboard text into the generated video.
+- For shot-table or manga-line storyboard sheets, treat the sheet as a planning board, not the final video style. The generated video must not inherit table grids, labels, sketch texture, line-art style, captions, arrows, or handwritten marks.
 - For martial-arts clips, keep the action readable: starting stance, distance, one attack-defense beat, reaction pause, and ending pose. Do not hide action with chaotic camera motion.
 - Test real IP video with image-to-video only after generating character and scene reference images; text-to-video is only useful for provider connectivity checks, not IP consistency.
 - For clip 2+, pass the previous clip's extracted last frame as `previous_clip_end_frame`; provider requests should map it to the first-frame slot when supported.
