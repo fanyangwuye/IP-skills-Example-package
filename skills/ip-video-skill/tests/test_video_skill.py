@@ -218,13 +218,53 @@ def test_clip_provider_prompts_are_model_specific_and_compact():
     assert "prompt_kind=i2v" in clip["i2v_prompt"]
     assert "prompt_kind=seedance" in clip["seedance_prompt"]
     assert "prompt_kind=t2v" in clip["t2v_prompt"]
-    for prompt in provider_prompts:
+    budgets = clip["prompt_strategy"]["provider_prompt_budgets"]
+    for kind, prompt in [("i2v", clip["i2v_prompt"]), ("seedance", clip["seedance_prompt"]), ("t2v", clip["t2v_prompt"])]:
         for section in required_sections:
             assert section in prompt
         assert len(prompt) < len(clip["clip_prompt"])
+        assert len(prompt) <= budgets[kind]
     assert clip["prompt_strategy"]["architecture"] == "Prompt Packet V1"
     assert "compact surface packets" in clip["prompt_strategy"]["provider_prompts"]
 
+
+def test_clip_provider_prompt_budget_preserves_required_sections_for_long_clip():
+    task = copy.deepcopy(_task())
+    long_visual = "林缺站在黄泉饭店大厅中央，" + "柜台、厨房门、雨夜玻璃窗、红色招牌反光、湿冷地面、菜单账本、托盘、菜刀、门口阴影、墙面旧钟反复进入画面，" * 12
+    task["blueprint"]["segments"] = [
+        {
+            "index": 1,
+            "start_sec": 0,
+            "end_sec": 5,
+            "visual": long_visual + "林缺抬眼看向门口。",
+            "voiceover": "雨夜，饭店重新开门。",
+        },
+        {
+            "index": 2,
+            "start_sec": 5,
+            "end_sec": 11,
+            "visual": long_visual + "牛头端着托盘从厨房出来，和林缺隔着柜台对视。",
+            "voiceover": "员工回来了。",
+        },
+    ]
+    handoff = build_video_handoff(task)
+    clip = handoff["clip_plan"][0]
+    required_sections = [
+        "Prompt Packet V1",
+        "Global Context",
+        "Internal Story Facts",
+        "Reference Bindings",
+        "Spatial Blocking",
+        "15s Timeline",
+        "Continuation Contract",
+        "Platform-Safe Surface Wording",
+        "Execution Constraints",
+    ]
+    for kind in ("i2v", "seedance", "t2v"):
+        prompt = clip[f"{kind}_prompt"]
+        assert len(prompt) <= clip["prompt_strategy"]["provider_prompt_budgets"][kind]
+        for section in required_sections:
+            assert section in prompt
 def test_character_matching_uses_role_alias_and_props_before_fallback():
     bible = build_continuity_bible(_task())
     locks = bible["character_locks"]

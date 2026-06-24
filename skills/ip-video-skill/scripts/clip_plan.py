@@ -1,5 +1,7 @@
 from typing import Dict, List, Optional
 
+PROVIDER_PROMPT_BUDGETS = {"seedance": 1600, "i2v": 1800, "t2v": 1400}
+
 try:
     from .martial_arts import build_martial_arts_layer, is_martial_arts_scene, martial_arts_text
     from .spatial_templates import high_risk_spatial_template_text
@@ -200,7 +202,8 @@ def _clip_prompt_bundle(
             "architecture": "Prompt Packet V1",
             "control_prompt": "clip_prompt keeps the full audit packet",
             "provider_prompts": "i2v/seedance/t2v are compact surface packets with all required sections",
-            "length_policy": "provider prompts keep locked facts, references, spatial blocking, timeline, and hard constraints first",
+            "length_policy": "provider prompts keep required Prompt Packet sections and apply per-provider character budgets",
+            "provider_prompt_budgets": PROVIDER_PROMPT_BUDGETS,
         },
     }
 
@@ -251,9 +254,59 @@ def _clip_provider_prompt(
         f"Platform-Safe Surface Wording: {surface} Surface wording must stay visually equivalent to the locked references and storyboard; do not replace locked characters with strangers, masks, machines, celebrities, animals or unrelated creatures.",
         f"Execution Constraints: {storyboard} {martial} {execution}",
     ]
-    return "\n".join(part.strip() for part in parts if part.strip())
+    return _budget_provider_prompt(kind, parts)
 
 
+def _budget_provider_prompt(kind: str, parts: List[str]) -> str:
+    budget = PROVIDER_PROMPT_BUDGETS.get(kind, 1600)
+    cleaned = [part.strip() for part in parts if str(part or "").strip()]
+    prompt = "\n".join(cleaned)
+    if len(prompt) <= budget:
+        return prompt
+
+    compressed = []
+    for index, part in enumerate(cleaned):
+        if part.startswith("Prompt Packet V1"):
+            compressed.append(part)
+        elif part.startswith("Global Context"):
+            compressed.append(_clip_text(part, 220))
+        elif part.startswith("Internal Story Facts"):
+            compressed.append(_clip_text(part, 260))
+        elif part.startswith("Reference Bindings"):
+            compressed.append(_clip_text(part, 260))
+        elif part.startswith("Spatial Blocking"):
+            compressed.append(_clip_text(part, 260))
+        elif part.startswith("15s Timeline"):
+            compressed.append(_clip_text(part, 360))
+        elif part.startswith("Continuation Contract"):
+            compressed.append("Continuation Contract: Keep continuity state, light, costume, prop hand, screen direction and clip boundary mode traceable; do not reset composition unless approved.")
+        elif part.startswith("Platform-Safe Surface Wording"):
+            compressed.append(_clip_text(part, 260))
+        elif part.startswith("Execution Constraints"):
+            compressed.append(_clip_text(part, 320))
+        else:
+            compressed.append(_clip_text(part, 180))
+    prompt = "\n".join(compressed)
+    if len(prompt) <= budget:
+        return prompt
+
+    required_prefixes = [
+        "Prompt Packet V1",
+        "Global Context",
+        "Internal Story Facts",
+        "Reference Bindings",
+        "Spatial Blocking",
+        "15s Timeline",
+        "Continuation Contract",
+        "Platform-Safe Surface Wording",
+        "Execution Constraints",
+    ]
+    final_parts = []
+    per_section = max(int((budget - 80) / len(required_prefixes)), 80)
+    for prefix in required_prefixes:
+        match = next((part for part in compressed if part.startswith(prefix)), prefix + ":")
+        final_parts.append(_clip_text(match, per_section))
+    return "\n".join(final_parts)
 def _compact_reference_text(video_refs: List[Dict], space_refs: List[Dict]) -> str:
     video = ", ".join(_ref_label(ref) for ref in video_refs[:4]) or "locked character/normal scene references"
     space = ", ".join(_ref_label(ref) for ref in space_refs[:3]) or "panorama anchors for layout only"
