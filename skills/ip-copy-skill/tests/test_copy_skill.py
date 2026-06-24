@@ -267,7 +267,7 @@ def test_quality_evaluator_reports_creative_quality_warnings():
             "characters": [{"name": "林缺"}, {"name": "牛头"}],
         },
     )
-    assert scene_report["quality_report_version"] == "1.1"
+    assert scene_report["quality_report_version"] == "1.2"
     assert "creative_checks" in scene_report
     assert "炸弹" in scene_report["creative_checks"]["unsupported_details"]
     assert any("unsupported" in item or "not found" in item for item in scene_report["warnings"])
@@ -293,6 +293,48 @@ def test_quality_evaluator_reports_creative_quality_warnings():
     assert checks["dialogue_voice"]["generic_line_count"] == 1
     assert any("speaker not in locked" in item for item in script_report["warnings"])
     assert checks["hook_density"]["total"] == 1
+
+def test_quality_evaluator_reports_format_specific_branch_and_case_warnings():
+    interactive_report = evaluate_script_quality(
+        {
+            "scenes": [
+                {
+                    "visual": "林缺站在大厅，玩家选择查账本。",
+                    "voiceover": "第一次选择出现。",
+                    "dialogue": [{"speaker": "林缺", "line": "先查账本。"}],
+                    "start_sec": 0,
+                    "end_sec": 12,
+                }
+            ],
+            "handoff": {"can_build_blueprint": True},
+        },
+        InteractiveFilmGameAdapter().spec(),
+    )
+    interactive_specific = interactive_report["creative_checks"]["format_specific"]
+    assert interactive_specific["format_name"] == "interactive_film_game"
+    assert "node_graph" in interactive_specific["missing_artifacts"]
+    assert any("branch artifacts" in item for item in interactive_report["warnings"])
+
+    murder_report = evaluate_script_quality(
+        {
+            "scenes": [
+                {
+                    "visual": "主持人公布第一条线索，时间线出现矛盾。",
+                    "voiceover": "线索指向不在场证明。",
+                    "dialogue": [{"speaker": "主持人", "line": "第一轮线索公开。"}],
+                    "start_sec": 0,
+                    "end_sec": 12,
+                }
+            ],
+            "handoff": {"can_build_blueprint": True},
+        },
+        MurderMysteryAdapter().spec(),
+    )
+    murder_specific = murder_report["creative_checks"]["format_specific"]
+    assert murder_specific["format_name"] == "murder_mystery"
+    assert "truth_chain" in murder_specific["missing_artifacts"]
+    assert any("case artifacts" in item for item in murder_report["warnings"])
+
 def test_offline_creative_engine_requires_fallback_without_live_call():
     engine = OfflineCreativeEngine()
     result = engine.generate(

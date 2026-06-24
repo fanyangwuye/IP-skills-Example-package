@@ -45,7 +45,7 @@ def evaluate_scene_cards_quality(scene_cards: List[Dict[str, Any]], adapter_spec
     warnings.extend(creative_checks.get("warnings", []))
     status = _status(issues)
     return {
-        "quality_report_version": "1.1",
+        "quality_report_version": "1.2",
         "target": "scene_cards",
         "status": status,
         "score": _score(status, issues, warnings),
@@ -84,11 +84,11 @@ def evaluate_script_quality(script: Dict[str, Any], adapter_spec=None, polished:
         for key in ("image_requirements", "video_requirements", "music_requirements"):
             if key not in handoff:
                 warnings.append(f"handoff.{key} missing; downstream checks may be weaker")
-    creative_checks = _evaluate_creative_script(script, context, polished=polished)
+    creative_checks = _evaluate_creative_script(script, context, polished=polished, adapter_spec=adapter_spec)
     warnings.extend(creative_checks.get("warnings", []))
     status = _status(issues)
     return {
-        "quality_report_version": "1.1",
+        "quality_report_version": "1.2",
         "target": "polished_script" if polished else "script_draft",
         "status": status,
         "score": _score(status, issues, warnings),
@@ -127,7 +127,7 @@ def _evaluate_creative_cards(cards: List[Dict[str, Any]], context: Dict[str, Any
     }
 
 
-def _evaluate_creative_script(script: Dict[str, Any], context: Dict[str, Any], polished: bool = False) -> Dict[str, Any]:
+def _evaluate_creative_script(script: Dict[str, Any], context: Dict[str, Any], polished: bool = False, adapter_spec=None) -> Dict[str, Any]:
     source_text = str(context.get("source_text") or "")
     locked_names = _locked_character_names(context)
     scenes = script.get("scenes") or []
@@ -147,8 +147,10 @@ def _evaluate_creative_script(script: Dict[str, Any], context: Dict[str, Any], p
         warnings.append("script may lack a trackable emotion curve")
     dialogue_voice = _dialogue_voice_check(scenes, locked_names)
     warnings.extend(dialogue_voice.get("warnings", []))
+    format_specific = _format_specific_script_checks(script, scenes, scene_texts, adapter_spec)
+    warnings.extend(format_specific.get("warnings", []))
     return {
-        "check_version": "creative-quality-v1",
+        "check_version": "creative-quality-v1.2",
         "unsupported_details": _unsupported_details(scene_texts, source_text),
         "character_consistency": {
             "locked_names": locked_names,
@@ -158,10 +160,71 @@ def _evaluate_creative_script(script: Dict[str, Any], context: Dict[str, Any], p
         "causality": causality,
         "hook_density": hook_density,
         "emotion_curve": emotion_curve,
+        "format_specific": format_specific,
         "polished": polished,
         "warnings": warnings,
     }
 
+
+
+def _format_specific_script_checks(script: Dict[str, Any], scenes: List[Dict[str, Any]], scene_texts: List[str], adapter_spec=None) -> Dict[str, Any]:
+    format_name = str(getattr(adapter_spec, "format_name", "") or "")
+    if format_name == "interactive_film_game":
+        return _interactive_film_game_checks(script, scene_texts)
+    if format_name == "murder_mystery":
+        return _murder_mystery_checks(script, scene_texts)
+    return {"format_name": format_name, "warnings": []}
+
+
+def _interactive_film_game_checks(script: Dict[str, Any], scene_texts: List[str]) -> Dict[str, Any]:
+    required = ["node_graph", "choice_consequence_map", "state_flags", "convergence_points", "ending_conditions"]
+    missing = [key for key in required if not _has_structural_value(script, key)]
+    branch_terms = ("选择", "分支", "节点", "后果", "结局", "状态", "变量", "汇合", "choice", "branch", "node", "ending")
+    signal_count = _signal_count(scene_texts, branch_terms)
+    warnings = []
+    if missing:
+        warnings.append("interactive_film_game missing explicit branch artifacts: " + ", ".join(missing))
+    if scene_texts and signal_count < max(1, len(scene_texts) // 2):
+        warnings.append("interactive_film_game scenes may not visibly expose choice, branch, state, or ending logic")
+    return {
+        "format_name": "interactive_film_game",
+        "required_artifacts": required,
+        "missing_artifacts": missing,
+        "branch_signal_count": signal_count,
+        "warnings": warnings,
+    }
+
+
+def _murder_mystery_checks(script: Dict[str, Any], scene_texts: List[str]) -> Dict[str, Any]:
+    required = ["truth_chain", "character_pov_packets", "clue_distribution", "solution_logic"]
+    missing = [key for key in required if not _has_structural_value(script, key)]
+    clue_terms = ("线索", "真相", "动机", "时间线", "不在场", "嫌疑", "主持人", "clue", "motive", "alibi", "solution")
+    signal_count = _signal_count(scene_texts, clue_terms)
+    warnings = []
+    if missing:
+        warnings.append("murder_mystery missing explicit case artifacts: " + ", ".join(missing))
+    if scene_texts and signal_count < max(1, len(scene_texts) // 2):
+        warnings.append("murder_mystery scenes may not visibly expose clue, motive, timeline, alibi, or solution logic")
+    return {
+        "format_name": "murder_mystery",
+        "required_artifacts": required,
+        "missing_artifacts": missing,
+        "clue_signal_count": signal_count,
+        "warnings": warnings,
+    }
+
+
+def _has_structural_value(script: Dict[str, Any], key: str) -> bool:
+    value = script.get(key)
+    if value not in (None, "", [], {}):
+        return True
+    handoff = script.get("handoff") or {}
+    value = handoff.get(key)
+    return value not in (None, "", [], {})
+
+
+def _signal_count(texts: List[str], terms) -> int:
+    return sum(1 for text in texts if any(term in text for term in terms))
 
 def _merge_context(script: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
     merged = dict(context or {})

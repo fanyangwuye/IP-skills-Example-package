@@ -27,7 +27,7 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 - Apply the `interactive_film_game` FormatAdapter V1 for branching node graphs, player choices, state flags, convergence points, endings, and replay handoff requirements
 - Build CreativeEngine prompt packs and provider request dry-run JSON for review without making live calls
 - Include creative diagnostics in prompt packs: genre profile, character voice contract, causality contract, rhythm contract, forbidden drift, and quality gate
-- Include deterministic creative-quality checks in `quality_report`: unsupported details, character consistency, dialogue voice, causality, hook density, and emotion curve
+- Include deterministic creative-quality checks in `quality_report`: unsupported details, character consistency, dialogue voice, causality, hook density, emotion curve, and format-specific checks for branch/case structures
 
 ## Tool Boundaries
 
@@ -129,7 +129,7 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 - `scripts/copy_skill.py`: task entrypoint, interactive adaptation state, scene card builder, script draft builder, viral explainer builder, script polish helper, blueprint builder, handoff builder, and IP asset pack builder
 - `scripts/creative_engine/`: CreativeEngine base types, offline engine, mock engine, live guard placeholder, and schema checks
 - `scripts/format_adapters/`: FormatAdapter base, `vertical_short_drama` V1 adapter, `overseas_short_drama` V1 adapter, `feature_film` V1 adapter, `long_series` V1 adapter, `murder_mystery` V1 adapter, and `interactive_film_game` V1 adapter
-- `scripts/quality_evaluator/`: structure, scaffold, and deterministic creative-quality checks for scene cards and scripts
+- `scripts/quality_evaluator/`: structure, scaffold, deterministic creative-quality checks, and format-specific branch/case checks for scene cards and scripts
 
 ## References
 
