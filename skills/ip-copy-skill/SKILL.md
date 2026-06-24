@@ -21,6 +21,7 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 - Attach `generation_source` and `quality_report` fields so downstream agents know whether an output is fallback scaffold, mock engine output, or future live output
 - Apply the `vertical_short_drama` FormatAdapter V1 for 9:16 short-drama structure, rhythm rules, and downstream handoff requirements
 - Apply the `overseas_short_drama` FormatAdapter V1 for overseas short-drama structure, localization rules, translation-ready dialogue, and culture-safe handoff requirements
+- Apply the `feature_film` FormatAdapter V1 for three-act feature-film structure, sequence turns, theme question, character arc, and widescreen handoff requirements
 - Build CreativeEngine prompt packs and provider request dry-run JSON for review without making live calls
 - Include creative diagnostics in prompt packs: genre profile, character voice contract, causality contract, rhythm contract, forbidden drift, and quality gate
 - Include deterministic creative-quality checks in `quality_report`: unsupported details, character consistency, dialogue voice, causality, hook density, and emotion curve
@@ -74,7 +75,7 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 ### Flow B2: Adaptation Scene Cards
 
 1. Accept an `adaptation_state`
-2. Select a FormatAdapter, defaulting to `vertical_short_drama`; `overseas_short_drama` is available when requested through `target_format` or `format_adapter`
+2. Select a FormatAdapter, defaulting to `vertical_short_drama`; `overseas_short_drama` and `feature_film` are available when requested through `target_format` or `format_adapter`
 3. Try the configured CreativeEngine path first; default offline mode returns `fallback_required` without spending quota
 4. Use deterministic scene cards only as clearly marked fallback scaffold with `generation_source=fallback_scaffold`
 5. Each card includes visual, voiceover, subtitle, music cue, duration, and image `asset_goal`
@@ -124,7 +125,7 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 - `scripts/blueprint_validate.py`: deterministic blueprint validation
 - `scripts/copy_skill.py`: task entrypoint, interactive adaptation state, scene card builder, script draft builder, viral explainer builder, script polish helper, blueprint builder, handoff builder, and IP asset pack builder
 - `scripts/creative_engine/`: CreativeEngine base types, offline engine, mock engine, live guard placeholder, and schema checks
-- `scripts/format_adapters/`: FormatAdapter base, `vertical_short_drama` V1 adapter, and `overseas_short_drama` V1 adapter
+- `scripts/format_adapters/`: FormatAdapter base, `vertical_short_drama` V1 adapter, `overseas_short_drama` V1 adapter, and `feature_film` V1 adapter
 - `scripts/quality_evaluator/`: structure, scaffold, and deterministic creative-quality checks for scene cards and scripts
 
 ## References
@@ -145,7 +146,7 @@ If only `source_text` is provided, extract multiple important named roles, title
 
 ## Adaptation Boundary
 
-This version provides controlled adaptation planning, CreativeEngine routing, vertical short-drama structure, scaffold fallback, and quality reports.
+This version provides controlled adaptation planning, CreativeEngine routing, vertical short-drama structure, overseas short-drama structure, feature-film structure, scaffold fallback, and quality reports.
 It still does not claim final polished prose or full model-native rewriting.
 Offline mode never calls a provider and now returns a reviewable prompt pack under `raw_response`. Mock mode is for tests. The live LLM engine is guarded; after double approval it currently builds a dry-run provider request with `network_call_allowed=false` and still does not make provider calls. Prompt packs are stronger control artifacts, not proof that final creative prose has been generated.
 For production writing, an agent should use this state, adapter metadata, and scene/script structure as the control layer, then call an explicitly approved writing model for richer dialogue and prose where needed.

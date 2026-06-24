@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from blueprint_validate import validate_blueprint  # noqa: E402
 from copy_skill import run_task  # noqa: E402
 from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_prompt_pack, build_provider_request  # noqa: E402
-from format_adapters import OverseasShortDramaAdapter, VerticalShortDramaAdapter  # noqa: E402
+from format_adapters import FeatureFilmAdapter, OverseasShortDramaAdapter, VerticalShortDramaAdapter  # noqa: E402
 from license_gate import check_license, gate  # noqa: E402
 from quality_evaluator import evaluate_scene_cards_quality, evaluate_script_quality  # noqa: E402
 
@@ -85,6 +85,39 @@ def test_overseas_short_drama_prompt_pack_uses_adapter_constraints():
         assert "dialogue_translation_ready" in prompt_pack["user_prompt"]
         assert "culture_safe_surface_wording" in prompt_pack["user_prompt"]
         assert result["handoff"]["provider_request"]["network_call_allowed"] is False
+
+def test_feature_film_adapter_spec_locks_three_act_rules():
+    adapter = FeatureFilmAdapter()
+    spec = adapter.spec()
+    assert spec.format_name == "feature_film"
+    assert spec.structure_levels == ["project", "act", "sequence", "scene", "beat"]
+    assert spec.default_aspect_ratio == "2.39:1"
+    assert spec.default_episode_duration_sec == 6600
+    assert "three_act_structure_visible" in spec.quality_checks
+    assert "theme_question" in spec.handoff_requirements["copy"]
+    assert "act_one_establishes_theme_wound_goal_world_and_inciting_incident" in spec.rhythm_rules
+
+
+def test_feature_film_prompt_pack_uses_adapter_constraints():
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                "mode": "build_creative_prompt_pack",
+                "target_format": "feature_film",
+                "prompt_kind": "script_scenes",
+                "title": "黄泉饭店",
+                "source_text": "林缺回到黄泉饭店。苏澜发现大厅异常。",
+                "creative_brief": {"target": "feature_film", "tone": "underworld suspense"},
+                "output_dir": output_dir,
+            }
+        )
+        prompt_pack = result["handoff"]["prompt_pack"]
+        assert prompt_pack["format_name"] == "feature_film"
+        assert "three_act_structure_visible" in prompt_pack["user_prompt"]
+        assert "theme_question" in prompt_pack["user_prompt"]
+        assert "2.39:1" in prompt_pack["user_prompt"]
+        assert result["handoff"]["provider_request"]["network_call_allowed"] is False
+
 def test_vertical_short_drama_adapter_builds_creative_engine_payload():
     adapter = VerticalShortDramaAdapter()
     payload = adapter.creative_engine_payload(
@@ -707,6 +740,33 @@ def test_build_script_draft_can_use_overseas_short_drama_adapter():
         assert script["aspect_ratio"] == "9:16"
         assert "dialogue_translation_ready" in script["quality_checks"]
         assert "culture_safe_surface_wording" in script["handoff"]["copy_requirements"]
+
+def test_build_script_draft_can_use_feature_film_adapter():
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                "mode": "build_script_draft",
+                "target_format": "feature_film",
+                "title": "黄泉饭店",
+                "scene_cards": [
+                    {
+                        "visual": "黄泉饭店大厅，林缺看见菜单账本自己翻页，饭店规则第一次露出代价。",
+                        "voiceover": "这不是回家，是他第一次看见这家饭店真正的问题。",
+                        "duration_sec": 90,
+                        "asset_goal": {"scene": "黄泉饭店大厅", "type": "feature film key sequence frame"},
+                    }
+                ],
+                "characters": [{"name": "林缺"}],
+                "total_duration_sec": 90,
+                "output_dir": output_dir,
+            }
+        )
+        script = result["handoff"]["script_draft"]
+        assert script["format_adapter"] == "feature_film"
+        assert script["aspect_ratio"] == "2.39:1"
+        assert "theme_question_and_character_wound_identified" in script["quality_checks"]
+        assert "theme_question" in script["handoff"]["copy_requirements"]
+
 def test_build_script_draft_can_use_mock_creative_engine_script_scenes():
     with tempfile.TemporaryDirectory() as output_dir:
         result = run_task(
