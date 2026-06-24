@@ -1316,6 +1316,32 @@ def test_preflight_video_generation_passes_all_purpose_clip():
     assert any(item["name"] == "prompt_packet_v1" and item["status"] == "pass" for item in report["checks"])
 
 
+
+
+def test_preflight_video_generation_respects_clip_index():
+    task = copy.deepcopy(_task())
+    task["target_clip_duration_sec"] = 5
+    task["blueprint"]["segments"] = [
+        {"index": 1, "start_sec": 0, "end_sec": 5, "visual": "林缺在柜台前检查菜单账本。"},
+        {"index": 2, "start_sec": 5, "end_sec": 10, "visual": "牛头从厨房门后端着托盘走出。"},
+    ]
+    handoff = build_video_handoff(task)
+    assert len(handoff["clip_plan"]) == 2
+    config = VideoProviderConfig("poyo_video", "test", "https://api.example", "", "seedance-2", "9:16", "480p", 1, 5)
+    report = preflight_video_generation(
+        {
+            "mode": "preflight_video_generation",
+            "provider": "poyo_video",
+            "video_handoff": handoff,
+            "clip_index": 2,
+            "reference_policy": "all_purpose_reference",
+            "reference_image_urls": [{"url": "https://files.example/linque.jpg", "role": "character_reference"}],
+        },
+        config,
+    )
+    assert report["checked_count"] == 1
+    assert all(item["unit"] == "clip_002" for item in report["checks"])
+
 def test_preflight_video_generation_blocks_old_prompt_packet():
     handoff = build_video_handoff(_task())
     clip = copy.deepcopy(handoff["clip_plan"][0])

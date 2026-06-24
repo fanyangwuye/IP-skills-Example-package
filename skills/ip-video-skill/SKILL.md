@@ -216,4 +216,5 @@ Paid/live PoYo video model policy is locked: default to `seedance-2`, not `seeda
 - `references/workflows.md`: provider-agnostic workflow and consistency rules
 - `references/prompt_architecture.md`: fixed Prompt Packet structure, internal-facts vs platform-safe wording split, storyboard/spatial/live-generation gates
 - `assets/example_build_video_handoff_task.json`: offline example
-- `assets/example_prepare_video_generation_task.json`: single-shot provider request example
+- `assets/example_preflight_video_generation_task.json`: clip-level all-purpose-reference preflight example
+- `assets/example_prepare_video_generation_task.json`: clip-level all-purpose-reference provider request example

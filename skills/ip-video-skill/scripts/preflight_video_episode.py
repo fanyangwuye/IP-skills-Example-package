@@ -73,9 +73,12 @@ def _build_requests(task: Dict, config: VideoProviderConfig) -> Tuple[List[Dict]
         return list(task["provider_requests"]), []
 
     handoff = task.get("video_handoff") or task.get("handoff") or {}
-    clips = handoff.get("clip_plan") or []
     if task.get("clip"):
         clips = [task["clip"]]
+    elif not isinstance(handoff, dict):
+        return [], ["preflight video_handoff must be an object with clip_plan, not a placeholder string"]
+    else:
+        clips = _select_clips(handoff.get("clip_plan") or [], task)
     if not clips:
         return [], ["preflight requires provider_request, provider_requests, clip, or video_handoff.clip_plan"]
 
@@ -95,6 +98,22 @@ def _build_requests(task: Dict, config: VideoProviderConfig) -> Tuple[List[Dict]
             errors.append(f"{label}: provider request build failed: {exc}")
     return requests, errors
 
+def _select_clips(clips: List[Dict], task: Dict) -> List[Dict]:
+    clip_id = task.get("clip_id")
+    if clip_id:
+        for clip in clips:
+            if clip.get("clip_id") == clip_id:
+                return [clip]
+        return []
+    if task.get("clip_index") is not None:
+        try:
+            index = int(task.get("clip_index") or 1)
+        except (TypeError, ValueError):
+            return []
+        if index < 1 or index > len(clips):
+            return []
+        return [clips[index - 1]]
+    return clips
 
 def _check_request(task: Dict, request: Dict, unit_label: str) -> Tuple[List[Dict], List[str], List[str]]:
     checks = []

@@ -1,9 +1,9 @@
 {
-  "mode": "prepare_video_generation",
+  "mode": "preflight_video_generation",
   "provider": "poyo_video",
   "video_handoff": "VIDEO_HANDOFF_JSON_HERE",
   "clip_index": 1,
-  "prompt_kind": "i2v",
+  "max_clips": 1,
   "reference_policy": "all_purpose_reference",
   "reference_image_urls": [
     {
@@ -22,6 +22,5 @@
   "aspect_ratio": "9:16",
   "resolution": "480p",
   "duration_sec": 15,
-  "output_filename": "clip_001.mp4",
   "output_dir": "OUTPUT_DIR_HERE"
 }
