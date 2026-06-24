@@ -8,7 +8,7 @@ from PIL import Image
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
-from continuity import build_continuity_bible  # noqa: E402
+from continuity import build_continuity_bible, choose_scene_id, find_character_ids_in_text  # noqa: E402
 from config import VideoProviderConfig  # noqa: E402
 from poyo_video_client import PoYoVideoClient  # noqa: E402
 from storyboard_panel_refs import build_storyboard_panel_refs  # noqa: E402
@@ -211,6 +211,38 @@ def test_clip_provider_prompts_are_model_specific_and_compact():
         assert len(prompt) < len(clip["clip_prompt"])
     assert clip["prompt_strategy"]["architecture"] == "Prompt Packet V1"
     assert "compact surface packets" in clip["prompt_strategy"]["provider_prompts"]
+
+def test_character_matching_uses_role_alias_and_props_before_fallback():
+    bible = build_continuity_bible(_task())
+    locks = bible["character_locks"]
+    assert find_character_ids_in_text("老板翻开菜单账本，抬眼看向门口。", locks) == ["lin_que"]
+    assert find_character_ids_in_text("托盘从厨房门后出现，员工压低菜刀。", locks) == ["niu_tou"]
+
+
+def test_scene_matching_uses_weighted_specific_tokens_not_generic_time_tokens():
+    scene_locks = {
+        "office_alley": {
+            "name": "场1-1 夜/内 巡捕房值班房、窄巷子",
+            "layout_lock": "夜内巡捕房值班房，旁边有窄巷子",
+            "landmark_lock": ["巡捕房", "窄巷子"],
+        },
+        "sect_hall": {
+            "name": "场1-2 夜/内 宗门大殿",
+            "layout_lock": "夜内宗门大殿，石阶、云雾、祖师像",
+            "landmark_lock": ["宗门大殿", "石阶", "祖师像"],
+        },
+    }
+    assert choose_scene_id("夜色里，宗门大殿的石阶被云雾压住。", scene_locks) == "sect_hall"
+
+
+def test_action_opening_uses_content_driven_framing_camera_and_end_state():
+    handoff = build_video_handoff(_martial_task())
+    shot = handoff["shots"][0]
+    card = shot["storyboard_card"]
+    assert "FS/MS 动作中景" in card["framing"]
+    assert "stable action follow" in card["camera_motion"]
+    assert "武器或关键道具已进入" in shot["continuity_state"]["current_end_state"]
+    assert "高度警觉" in shot["prompt_profile"]["performance_control"]
 def test_storyboard_image_task_for_clip_design_sheet():
     handoff = build_video_handoff(_task())
     task = handoff["storyboard_image_tasks"][0]

@@ -98,7 +98,7 @@ def _build_shot(index: int, segment: Dict, bible: Dict, previous_end_state: str)
         "characters_present": character_ids,
         "axis": axis,
         "screen_direction": screen_direction,
-        "framing": _framing(index, len(character_ids)),
+        "framing": _framing(index, len(character_ids), visual),
         "camera_motion": _camera_motion(index, visual),
         "eyeline": eyeline,
         "performance_action": f"{previous_end_state} -> {_main_action(visual)} -> {end_state}",
@@ -249,24 +249,66 @@ def _main_action(visual: str) -> str:
 def _end_state(index: int, visual: str, character_ids: List[str], scene_id: str) -> str:
     subject = "、".join(character_ids) if character_ids else "镜头主体"
     scene = scene_id or "当前场景"
-    action = _main_action(visual) or "完成本镜主要动作"
-    return f"镜头{index}结束：{subject}在{scene}保持可追踪站位，动作结果为：{action}"
+    result = _action_result(visual)
+    return f"镜头{index}结束：{subject}在{scene}保持可追踪站位，结果状态为：{result}"
 
 
-def _framing(index: int, n_characters: int) -> str:
+def _action_result(visual: str) -> str:
+    text = str(visual or "")
+    if any(word in text for word in ["拔剑", "起势", "举剑", "抬刀", "举起"]):
+        return "武器或关键道具已进入可见起势位置，人物停在可继续追踪的预备姿态"
+    if any(word in text for word in ["格挡", "挡住", "拦住"]):
+        return "攻防接触已被挡住，双方距离、武器方向和重心落点清楚"
+    if any(word in text for word in ["反击", "逼退", "击退", "推开"]):
+        return "对手被迫后退，主角收势停住，空间距离变化在画面内成立"
+    if any(word in text for word in ["关门", "合上门", "门关"]):
+        return "人物已完成过门或关门动作，门的内外两侧和威胁位置保持清楚"
+    if any(word in text for word in ["坐下", "放下", "停下", "站定"]):
+        return "主体完成动作后停在稳定姿态，表情和道具状态可接下一镜"
+    if any(word in text for word in ["跑", "追", "冲", "逃"]):
+        return "主体沿既定运动轴继续前进，屏幕方向和追逐距离保持可追踪"
+    if any(word in text for word in ["看向", "对视", "抬眼", "凝视"]):
+        return "视线落点已经建立，双方眼线和情绪压力可接下一镜"
+    return _main_action(visual) or "完成本镜主要动作并保持可追踪站位"
+
+
+def _framing(index: int, n_characters: int, visual: str) -> str:
+    if _is_insert_or_prop_shot(visual):
+        return "CU/ECU 道具或手部插入镜头，清楚交代关键物件状态"
+    if any(word in visual for word in ["拔剑", "格挡", "反击", "追", "冲", "逃", "打", "闪避"]):
+        return "FS/MS 动作中景，能看清距离、脚步和攻防方向"
+    if any(word in visual for word in ["全景", "大厅", "街道", "荒原", "宗门", "大殿", "战场", "门口", "窗外"]):
+        return "WS/LS 建立空间、地标和人物站位"
+    if any(word in visual for word in ["对视", "隔着", "谈判", "争执", "逼近"]):
+        return "MS/OTS 双人关系镜头，轴线和眼线清楚"
+    if any(word in visual for word in ["表情", "眼神", "抬眼", "低声", "咬牙", "冷笑", "落泪"]):
+        return "CU 人物脸部与眼神特写，保留微表情"
     if index == 1:
-        return "WS/LS 建立空间和人物站位"
+        return "MS 建立主体和最近空间关系，不强制拉成远景"
     if n_characters >= 2:
         return "MS 双人关系镜头，必要时 OTS 近景"
     return "MS/CU 主体表演清楚"
 
 
 def _camera_motion(index: int, visual: str) -> str:
-    if any(word in visual for word in ["跑", "追", "冲", "打", "逃"]):
-        return "handheld track，速度跟随动作但保持主体清楚"
+    if _is_insert_or_prop_shot(visual):
+        return "locked-off or tiny push-in，稳定拍清道具状态，不做装饰运镜"
+    if any(word in visual for word in ["追", "逃", "奔", "跑"]):
+        return "controlled tracking shot，沿运动轴跟随但保持主体和追逐距离清楚"
+    if any(word in visual for word in ["拔剑", "格挡", "反击", "闪避", "打", "冲"]):
+        return "stable action follow，低幅跟随一次攻防，命中点短暂停留，不乱晃"
+    if any(word in visual for word in ["对视", "看向", "抬眼", "低声", "凝视"]):
+        return "static or slow push，停在眼神和情绪落点0.3-0.5秒"
+    if any(word in visual for word in ["走进", "进入", "推门", "关门", "穿过"]):
+        return "dolly or lateral follow，拍清跨越边界的先后顺序和门内外关系"
     if index == 1:
-        return "slow dolly in，先交代空间再靠近主体"
+        return "slow establishing push，先交代主体与空间关系，再靠近叙事重点"
     return "static or slow push，优先保持表演和连续性"
+
+
+def _is_insert_or_prop_shot(visual: str) -> bool:
+    text = str(visual or "")
+    return any(word in text for word in ["特写", "超特写", "插入", "手部", "手指", "刀叉", "账本", "菜单", "符箓", "丹炉", "令牌", "探测器", "托盘"])
 
 
 def _blocking_distance(character_ids: List[str]) -> str:

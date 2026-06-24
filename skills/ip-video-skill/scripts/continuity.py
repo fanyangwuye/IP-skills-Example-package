@@ -202,26 +202,37 @@ def _build_style_lock(task: Dict, ip_asset_pack: Dict, blueprint: Dict, polished
 
 
 def find_character_ids_in_text(text: str, character_locks: Dict) -> List[str]:
-    found = []
-    for char_id, lock in character_locks.items():
-        name = str(lock.get("name") or "")
-        role = str(lock.get("role") or "")
-        if name and name in text:
-            found.append(char_id)
-        elif role and role in text:
-            found.append(char_id)
-    if found:
-        return _dedupe(found)
+    text = str(text or "")
+    scored: List[tuple] = []
+    for order, (char_id, lock) in enumerate(character_locks.items()):
+        aliases = _character_aliases(char_id, lock)
+        score = 0
+        for alias in aliases:
+            if alias and alias in text:
+                score += 4 if len(alias) >= 2 else 1
+        for prop in lock.get("prop_locks") or []:
+            prop_name = str(prop.get("name") or prop.get("prop_id") or "").strip()
+            if prop_name and prop_name in text:
+                score += 2
+        if score > 0:
+            scored.append((score, order, char_id))
+    if scored:
+        scored.sort(key=lambda item: (-item[0], item[1]))
+        return _dedupe([char_id for _, _, char_id in scored])[:2]
     all_ids = list(character_locks.keys())
     return all_ids[: min(2, len(all_ids))]
 
 
 def choose_scene_id(text: str, scene_locks: Dict) -> Optional[str]:
-    for scene_id, lock in scene_locks.items():
-        haystack = " ".join([str(lock.get("name", "")), str(lock.get("layout_lock", ""))])
-        if any(token and token in text for token in _scene_tokens(haystack)):
-            return scene_id
-    return next(iter(scene_locks.keys()), None) if scene_locks else None
+    text = str(text or "")
+    best_id = None
+    best_score = 0
+    for order, (scene_id, lock) in enumerate(scene_locks.items()):
+        score = _scene_match_score(text, scene_id, lock)
+        if score > best_score:
+            best_score = score
+            best_id = scene_id
+    return best_id or (next(iter(scene_locks.keys()), None) if scene_locks else None)
 
 
 def _iter_source_segments(blueprint: Dict, polished_script: Dict) -> Iterable[Dict]:
@@ -278,8 +289,64 @@ def _infer_palette(text: str) -> str:
     return "自然电影色调，低漂移"
 
 
+def _character_aliases(char_id: str, lock: Dict) -> List[str]:
+    aliases = [str(char_id or "")]
+    for key in ("name", "role"):
+        value = str(lock.get(key) or "").strip()
+        if value:
+            aliases.append(value)
+            aliases.extend(_role_aliases(value))
+    aliases.extend(str(item).strip() for item in lock.get("identity_anchors") or [] if str(item).strip())
+    aliases.extend(_name_short_aliases(str(lock.get("name") or "")))
+    return _dedupe([alias for alias in aliases if alias])
+
+
+def _role_aliases(value: str) -> List[str]:
+    known = [
+        "老板", "员工", "侍者", "服务员", "调查者", "主角", "男主", "女主", "师尊", "师父", "徒弟",
+        "剑客", "宗主", "长老", "弟子", "反派", "对手", "客人", "巡捕", "系统",
+    ]
+    return [item for item in known if item in value]
+
+
+def _name_short_aliases(name: str) -> List[str]:
+    if not name or len(name) < 2:
+        return []
+    aliases = []
+    if len(name) == 2:
+        aliases.append(name[0])
+    if len(name) >= 3:
+        aliases.append(name[-2:])
+    return aliases
+
+
+def _scene_match_score(text: str, scene_id: str, lock: Dict) -> int:
+    score = 0
+    name = str(lock.get("name") or "")
+    layout = str(lock.get("layout_lock") or "")
+    if name and name in text:
+        score += 8
+    if scene_id and str(scene_id) in text:
+        score += 6
+    for token in _scene_tokens(" ".join([name, layout])):
+        if token in text:
+            score += 3 if len(token) >= 4 else 1
+    for landmark in lock.get("landmark_lock") or []:
+        landmark = str(landmark or "")
+        if landmark and landmark in text:
+            score += 2
+    return score
+
+
 def _scene_tokens(text: str) -> List[str]:
-    return [item for item in re.split(r"[\s,，。/、]+", text) if len(item) >= 2][:12]
+    weak = {"场", "景", "夜", "日", "内", "外", "场景", "环境", "参考", "夜内", "夜外", "日内", "日外"}
+    tokens = []
+    for item in re.split(r"[\s,，。/、:：;；()（）\-－]+", str(text or "")):
+        item = item.strip()
+        if len(item) < 2 or item in weak or item.isdigit():
+            continue
+        tokens.append(item)
+    return _dedupe(tokens)[:16]
 
 
 def _join_parts(*parts: Optional[str]) -> str:

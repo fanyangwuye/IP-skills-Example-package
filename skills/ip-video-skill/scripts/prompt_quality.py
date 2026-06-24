@@ -267,12 +267,23 @@ def _retry_advice(storyboard_card: Dict) -> List[str]:
 
 
 def _emotion_from_visual(visual: str) -> str:
-    if any(word in visual for word in ["对视", "挡", "逼", "刀", "追", "冲", "打"]):
-        return "紧张、警觉、压迫"
-    if any(word in visual for word in ["雨", "夜", "门", "暗", "黑"]):
+    text = str(visual or "")
+    if any(word in text for word in ["渡劫", "天雷", "雷劫", "飞升", "顿悟", "心魔", "剑意", "灵力暴涨"]):
+        return "震撼、压抑、临界突破"
+    if any(word in text for word in ["拔剑", "格挡", "反击", "压制", "逼退", "横刀", "出手", "攻防"]):
+        return "高度警觉、克制杀意、动作专注"
+    if any(word in text for word in ["追", "冲", "逃", "奔", "撞", "扑来"]):
+        return "急迫、恐惧压迫、求生本能"
+    if any(word in text for word in ["对视", "逼", "质问", "审视", "沉默", "低声", "抬眼"]):
+        return "压迫、试探、克制对峙"
+    if any(word in text for word in ["规则", "账本", "系统", "探测器", "异常", "发现", "原来"]):
+        return "疑惑、判断、信息反转"
+    if any(word in text for word in ["雨", "夜", "门", "暗", "黑", "雾", "黄泉", "地府", "诡异"]):
         return "悬疑、迟疑、克制不安"
-    if any(word in visual for word in ["笑", "缓", "放下", "走出"]):
+    if any(word in text for word in ["笑", "缓", "放下", "走出", "松开", "重逢", "拥抱"]):
         return "释放、余震、轻微缓和"
+    if any(word in text for word in ["落泪", "哽咽", "诀别", "牺牲", "回忆"]):
+        return "隐忍、悲伤、情绪压低"
     return "专注、判断、情绪推进"
 
 
