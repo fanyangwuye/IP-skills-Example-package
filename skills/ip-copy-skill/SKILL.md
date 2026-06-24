@@ -1,6 +1,6 @@
 ---
 name: ip-copy-skill
-description: "Build structured IP adaptation outputs for downstream agent skills. Use this skill when an agent needs to validate IP rights, organize adaptation direction, build a clip blueprint, or hand off character and asset directions to the image skill. This local version focuses on deterministic planning, validation, and handoff, not on pretending to fully rewrite prose with a hidden external model."
+description: "Build structured IP adaptation outputs for downstream agent skills. Use this skill when an agent needs to validate IP rights, organize adaptation direction, build scene cards/script scaffolds, run offline/mock CreativeEngine checks, apply the vertical short-drama adapter, or hand off character and asset directions to image/video/music skills. This local version focuses on controlled planning, validation, quality reports, and guarded creative-engine integration; live model writing is not enabled by default."
 ---
 
 # IP Copy Skill
@@ -17,6 +17,9 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 - Polish script drafts with deterministic dialogue tightening and conflict notes
 - Build viral short-video explainer scripts from source text or script drafts without confusing them with scene cards
 - Build a minimal content brain layer before image generation
+- Route scene-card, script-draft, and polish flows through the guarded CreativeEngine interface when configured
+- Attach `generation_source` and `quality_report` fields so downstream agents know whether an output is fallback scaffold, mock engine output, or future live output
+- Apply the `vertical_short_drama` FormatAdapter V1 for 9:16 short-drama structure, rhythm rules, and downstream handoff requirements
 
 ## Tool Boundaries
 
@@ -25,9 +28,12 @@ description: "Build structured IP adaptation outputs for downstream agent skills
   - Build structured JSON outputs
   - Validate blueprints
   - Write results into `output_dir`
+  - Use offline/mock CreativeEngine modes for tests and structured handoff validation
+  - Return quality reports for scene cards, script drafts, and polished scripts
 - Forbidden:
   - Bypass the license gate
-  - Claim full AI prose adaptation when only deterministic planning is implemented
+  - Claim full AI prose adaptation when only deterministic planning or mock output is implemented
+  - Call live LLM/image/video/music providers unless the user explicitly confirms live generation and the task enables it
 
 ## Core Flows
 
@@ -54,25 +60,29 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 ### Flow B2: Adaptation Scene Cards
 
 1. Accept an `adaptation_state`
-2. Build 3-8 short-drama-ready scene cards
-3. Each card includes visual, voiceover, subtitle, music cue, duration, and image `asset_goal`
-4. The result can be passed into `build_blueprint`
+2. Select a FormatAdapter, defaulting to `vertical_short_drama`
+3. Try the configured CreativeEngine path first; default offline mode returns `fallback_required` without spending quota
+4. Use deterministic scene cards only as clearly marked fallback scaffold with `generation_source=fallback_scaffold`
+5. Each card includes visual, voiceover, subtitle, music cue, duration, and image `asset_goal`
+6. Attach `quality_report` so users can see scaffold warnings before production
 
 ### Flow B3: Script Draft
 
 1. Accept `scene_cards` or an `adaptation_state`
 2. If scene cards are missing, build them from the adaptation state
-3. Return a structured `script_draft` with scenes, action, voiceover, dialogue, subtitles, music cues, timing, and asset goals
-4. Use this as a deterministic script scaffold before optional model-based prose/dialogue polishing
+3. Apply the `vertical_short_drama` adapter metadata: `format_adapter`, `aspect_ratio=9:16`, rhythm rules, quality checks, and downstream handoff requirements
+4. Try CreativeEngine `script_scenes`; invalid explicit engine output is rejected instead of silently falling back
+5. Return a structured `script_draft` with scenes, action, voiceover, dialogue, subtitles, music cues, timing, asset goals, `generation_source`, and `quality_report`
+6. Treat fallback output as scaffold, not final prose
 
 ### Flow B4: Script Polish
 
 1. Accept a `script_draft`, or build one from the current task
 2. Preserve scene order, timing, and asset goals
-3. Keep original dialogue under `original_dialogue`
-4. Write tightened Chinese short-drama dialogue into `polished_dialogue` and `dialogue`
-5. Add `conflict_notes` and `beat_function` for downstream review or model polishing
-
+3. Try CreativeEngine `polished_script_scenes` when explicitly configured; reject bad explicit engine output
+4. Keep original dialogue under `original_dialogue`
+5. Write deterministic tightened Chinese short-drama dialogue into `polished_dialogue` and `dialogue` only as fallback scaffold
+6. Add `conflict_notes`, `beat_function`, adapter metadata, `generation_source`, and `quality_report` for downstream review
 
 ### Flow B5: Viral Explainer Script
 
@@ -99,6 +109,9 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 - `scripts/license_gate.py`: deterministic license validation
 - `scripts/blueprint_validate.py`: deterministic blueprint validation
 - `scripts/copy_skill.py`: task entrypoint, interactive adaptation state, scene card builder, script draft builder, viral explainer builder, script polish helper, blueprint builder, handoff builder, and IP asset pack builder
+- `scripts/creative_engine/`: CreativeEngine base types, offline engine, mock engine, live guard placeholder, and schema checks
+- `scripts/format_adapters/`: FormatAdapter base and `vertical_short_drama` V1 adapter
+- `scripts/quality_evaluator/`: structure and scaffold quality checks for scene cards and scripts
 
 ## References
 
@@ -118,6 +131,7 @@ If only `source_text` is provided, extract multiple important named roles, title
 
 ## Adaptation Boundary
 
-This version provides deterministic adaptation planning and scene-card drafting.
-It does not claim final polished prose or full model-native rewriting.
-For production writing, an agent should use this state and scene-card structure as the control layer, then call a writing model for richer dialogue and prose where needed.
+This version provides controlled adaptation planning, CreativeEngine routing, vertical short-drama structure, scaffold fallback, and quality reports.
+It still does not claim final polished prose or full model-native rewriting.
+Offline mode never calls a provider. Mock mode is for tests. The live LLM engine is guarded and currently returns `not_implemented` rather than making provider calls.
+For production writing, an agent should use this state, adapter metadata, and scene/script structure as the control layer, then call an explicitly approved writing model for richer dialogue and prose where needed.

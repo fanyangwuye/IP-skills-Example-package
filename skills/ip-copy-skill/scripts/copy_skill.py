@@ -7,10 +7,16 @@ from typing import Dict, List, Optional
 
 try:
     from .blueprint_validate import validate_blueprint
+    from .creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine
+    from .format_adapters import VerticalShortDramaAdapter
     from .license_gate import check_license, gate
+    from .quality_evaluator import evaluate_scene_cards_quality, evaluate_script_quality
 except ImportError:
     from blueprint_validate import validate_blueprint
+    from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine
+    from format_adapters import VerticalShortDramaAdapter
     from license_gate import check_license, gate
+    from quality_evaluator import evaluate_scene_cards_quality, evaluate_script_quality
 
 
 def run_task(task: Dict) -> Dict:
@@ -90,11 +96,14 @@ def _run_update_adaptation_state(task: Dict, output_dir: str) -> Dict:
 def _run_build_adaptation_scene_cards(task: Dict, output_dir: str) -> Dict:
     state = task.get("adaptation_state") or _update_adaptation_state(task)
     scene_cards = _build_adaptation_scene_cards(state, task)
+    adapter = _format_adapter_from_task(task, state.get("creative_direction", {}))
     payload = {
         "title": state.get("title", task.get("title", "")),
         "source_text": state.get("source_text", task.get("source_text", "")),
         "creative_direction": state.get("creative_direction", {}),
+        "format_adapter": adapter.spec().format_name,
         "scene_cards": scene_cards,
+        "quality_report": evaluate_scene_cards_quality(scene_cards, adapter.spec()),
     }
     out_path = os.path.join(output_dir, task.get("scene_cards_filename", "adaptation_scene_cards.json"))
     _write_json(out_path, payload)
@@ -591,7 +600,13 @@ def _update_adaptation_state(task: Dict) -> Dict:
 def _build_adaptation_scene_cards(state: Dict, task: Dict) -> List[Dict]:
     screenplay_cards = _build_screenplay_scene_cards(state, task)
     if screenplay_cards:
-        return screenplay_cards
+        return _mark_scene_card_generation(screenplay_cards, "screenplay_scaffold")
+
+    engine_result = _try_creative_scene_cards(state, task)
+    if engine_result and engine_result.ok:
+        return _mark_scene_card_generation(_normalize_creative_scene_cards(engine_result.data, task), engine_result.generation_source)
+    if engine_result and _creative_engine_explicit(task) and engine_result.status != "fallback_required":
+        raise ValueError("CreativeEngine scene card generation failed: " + "；".join(engine_result.errors or engine_result.warnings))
 
     total_cards = int(task.get("n_scene_cards", state.get("n_scene_cards", 5)) or 5)
     total_cards = max(3, min(total_cards, 8))
@@ -624,7 +639,69 @@ def _build_adaptation_scene_cards(state: Dict, task: Dict) -> List[Dict]:
                 },
             }
         )
-    return cards
+    return _mark_scene_card_generation(cards, "fallback_scaffold")
+
+
+def _try_creative_scene_cards(state: Dict, task: Dict):
+    engine = _creative_engine_from_task(task)
+    request = CreativeEngineRequest(
+        kind="scene_cards",
+        source_text=state.get("source_text", task.get("source_text", "")),
+        creative_brief=state.get("creative_direction", task.get("creative_direction", {})),
+        format_name=task.get("target_format") or state.get("creative_direction", {}).get("target") or "vertical_short_drama",
+        schema_name="scene_cards",
+        payload={
+            "title": state.get("title", task.get("title", "")),
+            "characters": state.get("characters", []),
+            "scenes": state.get("scenes", []),
+            "story_beats": state.get("story_beats", []),
+            "n_scene_cards": task.get("n_scene_cards", state.get("n_scene_cards", 5)),
+            "total_duration_sec": task.get("total_duration_sec", 30),
+        },
+        allow_live=bool(task.get("allow_live_llm") or task.get("live_generation")),
+    )
+    try:
+        return engine.generate(request)
+    except EngineBlockedError:
+        raise
+
+
+def _creative_engine_from_task(task: Dict):
+    mode = str(task.get("creative_engine") or task.get("creative_engine_mode") or "offline").strip().lower()
+    outputs = task.get("creative_engine_outputs") or task.get("mock_creative_outputs") or {}
+    if mode == "mock" or outputs:
+        return MockCreativeEngine(outputs)
+    if mode in {"live", "live_llm", "llm"}:
+        return LiveLLMEngine(provider=str(task.get("llm_provider") or task.get("provider") or ""), allow_live=bool(task.get("allow_live_llm")))
+    return OfflineCreativeEngine()
+
+
+def _creative_engine_explicit(task: Dict) -> bool:
+    return bool(task.get("creative_engine") or task.get("creative_engine_mode") or task.get("creative_engine_outputs") or task.get("mock_creative_outputs"))
+
+
+def _normalize_creative_scene_cards(cards: List[Dict], task: Dict) -> List[Dict]:
+    normalized = []
+    for card in cards:
+        item = dict(card)
+        item.setdefault("subtitle", item.get("voiceover", ""))
+        item.setdefault("music_cue", "按场景情绪推进")
+        item.setdefault("duration_sec", round(float(task.get("total_duration_sec", 30)) / max(len(cards), 1), 3))
+        asset_goal = dict(item.get("asset_goal") or {})
+        asset_goal.setdefault("type", "adapted scene key frame")
+        asset_goal.setdefault("purpose", "creative engine scene beat")
+        item["asset_goal"] = asset_goal
+        normalized.append(item)
+    return normalized
+
+
+def _mark_scene_card_generation(cards: List[Dict], source: str) -> List[Dict]:
+    marked = []
+    for card in cards:
+        item = dict(card)
+        item.setdefault("generation_source", source)
+        marked.append(item)
+    return marked
 
 
 def _build_screenplay_scene_cards(state: Dict, task: Dict) -> List[Dict]:
@@ -702,6 +779,12 @@ def _screenplay_section_summary(lines: List[str]) -> str:
             break
     return " ".join(meaningful)
 
+def _format_adapter_from_task(task: Dict, direction: Dict = None):
+    direction = direction or {}
+    name = str(task.get("format_adapter") or task.get("target_format") or direction.get("format_adapter") or direction.get("target") or "vertical_short_drama").strip().lower()
+    if name in {"vertical_short_drama", "short_drama", "short_drama_script", "竖屏短剧", "短剧"}:
+        return VerticalShortDramaAdapter()
+    return VerticalShortDramaAdapter()
 
 def _build_script_draft(scene_cards: List[Dict], state: Dict, task: Dict) -> Dict:
     title = task.get("title") or state.get("title", "")
@@ -709,7 +792,77 @@ def _build_script_draft(scene_cards: List[Dict], state: Dict, task: Dict) -> Dic
     total_duration = float(task.get("total_duration_sec", sum(float(card.get("duration_sec", 0) or 0) for card in scene_cards) or 30))
     characters = state.get("characters", task.get("characters", [])) or []
     constraints = state.get("constraints", task.get("constraints", [])) or []
+    adapter = _format_adapter_from_task(task, direction)
+    spec = adapter.spec()
 
+    engine_result = _try_creative_script_scenes(scene_cards, state, task, total_duration, adapter)
+    if engine_result and engine_result.ok:
+        scenes = _normalize_creative_script_scenes(engine_result.data, total_duration, engine_result.generation_source)
+        generation_source = engine_result.generation_source
+    elif engine_result and _creative_engine_explicit(task) and engine_result.status != "fallback_required":
+        raise ValueError("CreativeEngine script draft generation failed: " + "；".join(engine_result.errors or engine_result.warnings))
+    else:
+        scenes = _fallback_script_scenes(scene_cards, characters, total_duration)
+        generation_source = "fallback_scaffold"
+
+    return {
+        "script_id": task.get("script_id", f"{_safe_label(title or 'adaptation')}_script_draft"),
+        "title": title,
+        "format": direction.get("format", task.get("format", "vertical short drama")),
+        "target": direction.get("target", task.get("target", "short_drama")),
+        "format_adapter": spec.format_name,
+        "aspect_ratio": task.get("aspect_ratio") or spec.default_aspect_ratio,
+        "rhythm_rules": spec.rhythm_rules,
+        "quality_checks": spec.quality_checks,
+        "generation_source": generation_source,
+        "tone": direction.get("tone", ""),
+        "viewpoint": direction.get("viewpoint", ""),
+        "audience": direction.get("audience", ""),
+        "total_duration_sec": total_duration,
+        "source_text": state.get("source_text", task.get("source_text", "")),
+        "constraints": constraints,
+        "characters": characters,
+        "scenes": scenes,
+        "quality_report": evaluate_script_quality({
+            "scenes": scenes,
+            "aspect_ratio": task.get("aspect_ratio") or spec.default_aspect_ratio,
+            "handoff": {
+                "can_build_blueprint": True,
+                "image_requirements": spec.handoff_requirements.get("image", []),
+                "video_requirements": spec.handoff_requirements.get("video", []),
+                "music_requirements": spec.handoff_requirements.get("music", []),
+            },
+        }, spec),
+        "handoff": {
+            "scene_cards": scene_cards,
+            "can_build_blueprint": True,
+            "format_adapter": spec.format_name,
+            "image_requirements": spec.handoff_requirements.get("image", []),
+            "video_requirements": spec.handoff_requirements.get("video", []),
+            "music_requirements": spec.handoff_requirements.get("music", []),
+        },
+    }
+
+
+def _try_creative_script_scenes(scene_cards: List[Dict], state: Dict, task: Dict, total_duration: float, adapter):
+    engine = _creative_engine_from_task(task)
+    request = CreativeEngineRequest(
+        kind="script_scenes",
+        source_text=state.get("source_text", task.get("source_text", "")),
+        creative_brief=state.get("creative_direction", task.get("creative_direction", {})),
+        format_name=adapter.spec().format_name,
+        schema_name="script_scenes",
+        payload={
+            "scene_cards": scene_cards,
+            "total_duration_sec": total_duration,
+            "adapter": adapter.creative_engine_payload(state, task),
+        },
+        allow_live=bool(task.get("allow_live_llm") or task.get("live_generation")),
+    )
+    return engine.generate(request)
+
+
+def _fallback_script_scenes(scene_cards: List[Dict], characters: List[Dict], total_duration: float) -> List[Dict]:
     scenes = []
     start = 0.0
     for index, card in enumerate(scene_cards, start=1):
@@ -730,31 +883,32 @@ def _build_script_draft(scene_cards: List[Dict], state: Dict, task: Dict) -> Dic
             "music_cue": card.get("music_cue", ""),
             "transition": card.get("transition", "cut"),
             "asset_goal": card.get("asset_goal", {}),
+            "generation_source": "fallback_scaffold",
         }
         scenes.append(scene)
         start = end
-
     if scenes:
         scenes[-1]["end_sec"] = total_duration
+    return scenes
 
-    return {
-        "script_id": task.get("script_id", f"{_safe_label(title or 'adaptation')}_script_draft"),
-        "title": title,
-        "format": direction.get("format", task.get("format", "vertical short drama")),
-        "target": direction.get("target", task.get("target", "short_drama")),
-        "tone": direction.get("tone", ""),
-        "viewpoint": direction.get("viewpoint", ""),
-        "audience": direction.get("audience", ""),
-        "total_duration_sec": total_duration,
-        "source_text": state.get("source_text", task.get("source_text", "")),
-        "constraints": constraints,
-        "characters": characters,
-        "scenes": scenes,
-        "handoff": {
-            "scene_cards": scene_cards,
-            "can_build_blueprint": True,
-        },
-    }
+
+def _normalize_creative_script_scenes(scenes: List[Dict], total_duration: float, source: str) -> List[Dict]:
+    normalized = []
+    for index, scene in enumerate(scenes, start=1):
+        item = dict(scene)
+        item.setdefault("scene_no", index)
+        item.setdefault("title", f"第{index}场")
+        item.setdefault("location", "")
+        item.setdefault("action", _action_from_visual(item.get("visual", "")))
+        item.setdefault("subtitle", _subtitle_from_dialogue_or_voiceover(item.get("dialogue", []), item.get("voiceover", "")))
+        item.setdefault("music_cue", "按场景情绪推进")
+        item.setdefault("transition", "cut")
+        item.setdefault("asset_goal", {"type": "adapted scene key frame"})
+        item.setdefault("generation_source", source)
+        normalized.append(item)
+    if normalized:
+        normalized[-1]["end_sec"] = total_duration
+    return normalized
 
 
 def _polish_script_draft(script: Dict, task: Dict) -> Dict:
@@ -763,29 +917,48 @@ def _polish_script_draft(script: Dict, task: Dict) -> Dict:
     style = task.get("polish_style") or polished.get("tone") or "短剧强冲突"
     constraints = list(polished.get("constraints") or [])
     constraints.extend(task.get("constraints") or [])
-    scenes = []
-    for index, scene in enumerate(polished.get("scenes") or [], start=1):
-        upgraded = copy_dict(scene)
-        original_dialogue = scene.get("dialogue") or []
-        upgraded["original_dialogue"] = original_dialogue
-        upgraded["polished_dialogue"] = _polish_dialogue_lines(
-            original_dialogue,
-            scene,
-            index,
-            len(polished.get("scenes") or []),
-            intensity,
-        )
-        upgraded["dialogue"] = upgraded["polished_dialogue"]
-        upgraded["voiceover"] = _polish_voiceover(scene.get("voiceover", ""), index, len(polished.get("scenes") or []))
-        upgraded["subtitle"] = _subtitle_from_dialogue_or_voiceover(upgraded["polished_dialogue"], upgraded["voiceover"])
-        upgraded["conflict_notes"] = _conflict_notes(scene, index, len(polished.get("scenes") or []), style)
-        upgraded["beat_function"] = _beat_function(index, len(polished.get("scenes") or []))
-        scenes.append(upgraded)
+    adapter = _format_adapter_from_task(task, {"target": polished.get("target", "short_drama")})
+    spec = adapter.spec()
+
+    engine_result = _try_creative_polished_scenes(polished, task, adapter)
+    if engine_result and engine_result.ok:
+        scenes = _normalize_polished_creative_scenes(engine_result.data, polished, engine_result.generation_source)
+        generation_source = engine_result.generation_source
+    elif engine_result and _creative_engine_explicit(task) and engine_result.status != "fallback_required":
+        raise ValueError("CreativeEngine script polish failed: " + "；".join(engine_result.errors or engine_result.warnings))
+    else:
+        scenes = []
+        for index, scene in enumerate(polished.get("scenes") or [], start=1):
+            upgraded = copy_dict(scene)
+            original_dialogue = scene.get("dialogue") or []
+            upgraded["original_dialogue"] = original_dialogue
+            upgraded["polished_dialogue"] = _polish_dialogue_lines(
+                original_dialogue,
+                scene,
+                index,
+                len(polished.get("scenes") or []),
+                intensity,
+            )
+            upgraded["dialogue"] = upgraded["polished_dialogue"]
+            upgraded["voiceover"] = _polish_voiceover(scene.get("voiceover", ""), index, len(polished.get("scenes") or []))
+            upgraded["subtitle"] = _subtitle_from_dialogue_or_voiceover(upgraded["polished_dialogue"], upgraded["voiceover"])
+            upgraded["conflict_notes"] = _conflict_notes(scene, index, len(polished.get("scenes") or []), style)
+            upgraded["beat_function"] = _beat_function(index, len(polished.get("scenes") or []))
+            upgraded["generation_source"] = "fallback_polish_scaffold"
+            scenes.append(upgraded)
+        generation_source = "fallback_polish_scaffold"
 
     polished["scenes"] = scenes
+    polished["generation_source"] = generation_source
+    polished["format_adapter"] = polished.get("format_adapter") or spec.format_name
+    polished["aspect_ratio"] = polished.get("aspect_ratio") or spec.default_aspect_ratio
+    polished["rhythm_rules"] = polished.get("rhythm_rules") or spec.rhythm_rules
+    polished["quality_checks"] = polished.get("quality_checks") or spec.quality_checks
+    polished["quality_report"] = evaluate_script_quality(polished, spec, polished=True)
     polished["polish"] = {
         "style": style,
         "intensity": intensity,
+        "generation_source": generation_source,
         "rules": [
             "对白短句化",
             "每场至少保留一个压力点或反问",
@@ -797,7 +970,44 @@ def _polish_script_draft(script: Dict, task: Dict) -> Dict:
     polished["handoff"] = copy_dict(polished.get("handoff") or {})
     polished["handoff"]["can_build_blueprint"] = True
     polished["handoff"]["polished_for_script"] = True
+    polished["handoff"]["format_adapter"] = spec.format_name
     return polished
+
+
+def _try_creative_polished_scenes(script: Dict, task: Dict, adapter):
+    engine = _creative_engine_from_task(task)
+    request = CreativeEngineRequest(
+        kind="polished_script_scenes",
+        source_text=script.get("source_text", task.get("source_text", "")),
+        creative_brief={"tone": script.get("tone", ""), "target": script.get("target", "short_drama")},
+        format_name=adapter.spec().format_name,
+        schema_name="script_scenes",
+        payload={
+            "script": script,
+            "adapter": adapter.creative_engine_payload({"title": script.get("title", "")}, task),
+        },
+        allow_live=bool(task.get("allow_live_llm") or task.get("live_generation")),
+    )
+    return engine.generate(request)
+
+
+def _normalize_polished_creative_scenes(scenes: List[Dict], original_script: Dict, source: str) -> List[Dict]:
+    original_scenes = original_script.get("scenes") or []
+    normalized = []
+    for index, scene in enumerate(scenes, start=1):
+        original = original_scenes[index - 1] if index - 1 < len(original_scenes) else {}
+        item = dict(scene)
+        item.setdefault("scene_no", original.get("scene_no", index))
+        item.setdefault("original_dialogue", original.get("dialogue", []))
+        item.setdefault("polished_dialogue", item.get("dialogue", []))
+        item.setdefault("dialogue", item.get("polished_dialogue", []))
+        item.setdefault("subtitle", _subtitle_from_dialogue_or_voiceover(item.get("dialogue", []), item.get("voiceover", "")))
+        item.setdefault("conflict_notes", ["CreativeEngine polish output; review before final production"])
+        item.setdefault("beat_function", _beat_function(index, len(scenes)))
+        item.setdefault("asset_goal", original.get("asset_goal", {}))
+        item.setdefault("generation_source", source)
+        normalized.append(item)
+    return normalized
 
 
 def _polish_dialogue_lines(dialogue: List[Dict], scene: Dict, index: int, total: int, intensity: str) -> List[Dict]:

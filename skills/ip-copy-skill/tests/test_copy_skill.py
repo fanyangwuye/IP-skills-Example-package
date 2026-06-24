@@ -6,7 +6,10 @@ from datetime import date
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from blueprint_validate import validate_blueprint  # noqa: E402
 from copy_skill import run_task  # noqa: E402
+from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine  # noqa: E402
+from format_adapters import VerticalShortDramaAdapter  # noqa: E402
 from license_gate import check_license, gate  # noqa: E402
+from quality_evaluator import evaluate_scene_cards_quality, evaluate_script_quality  # noqa: E402
 
 
 LICENSE = {
@@ -18,7 +21,120 @@ LICENSE = {
     "commercial": True,
     "valid_until": "2030-01-01",
 }
+def test_vertical_short_drama_adapter_spec_locks_structure_and_handoff_rules():
+    adapter = VerticalShortDramaAdapter()
+    spec = adapter.spec()
+    assert spec.format_name == "vertical_short_drama"
+    assert spec.structure_levels == ["project", "episode", "scene", "beat", "shot"]
+    assert spec.default_aspect_ratio == "9:16"
+    assert spec.default_episode_duration_sec == 90
+    assert "visual" in spec.required_scene_card_fields
+    assert "first_3_seconds_state_conflict_or_reversal" in spec.rhythm_rules
+    assert "video_storyboard_ready_action_beats" in spec.quality_checks
+    assert "default_aspect_ratio=9:16" in spec.handoff_requirements["image"]
 
+
+def test_vertical_short_drama_adapter_validates_scene_cards():
+    adapter = VerticalShortDramaAdapter()
+    good = [
+        {
+            "visual": "黄泉饭店大厅，林缺翻开菜单账本。",
+            "voiceover": "开场三秒，规则已经变了。",
+            "duration_sec": 8,
+            "asset_goal": {"type": "adapted scene key frame"},
+        }
+    ]
+    assert adapter.validate_scene_cards(good) == []
+
+    bad = [{"visual": "只有画面"}]
+    errors = adapter.validate_scene_cards(bad)
+    assert any("voiceover" in error for error in errors)
+    assert any("duration_sec" in error for error in errors)
+    assert any("asset_goal" in error for error in errors)
+
+
+def test_vertical_short_drama_adapter_builds_creative_engine_payload():
+    adapter = VerticalShortDramaAdapter()
+    payload = adapter.creative_engine_payload(
+        {"title": "黄泉饭店", "characters": [{"name": "林缺"}]},
+        {"n_scene_cards": 4},
+    )
+    assert payload["format_name"] == "vertical_short_drama"
+    assert payload["default_aspect_ratio"] == "9:16"
+    assert payload["state"]["title"] == "黄泉饭店"
+    assert payload["task"]["n_scene_cards"] == 4
+    assert "every_10_to_15_seconds_add_new_pressure_or_information" in payload["rhythm_rules"]
+def test_quality_evaluator_reports_scaffold_warnings_and_blockers():
+    scene_report = evaluate_scene_cards_quality(
+        [
+            {
+                "visual": "核心场景。主要角色围绕该剧情点行动：推进第1个剧情转折。",
+                "voiceover": "开场危机。",
+                "duration_sec": 8,
+                "asset_goal": {"type": "adapted scene key frame"},
+                "generation_source": "fallback_scaffold",
+            }
+        ],
+        VerticalShortDramaAdapter().spec(),
+    )
+    assert scene_report["status"] == "pass"
+    assert scene_report["warnings"]
+
+    script_report = evaluate_script_quality({"scenes": []}, VerticalShortDramaAdapter().spec())
+    assert script_report["status"] == "fail"
+    assert any(item["code"] == "script_scenes_empty" for item in script_report["issues"])
+
+def test_offline_creative_engine_requires_fallback_without_live_call():
+    engine = OfflineCreativeEngine()
+    result = engine.generate(
+        CreativeEngineRequest(
+            kind="scene_cards",
+            source_text="林缺回到黄泉饭店。",
+            schema_name="scene_cards",
+        )
+    )
+    assert result.status == "fallback_required"
+    assert result.generation_source == "offline_engine"
+    assert result.data == {}
+    assert result.warnings
+
+
+def test_mock_creative_engine_validates_scene_card_schema():
+    engine = MockCreativeEngine(
+        {
+            "scene_cards": [
+                {
+                    "visual": "黄泉饭店大厅，林缺站在柜台后。",
+                    "voiceover": "雨夜，饭店重新开门。",
+                    "duration_sec": 8,
+                    "asset_goal": {"type": "adapted scene key frame"},
+                }
+            ]
+        }
+    )
+    result = engine.generate(CreativeEngineRequest(kind="scene_cards", schema_name="scene_cards"))
+    assert result.ok
+    assert result.data[0]["visual"]
+
+    bad = MockCreativeEngine({"scene_cards": [{"visual": "只有画面"}]})
+    bad_result = bad.generate(CreativeEngineRequest(kind="scene_cards", schema_name="scene_cards"))
+    assert bad_result.status == "schema_error"
+    assert any("voiceover" in error for error in bad_result.errors)
+
+
+def test_live_llm_engine_blocks_without_explicit_double_approval():
+    engine = LiveLLMEngine(provider="test", allow_live=False)
+    try:
+        engine.generate(CreativeEngineRequest(kind="scene_cards", allow_live=True))
+    except EngineBlockedError:
+        pass
+    else:
+        raise AssertionError("live LLM engine must block without engine-level approval")
+
+    approved_engine = LiveLLMEngine(provider="test", allow_live=True)
+    result = approved_engine.generate(CreativeEngineRequest(kind="scene_cards", allow_live=True))
+    assert result.status == "not_implemented"
+    assert "no provider call" in result.errors[0]
 
 def test_license_pass():
     ok, reasons = check_license(LICENSE, "short_drama", commercial_use=True, today=date(2026, 1, 1))
@@ -305,8 +421,56 @@ def test_build_adaptation_scene_cards_from_state():
         assert "林缺" in cards[0]["visual"]
         assert cards[0]["voiceover"]
         assert cards[0]["asset_goal"]["type"] == "adapted scene key frame"
+        assert cards[0]["generation_source"] == "fallback_scaffold"
+        assert result["handoff"]["quality_report"]["target"] == "scene_cards"
+        assert result["handoff"]["quality_report"]["warnings"]
         assert os.path.exists(os.path.join(output_dir, "adaptation_scene_cards.json"))
 
+def test_build_adaptation_scene_cards_can_use_mock_creative_engine():
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                "mode": "build_adaptation_scene_cards",
+                "title": "黄泉饭店",
+                "source_text": "林缺回到黄泉饭店。",
+                "creative_engine_mode": "mock",
+                "creative_engine_outputs": {
+                    "scene_cards": [
+                        {
+                            "visual": "黄泉饭店大厅，林缺低头翻开菜单账本，红光从纸页里亮起。",
+                            "voiceover": "他刚回到饭店，就发现规则已经改写。",
+                            "duration_sec": 8,
+                            "asset_goal": {"type": "adapted scene key frame", "scene": "黄泉饭店大厅"},
+                        }
+                    ]
+                },
+                "output_dir": output_dir,
+            }
+        )
+        cards = result["handoff"]["scene_cards"]
+        assert len(cards) == 1
+        assert cards[0]["generation_source"] == "mock_engine"
+        assert "菜单账本" in cards[0]["visual"]
+        assert cards[0]["subtitle"] == cards[0]["voiceover"]
+
+
+def test_build_adaptation_scene_cards_rejects_bad_explicit_creative_engine_output():
+    with tempfile.TemporaryDirectory() as output_dir:
+        try:
+            run_task(
+                {
+                    "mode": "build_adaptation_scene_cards",
+                    "title": "黄泉饭店",
+                    "source_text": "林缺回到黄泉饭店。",
+                    "creative_engine_mode": "mock",
+                    "creative_engine_outputs": {"scene_cards": [{"visual": "只有画面"}]},
+                    "output_dir": output_dir,
+                }
+            )
+        except ValueError as exc:
+            assert "CreativeEngine scene card generation failed" in str(exc)
+        else:
+            raise AssertionError("explicit bad CreativeEngine output must not silently fall back")
 
 def test_build_script_draft_from_scene_cards():
     with tempfile.TemporaryDirectory() as output_dir:
@@ -341,9 +505,69 @@ def test_build_script_draft_from_scene_cards():
         assert script["scenes"][0]["dialogue"]
         assert script["scenes"][0]["start_sec"] == 0
         assert script["scenes"][-1]["end_sec"] == 16
+        assert script["generation_source"] == "fallback_scaffold"
+        assert script["scenes"][0]["generation_source"] == "fallback_scaffold"
+        assert script["format_adapter"] == "vertical_short_drama"
+        assert script["aspect_ratio"] == "9:16"
         assert script["handoff"]["can_build_blueprint"] is True
+        assert script["quality_report"]["target"] == "script_draft"
+        assert script["quality_report"]["status"] in {"pass", "warn"}
         assert os.path.exists(os.path.join(output_dir, "script_draft.json"))
 
+def test_build_script_draft_can_use_mock_creative_engine_script_scenes():
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                "mode": "build_script_draft",
+                "title": "黄泉饭店",
+                "scene_cards": [
+                    {
+                        "visual": "黄泉饭店大厅，林缺翻开菜单账本。",
+                        "voiceover": "规则变了。",
+                        "duration_sec": 8,
+                        "asset_goal": {"scene": "黄泉饭店大厅", "type": "adapted scene key frame"},
+                    }
+                ],
+                "creative_engine_mode": "mock",
+                "creative_engine_outputs": {
+                    "script_scenes": [
+                        {
+                            "visual": "黄泉饭店大厅，林缺低头看见菜单账本自己翻页。",
+                            "voiceover": "第一秒，账本先动了。",
+                            "dialogue": [{"speaker": "林缺", "line": "谁在点菜？"}],
+                            "start_sec": 0,
+                            "end_sec": 8,
+                        }
+                    ]
+                },
+                "total_duration_sec": 8,
+                "output_dir": output_dir,
+            }
+        )
+        script = result["handoff"]["script_draft"]
+        assert script["generation_source"] == "mock_engine"
+        assert script["scenes"][0]["generation_source"] == "mock_engine"
+        assert script["scenes"][0]["dialogue"][0]["line"] == "谁在点菜？"
+        assert script["aspect_ratio"] == "9:16"
+
+
+def test_build_script_draft_rejects_bad_explicit_creative_engine_script_scenes():
+    with tempfile.TemporaryDirectory() as output_dir:
+        try:
+            run_task(
+                {
+                    "mode": "build_script_draft",
+                    "title": "黄泉饭店",
+                    "scene_cards": [{"visual": "黄泉饭店大厅", "voiceover": "规则变了", "duration_sec": 8, "asset_goal": {"type": "adapted scene key frame"}}],
+                    "creative_engine_mode": "mock",
+                    "creative_engine_outputs": {"script_scenes": [{"visual": "只有画面"}]},
+                    "output_dir": output_dir,
+                }
+            )
+        except ValueError as exc:
+            assert "CreativeEngine script draft generation failed" in str(exc)
+        else:
+            raise AssertionError("explicit bad script_scenes output must not silently fall back")
 
 def test_build_script_draft_from_adaptation_state():
     with tempfile.TemporaryDirectory() as output_dir:
@@ -436,9 +660,73 @@ def test_polish_script_draft_preserves_structure_and_strengthens_dialogue():
         assert polished["scenes"][0]["dialogue"][0]["line"] != "这里不对劲。"
         assert "conflict_notes" in polished["scenes"][0]
         assert polished["scenes"][-1]["beat_function"] == "cliffhanger"
+        assert polished["generation_source"] == "fallback_polish_scaffold"
+        assert polished["scenes"][0]["generation_source"] == "fallback_polish_scaffold"
+        assert polished["format_adapter"] == "vertical_short_drama"
         assert polished["handoff"]["polished_for_script"] is True
+        assert polished["quality_report"]["target"] == "polished_script"
+        assert polished["quality_report"]["status"] in {"pass", "warn"}
         assert os.path.exists(os.path.join(output_dir, "polished_script.json"))
 
+def test_polish_script_draft_can_use_mock_creative_engine_polished_scenes():
+    with tempfile.TemporaryDirectory() as output_dir:
+        script_draft = {
+            "title": "黄泉饭店",
+            "total_duration_sec": 8,
+            "scenes": [
+                {
+                    "scene_no": 1,
+                    "start_sec": 0,
+                    "end_sec": 8,
+                    "visual": "黄泉饭店大厅，林缺翻开菜单账本。",
+                    "voiceover": "规则变了。",
+                    "dialogue": [{"speaker": "林缺", "line": "这里不对劲。"}],
+                    "asset_goal": {"type": "adapted scene key frame"},
+                }
+            ],
+        }
+        result = run_task(
+            {
+                "mode": "polish_script_draft",
+                "script_draft": script_draft,
+                "creative_engine_mode": "mock",
+                "creative_engine_outputs": {
+                    "polished_script_scenes": [
+                        {
+                            "visual": "黄泉饭店大厅，林缺盯着自动翻页的菜单账本。",
+                            "voiceover": "这次不是客人先来，是规则先醒。",
+                            "dialogue": [{"speaker": "林缺", "line": "账本自己翻页了。"}],
+                            "start_sec": 0,
+                            "end_sec": 8,
+                        }
+                    ]
+                },
+                "output_dir": output_dir,
+            }
+        )
+        polished = result["handoff"]["polished_script"]
+        assert polished["generation_source"] == "mock_engine"
+        assert polished["scenes"][0]["generation_source"] == "mock_engine"
+        assert polished["scenes"][0]["dialogue"][0]["line"] == "账本自己翻页了。"
+        assert polished["format_adapter"] == "vertical_short_drama"
+
+
+def test_polish_script_draft_rejects_bad_explicit_creative_engine_output():
+    with tempfile.TemporaryDirectory() as output_dir:
+        try:
+            run_task(
+                {
+                    "mode": "polish_script_draft",
+                    "script_draft": {"title": "黄泉饭店", "scenes": [{"visual": "大厅", "voiceover": "规则变了", "dialogue": [], "start_sec": 0, "end_sec": 8}]},
+                    "creative_engine_mode": "mock",
+                    "creative_engine_outputs": {"polished_script_scenes": [{"visual": "只有画面"}]},
+                    "output_dir": output_dir,
+                }
+            )
+        except ValueError as exc:
+            assert "CreativeEngine script polish failed" in str(exc)
+        else:
+            raise AssertionError("explicit bad polished scene output must not silently fall back")
 
 def test_polish_script_draft_can_build_from_state():
     with tempfile.TemporaryDirectory() as output_dir:
