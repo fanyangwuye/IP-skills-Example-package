@@ -28,13 +28,15 @@ def run_task(task: Dict) -> Dict:
         return _run_build_script_draft(task, output_dir)
     if mode == "polish_script_draft":
         return _run_polish_script_draft(task, output_dir)
+    if mode == "build_viral_explainer_script":
+        return _run_build_viral_explainer_script(task, output_dir)
     if mode == "build_ip_asset_pack":
         return _run_build_ip_asset_pack(task, output_dir)
     if mode == "build_character_handoff":
         return _run_build_character_handoff(task, output_dir)
     if mode == "build_blueprint":
         return _run_build_blueprint(task, output_dir)
-    raise ValueError("mode must be one of: check_license, build_blueprint, build_character_handoff, build_ip_asset_pack, update_adaptation_state, build_adaptation_scene_cards, build_script_draft, polish_script_draft")
+    raise ValueError("mode must be one of: check_license, build_blueprint, build_character_handoff, build_ip_asset_pack, update_adaptation_state, build_adaptation_scene_cards, build_script_draft, polish_script_draft, build_viral_explainer_script")
 
 
 def _run_check_license(task: Dict) -> Dict:
@@ -189,6 +191,197 @@ def _run_build_character_handoff(task: Dict, output_dir: str) -> Dict:
         "logs": ["character handoff written"],
     }
 
+
+
+def _run_build_viral_explainer_script(task: Dict, output_dir: str) -> Dict:
+    explainer = _build_viral_explainer_script(task)
+    out_path = os.path.join(output_dir, task.get("viral_explainer_filename", "viral_explainer_script.json"))
+    _write_json(out_path, explainer)
+    return {
+        "status": "success",
+        "skill": "ip-copy-skill",
+        "mode": "build_viral_explainer_script",
+        "task_id": task.get("task_id", "build_viral_explainer_script"),
+        "artifacts": [
+            {"type": "json", "path": out_path, "meta": {"kind": "viral_explainer_script"}}
+        ],
+        "handoff": {"viral_explainer_script": explainer},
+        "logs": [f"built viral explainer script for {len(explainer['episodes'])} episode(s)"],
+    }
+
+
+def _build_viral_explainer_script(task: Dict) -> Dict:
+    source_text = task.get("source_text") or _source_text_from_script(task.get("script_draft") or task.get("polished_script") or {})
+    if not source_text:
+        raise ValueError("build_viral_explainer_script requires source_text, script_draft, or polished_script")
+    title = task.get("title") or _infer_title(source_text) or "未命名IP"
+    episodes = _extract_episode_blocks(source_text)
+    max_episodes = int(task.get("max_episodes") or task.get("episode_count") or len(episodes) or 1)
+    episodes = episodes[:max(1, max_episodes)]
+    if not episodes:
+        episodes = [{"episode_index": 1, "title": title, "body": source_text}]
+    style = task.get("style_profile") or {}
+    viewpoint = task.get("viewpoint") or style.get("viewpoint") or "第三人称解说"
+    intensity = task.get("viral_intensity") or style.get("viral_intensity") or "爽感强、悬念强、节奏快"
+    platform = task.get("target_platform") or style.get("target_platform") or "short_video"
+    per_episode_duration = int(task.get("per_episode_duration_sec") or 90)
+    built = [
+        _build_explainer_episode(block, title, viewpoint, intensity, platform, per_episode_duration)
+        for block in episodes
+    ]
+    return {
+        "title": title,
+        "mode": "viral_explainer_script",
+        "target_platform": platform,
+        "viewpoint": viewpoint,
+        "style_profile": {
+            "viral_intensity": intensity,
+            "opening_policy": "first 3 seconds must state conflict, reversal, or survival pressure",
+            "rewrite_boundary": "retell and compress story beats; do not invent new plot facts or replace locked characters",
+        },
+        "episodes": built,
+        "quality_checks": [
+            "每集开头是否有强钩子",
+            "是否按原剧情顺序压缩爽点和反转",
+            "是否保留真实角色和关键设定",
+            "是否用口播文案承接下一集悬念",
+            "是否避免把场景卡当成最终解说稿",
+        ],
+    }
+
+
+def _build_explainer_episode(block: Dict, title: str, viewpoint: str, intensity: str, platform: str, duration_sec: int) -> Dict:
+    body = block.get("body", "")
+    sentences = _split_story_sentences(body)
+    characters = _extract_character_candidates(body)[:5]
+    names = "、".join(characters) if characters else "主角"
+    core = sentences[0] if sentences else body
+    twist = _select_twist_sentence(sentences)
+    ending = sentences[-1] if sentences else core
+    narration = _build_explainer_lines(sentences, names, viewpoint)
+    hook = _build_explainer_hook(core, twist, names, intensity)
+    cliffhanger = _build_explainer_cliffhanger(ending, twist, names)
+    return {
+        "episode_index": block.get("episode_index", 1),
+        "episode_title": block.get("title") or f"{title} 第{block.get('episode_index', 1)}集",
+        "duration_sec": duration_sec,
+        "opening_hook": hook,
+        "narration_lines": narration,
+        "cliffhanger": cliffhanger,
+        "retention_devices": [
+            "开头直接抛出危机或反转，不铺设定",
+            "每20-30秒补一次新信息或新压力",
+            "结尾用未解决问题承接下一集",
+        ],
+        "platform_notes": {
+            "target_platform": platform,
+            "delivery": "短句、强停顿、适合口播剪辑",
+            "boundary": "不新增角色、不改动原剧情因果、不把解说稿写成分镜场景卡",
+        },
+        "source_excerpt": _clip_text(body, 360),
+    }
+
+
+def _build_explainer_hook(core: str, twist: str, names: str, intensity: str) -> str:
+    if twist and twist != core:
+        return f"谁能想到，{names}刚卷进这件事，真正的反转就已经埋好了：{_trim_sentence(twist, 54)}"
+    return f"一开场，{names}就遇上了最不该发生的事：{_trim_sentence(core, 58)}"
+
+
+def _build_explainer_lines(sentences: List[str], names: str, viewpoint: str) -> List[str]:
+    selected = sentences[:8] if sentences else []
+    if not selected:
+        return [f"故事从{names}的异常遭遇开始。"]
+    lines = []
+    for index, sentence in enumerate(selected):
+        trimmed = _trim_sentence(sentence, 64)
+        if index == 0:
+            lines.append(f"故事一开始，{trimmed}")
+        elif index == 1:
+            lines.append(f"但问题很快不对劲，{trimmed}")
+        elif index == len(selected) - 1:
+            lines.append(f"等到这里，局面已经彻底变了，{trimmed}")
+        else:
+            lines.append(f"接着，{trimmed}")
+    return lines
+
+
+def _build_explainer_cliffhanger(ending: str, twist: str, names: str) -> str:
+    base = twist or ending
+    return f"可{names}还不知道，{_trim_sentence(base, 48)}，这才只是麻烦的开始。"
+
+
+def _select_twist_sentence(sentences: List[str]) -> str:
+    markers = ("突然", "没想到", "竟", "反而", "真正", "发现", "原来", "却", "危机", "规则", "系统", "死亡", "异常")
+    for sentence in sentences:
+        if any(marker in sentence for marker in markers):
+            return sentence
+    return sentences[-1] if sentences else ""
+
+
+def _extract_episode_blocks(text: str) -> List[Dict]:
+    blocks = []
+    current_title = ""
+    current_index = 0
+    body_lines: List[str] = []
+    for raw_line in str(text or "").splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        match = re.match(r"^第\s*([一二三四五六七八九十百千万\d]+)\s*[集话回章](?:[：:：\s-]*(.*))?$", line)
+        if match:
+            if body_lines and current_index:
+                blocks.append({"episode_index": current_index, "title": current_title, "body": "\n".join(body_lines)})
+            current_index = _episode_number(match.group(1)) or len(blocks) + 1
+            current_title = line
+            body_lines = []
+        else:
+            body_lines.append(line)
+    if body_lines:
+        blocks.append({"episode_index": current_index or len(blocks) + 1, "title": current_title, "body": "\n".join(body_lines)})
+    return blocks
+
+
+def _episode_number(value: str) -> int:
+    text = str(value or "").strip()
+    if text.isdigit():
+        return int(text)
+    numerals = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
+    if text == "十":
+        return 10
+    if text.startswith("十"):
+        return 10 + numerals.get(text[1:], 0)
+    if "十" in text:
+        left, _, right = text.partition("十")
+        return numerals.get(left, 0) * 10 + numerals.get(right, 0)
+    return numerals.get(text, 0)
+
+
+def _split_story_sentences(text: str) -> List[str]:
+    chunks = re.split(r"[。！？!?]\s*|\n+", str(text or ""))
+    return [item.strip(" △\t") for item in chunks if item.strip(" △\t")]
+
+
+def _trim_sentence(text: str, limit: int) -> str:
+    return _clip_text(str(text or "").strip(), limit)
+
+
+def _source_text_from_script(script: Dict) -> str:
+    scenes = script.get("scenes") or []
+    parts = []
+    for scene in scenes:
+        parts.extend(str(scene.get(key, "")) for key in ("visual", "voiceover", "action"))
+        for dialogue in scene.get("dialogue") or []:
+            parts.append(str(dialogue.get("line", "")))
+    return "\n".join(part for part in parts if part)
+
+
+def _infer_title(text: str) -> str:
+    for line in str(text or "").splitlines():
+        line = line.strip()
+        if line and not line.startswith("第") and len(line) <= 24:
+            return line
+    return ""
 
 def _run_build_ip_asset_pack(task: Dict, output_dir: str) -> Dict:
     pack = _build_ip_asset_pack(task)

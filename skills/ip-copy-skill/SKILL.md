@@ -15,6 +15,7 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 - Build adaptation scene cards for downstream blueprint creation
 - Build structured short-drama script drafts from scene cards or adaptation state
 - Polish script drafts with deterministic dialogue tightening and conflict notes
+- Build viral short-video explainer scripts from source text or script drafts without confusing them with scene cards
 - Build a minimal content brain layer before image generation
 
 ## Tool Boundaries
@@ -72,6 +73,14 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 4. Write tightened Chinese short-drama dialogue into `polished_dialogue` and `dialogue`
 5. Add `conflict_notes` and `beat_function` for downstream review or model polishing
 
+
+### Flow B5: Viral Explainer Script
+
+1. Accept `source_text`, `script_draft`, or `polished_script`.
+2. Split obvious episode markers such as `第一集` / `第2集` into episode blocks.
+3. Build a short-video explainer layer with `opening_hook`, `narration_lines`, `cliffhanger`, `retention_devices`, and platform notes.
+4. Keep the output as a deterministic explainer scaffold. Do not pretend scene cards are final viral narration, and do not invent new plot facts or replace locked characters.
+
 ### Flow C: Character/Image Handoff
 
 1. Accept a character sheet and optional asset bundle
@@ -89,7 +98,7 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 
 - `scripts/license_gate.py`: deterministic license validation
 - `scripts/blueprint_validate.py`: deterministic blueprint validation
-- `scripts/copy_skill.py`: task entrypoint, interactive adaptation state, scene card builder, script draft builder, script polish helper, blueprint builder, handoff builder, and IP asset pack builder
+- `scripts/copy_skill.py`: task entrypoint, interactive adaptation state, scene card builder, script draft builder, viral explainer builder, script polish helper, blueprint builder, handoff builder, and IP asset pack builder
 
 ## References
 

@@ -459,6 +459,75 @@ def test_polish_script_draft_can_build_from_state():
         assert polished["scenes"][0]["dialogue"]
 
 
+
+def test_build_viral_explainer_script_from_episode_text():
+    source_text = """黄泉饭店
+第一集
+林缺在雨夜回到黄泉饭店，发现大厅里的灯全部变成暗红色。
+牛头员工端着托盘从厨房出来，提醒他客人马上就到。
+苏澜用探测器发现大厅异常能量暴涨，真正的规则才刚刚出现。
+第二集
+林缺翻开菜单账本，发现每一道菜都对应一条隐藏规则。
+苏澜想离开饭店，却发现大门外的街道已经变成陌生荒原。
+牛头低声提醒，今晚的第一位客人不能得罪。
+"""
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                "mode": "build_viral_explainer_script",
+                "title": "黄泉饭店",
+                "source_text": source_text,
+                "max_episodes": 2,
+                "viewpoint": "男主视角",
+                "output_dir": output_dir,
+            }
+        )
+        assert result["status"] == "success"
+        script = result["handoff"]["viral_explainer_script"]
+        assert script["mode"] == "viral_explainer_script"
+        assert script["viewpoint"] == "男主视角"
+        assert len(script["episodes"]) == 2
+        assert script["episodes"][0]["opening_hook"]
+        assert script["episodes"][0]["narration_lines"]
+        assert script["episodes"][0]["cliffhanger"]
+        assert "scene_cards" not in script
+        assert "林缺" in script["episodes"][0]["source_excerpt"]
+        assert os.path.exists(os.path.join(output_dir, "viral_explainer_script.json"))
+
+
+def test_build_viral_explainer_script_from_script_draft():
+    script_draft = {
+        "title": "黄泉饭店",
+        "scenes": [
+            {
+                "visual": "林缺站在黄泉饭店服务台后，暗红灯光照亮菜单账本。",
+                "voiceover": "林缺刚回到饭店，就发现大厅里的规则已经变了。",
+                "dialogue": [{"speaker": "林缺", "line": "今晚不能出错。"}],
+            },
+            {
+                "visual": "苏澜举起探测器，屏幕上的数值突然飙升。",
+                "voiceover": "苏澜发现异常能量暴涨，真正的客人正在靠近。",
+                "dialogue": [{"speaker": "苏澜", "line": "这里不是普通饭店。"}],
+            },
+        ],
+    }
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                "mode": "build_viral_explainer_script",
+                "script_draft": script_draft,
+                "target_platform": "douyin",
+                "output_dir": output_dir,
+            }
+        )
+        script = result["handoff"]["viral_explainer_script"]
+        episode = script["episodes"][0]
+        assert script["target_platform"] == "douyin"
+        assert episode["opening_hook"]
+        assert len(episode["narration_lines"]) >= 2
+        assert episode["platform_notes"]["boundary"] == "不新增角色、不改动原剧情因果、不把解说稿写成分镜场景卡"
+        assert any("场景卡" in item for item in script["quality_checks"])
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_") and callable(fn):
