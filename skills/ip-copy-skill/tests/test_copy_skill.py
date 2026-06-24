@@ -1323,6 +1323,48 @@ def test_build_viral_explainer_script_from_script_draft():
         assert episode["platform_notes"]["boundary"] == "不新增角色、不改动原剧情因果、不把解说稿写成分镜场景卡"
         assert any("场景卡" in item for item in script["quality_checks"])
 
+
+def test_prompt_pack_includes_format_templates_and_few_shot_shapes():
+    vertical_request = CreativeEngineRequest(
+        kind="scene_cards",
+        source_text="林缺在雨夜回到黄泉饭店，牛头员工端着托盘出现。",
+        creative_brief={"target": "short_drama", "tone": "悬疑诡异"},
+        format_name=VerticalShortDramaAdapter().spec().format_name,
+        schema_name="scene_cards",
+        payload={"adapter": VerticalShortDramaAdapter().creative_engine_payload({"title": "黄泉饭店"}, {})},
+    )
+    vertical_pack = build_prompt_pack(vertical_request)
+    assert vertical_pack["metadata"]["format_prompt_template_version"] == "copy-format-prompt-template-v1"
+    assert vertical_pack["format_prompt_template"]["format_name"] == "vertical_short_drama"
+    assert "opening abnormality or reversal" in vertical_pack["format_prompt_template"]["must_include"]
+    assert vertical_pack["few_shot_output_shape"]["shape_version"] == "copy-few-shot-output-shape-v1"
+    assert "Few-Shot Output Shape" in vertical_pack["user_prompt"]
+    assert "Format-Specific Writing Template" in vertical_pack["user_prompt"]
+
+    murder_request = CreativeEngineRequest(
+        kind="script_scenes",
+        source_text="账本藏着第一条线索，主持人公布时间线矛盾。",
+        creative_brief={"target": "murder_mystery"},
+        format_name=MurderMysteryAdapter().spec().format_name,
+        schema_name="script_scenes",
+        payload={"adapter": MurderMysteryAdapter().creative_engine_payload({"title": "黄泉饭店案件本"}, {})},
+    )
+    murder_pack = build_prompt_pack(murder_request)
+    assert "truth_chain" in murder_pack["few_shot_output_shape"]["format_specific_top_level_fields"]
+    assert "public case logic" in murder_pack["format_prompt_template"]["writing_frame"][0]
+
+    interactive_request = CreativeEngineRequest(
+        kind="script_scenes",
+        source_text="玩家选择查账本，或跟随牛头员工进入后厨。",
+        creative_brief={"target": "interactive_film_game"},
+        format_name=InteractiveFilmGameAdapter().spec().format_name,
+        schema_name="script_scenes",
+        payload={"adapter": InteractiveFilmGameAdapter().creative_engine_payload({"title": "黄泉饭店互动影游"}, {})},
+    )
+    interactive_pack = build_prompt_pack(interactive_request)
+    assert "node_graph" in interactive_pack["few_shot_output_shape"]["format_specific_top_level_fields"]
+    assert "fake choices" in interactive_pack["format_prompt_template"]["avoid"][0]
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_") and callable(fn):

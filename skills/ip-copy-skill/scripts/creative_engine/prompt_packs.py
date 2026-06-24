@@ -37,6 +37,166 @@ TASK_INSTRUCTIONS = {
 }
 
 
+FORMAT_PROMPT_TEMPLATE_VERSION = "copy-format-prompt-template-v1"
+
+
+FORMAT_PROMPT_TEMPLATES = {
+    "vertical_short_drama": {
+        "writing_frame": [
+            "Structure each unit as hook -> pressure escalation -> decision/action -> handoff.",
+            "Write for a vertical short-drama viewer who must understand the conflict within the first visible beat.",
+            "Keep dialogue short, playable, and tied to immediate pressure rather than exposition.",
+        ],
+        "must_include": [
+            "opening abnormality or reversal",
+            "one visible action result per scene",
+            "one emotional turn per 10-15 seconds",
+            "storyboard-ready visual action and asset goal",
+        ],
+        "avoid": [
+            "static characters repeating the premise",
+            "running or fighting without a causal objective",
+            "props or monsters not grounded in source or locked payload",
+        ],
+    },
+    "overseas_short_drama": {
+        "writing_frame": [
+            "Structure each scene around a relationship/status pressure that remains clear after translation.",
+            "Use simple culturally clear stakes before adding local terms or world rules.",
+            "Make emotional reversals readable through behavior, blocking, and concise dialogue.",
+        ],
+        "must_include": [
+            "relationship or status pressure",
+            "translation-ready dialogue intent",
+            "culture-safe visual context",
+            "episode handoff through choice, secret, or relationship reversal",
+        ],
+        "avoid": [
+            "idioms that only work in one local culture",
+            "long lore exposition before the scene conflict is visible",
+            "ambiguous relationship status when it drives the scene",
+        ],
+    },
+    "feature_film": {
+        "writing_frame": [
+            "Organize material through act, sequence, scene, and beat logic.",
+            "Prefer visual storytelling and subtext over explanatory voiceover.",
+            "Track theme question, character wound, choice, cost, and visual payoff.",
+        ],
+        "must_include": [
+            "theme question or character wound",
+            "sequence setup/escalation/turn/handoff",
+            "character choice under cost",
+            "visual motif or payoff setup when source supports it",
+        ],
+        "avoid": [
+            "short-drama-only hook stacking without act logic",
+            "dialogue explaining what the image already proves",
+            "new backstory that is not sourced or explicitly requested",
+        ],
+    },
+    "long_series": {
+        "writing_frame": [
+            "Separate episode engine, act turns, A story, B story, and season momentum.",
+            "Each act break should change stakes, information, or relationship power.",
+            "Scene dialogue should reveal strategy, concealment, or relationship pressure.",
+        ],
+        "must_include": [
+            "episode logline function",
+            "A/B story track note",
+            "act-break hook or reversal",
+            "character arc movement without contradicting season arc",
+        ],
+        "avoid": [
+            "one-plot summaries that erase subplot function",
+            "act breaks that only pause instead of turning the story",
+            "scene dialogue that only restates plot facts",
+        ],
+    },
+    "murder_mystery": {
+        "writing_frame": [
+            "Build public case logic separately from private POV knowledge.",
+            "Every clue must connect to motive, method, timeline, alibi, or reversible red herring logic.",
+            "Host-facing instructions must not reveal private truth before the intended phase.",
+        ],
+        "must_include": [
+            "truth chain",
+            "character POV separation",
+            "fair clue distribution",
+            "round or phase reveal purpose",
+            "solution logic",
+        ],
+        "avoid": [
+            "clues that require out-of-band information",
+            "random confusion that cannot be reversed into logic",
+            "spoiling final truth in early public-facing copy",
+        ],
+    },
+    "interactive_film_game": {
+        "writing_frame": [
+            "Write node logic as player goal -> visible choice -> consequence -> state change.",
+            "Choices must have distinct costs or information changes, not cosmetic wording only.",
+            "Convergence points must preserve choice memory and state flags.",
+        ],
+        "must_include": [
+            "node graph",
+            "choice consequence map",
+            "state flags",
+            "convergence points",
+            "ending conditions",
+        ],
+        "avoid": [
+            "fake choices that lead to identical outcomes without memory",
+            "dead ends caused by random punishment",
+            "branches that contradict prior inventory, relationship, or knowledge state",
+        ],
+    },
+}
+
+
+KIND_OUTPUT_SHAPES = {
+    "source_analysis": {
+        "characters": [
+            {"name": "locked character name", "role": "source-grounded role", "known_facts": ["source fact"], "uncertain_facts": []}
+        ],
+        "world_rules": [{"rule": "confirmed rule", "source_evidence": "short excerpt or reference", "certainty": "confirmed|uncertain"}],
+        "plot_beats": [{"beat": "event", "cause": "why it happens", "effect": "what it changes"}],
+        "risk_notes": [{"risk": "possible unsupported inference", "handling": "mark uncertain or ask user"}],
+    },
+    "scene_cards": [
+        {
+            "scene_id": "sc01",
+            "visual": "concrete visible action grounded in source",
+            "voiceover": "short narration line",
+            "duration_sec": 8,
+            "emotional_turn": "pressure -> decision",
+            "asset_goal": {"type": "adapted scene key frame", "scene": "locked location", "purpose": "storyboard/video handoff"},
+        }
+    ],
+    "script_scenes": [
+        {
+            "scene_no": 1,
+            "start_sec": 0,
+            "end_sec": 8,
+            "visual": "playable screen action",
+            "voiceover": "short narration if needed",
+            "dialogue": [{"speaker": "locked character", "line": "playable line exposing pressure or decision"}],
+            "action_result": "what changed by scene end",
+        }
+    ],
+    "polished_script_scenes": [
+        {
+            "scene_no": 1,
+            "start_sec": 0,
+            "end_sec": 8,
+            "visual": "preserved or tightened visual action",
+            "voiceover": "tightened narration without changing facts",
+            "dialogue": [{"speaker": "locked character", "line": "polished line preserving intent"}],
+            "conflict_notes": ["supported pressure strengthened"],
+        }
+    ],
+}
+
 SCHEMA_CONTRACTS = {
     "scene_cards": {
         "root_type": "array",
@@ -96,6 +256,8 @@ def build_prompt_pack(request) -> Dict[str, Any]:
     schema_name = request.schema_name or request.kind
     contract = SCHEMA_CONTRACTS.get(schema_name, {"root_type": "object", "item_required": [], "notes": []})
     diagnostics = _creative_diagnostics(request, adapter_payload)
+    format_template = _format_prompt_template(request.format_name)
+    output_shape = _output_shape_for_kind(request.kind, request.format_name)
     return {
         "prompt_pack_version": PROMPT_PACK_VERSION,
         "kind": request.kind,
@@ -112,6 +274,8 @@ def build_prompt_pack(request) -> Dict[str, Any]:
             "notes": contract["notes"],
         },
         "creative_diagnostics": diagnostics,
+        "format_prompt_template": format_template,
+        "few_shot_output_shape": output_shape,
         "task_instructions": TASK_INSTRUCTIONS.get(request.kind, ["Generate structured adaptation output under the response contract."]),
         "safety_constraints": _safety_constraints(),
         "quality_targets": _quality_targets(request.kind, adapter_payload),
@@ -120,6 +284,7 @@ def build_prompt_pack(request) -> Dict[str, Any]:
             "creative_brief_keys": sorted((request.creative_brief or {}).keys()),
             "payload_keys": sorted(payload.keys()),
             "allow_live_requested": bool(request.allow_live),
+            "format_prompt_template_version": FORMAT_PROMPT_TEMPLATE_VERSION,
         },
     }
 
@@ -143,6 +308,8 @@ def _user_prompt(request, adapter_payload: Dict[str, Any], contract: Dict[str, A
     sections.append(_section("Creative Brief", _json(request.creative_brief or {})))
     sections.append(_section("Detected Creative Diagnostics", _json(diagnostics)))
     sections.append(_section("Format Constraints", _format_constraints(adapter_payload)))
+    sections.append(_section("Format-Specific Writing Template", _json(_format_prompt_template(request.format_name))))
+    sections.append(_section("Few-Shot Output Shape", _json(_output_shape_for_kind(request.kind, request.format_name))))
     sections.append(_section("Task Payload", _json(_compact_payload(request.payload or {}))))
     sections.append(_section("Task Instructions", _json(TASK_INSTRUCTIONS.get(request.kind, []))))
     sections.append(_section("Response Contract", _json(contract)))
@@ -328,6 +495,42 @@ def _format_constraints(adapter_payload: Dict[str, Any]) -> str:
     }
     return _json(fields)
 
+
+def _format_prompt_template(format_name: str) -> Dict[str, Any]:
+    template = FORMAT_PROMPT_TEMPLATES.get(format_name) or {
+        "writing_frame": [
+            "Use source-grounded structure, visible action, character-specific dialogue, and clear causality.",
+        ],
+        "must_include": ["source-grounded facts", "clear action result", "downstream handoff fields"],
+        "avoid": ["unsupported plot facts", "generic dialogue", "unclear scene handoff"],
+    }
+    return {
+        "template_version": FORMAT_PROMPT_TEMPLATE_VERSION,
+        "format_name": format_name or "unspecified",
+        "writing_frame": template["writing_frame"],
+        "must_include": template["must_include"],
+        "avoid": template["avoid"],
+    }
+
+
+def _output_shape_for_kind(kind: str, format_name: str) -> Dict[str, Any]:
+    shape = KIND_OUTPUT_SHAPES.get(kind) or KIND_OUTPUT_SHAPES.get("script_scenes")
+    result = {
+        "shape_version": "copy-few-shot-output-shape-v1",
+        "kind": kind,
+        "format_name": format_name or "unspecified",
+        "example_json_shape": shape,
+        "example_policy": "This is a schema and craft example only; replace all placeholder values with source-grounded content.",
+    }
+    if format_name == "murder_mystery" and kind in {"script_scenes", "polished_script_scenes"}:
+        result["format_specific_top_level_fields"] = ["truth_chain", "character_pov_packets", "clue_distribution", "solution_logic"]
+    if format_name == "interactive_film_game" and kind in {"script_scenes", "polished_script_scenes"}:
+        result["format_specific_top_level_fields"] = ["node_graph", "choice_consequence_map", "state_flags", "convergence_points", "ending_conditions"]
+    if format_name == "feature_film" and kind in {"script_scenes", "polished_script_scenes"}:
+        result["format_specific_top_level_fields"] = ["theme_question", "character_arc", "act_breaks", "sequence_turns"]
+    if format_name == "long_series" and kind in {"script_scenes", "polished_script_scenes"}:
+        result["format_specific_top_level_fields"] = ["episode_logline", "act_breaks", "a_story_b_story_tracks", "character_arc"]
+    return result
 
 def _compact_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     compact = dict(payload)
