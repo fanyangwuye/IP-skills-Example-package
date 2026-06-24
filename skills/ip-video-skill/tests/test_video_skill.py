@@ -183,6 +183,34 @@ def test_build_video_handoff_has_required_shot_fields():
         assert shot["quality_checks"]
 
 
+
+def test_clip_provider_prompts_are_model_specific_and_compact():
+    handoff = build_video_handoff(_task())
+    clip = handoff["clip_plan"][0]
+    required_sections = [
+        "Prompt Packet V1",
+        "Global Context",
+        "Internal Story Facts",
+        "Reference Bindings",
+        "Spatial Blocking",
+        "15s Timeline",
+        "Continuation Contract",
+        "Platform-Safe Surface Wording",
+        "Execution Constraints",
+    ]
+    provider_prompts = [clip["i2v_prompt"], clip["seedance_prompt"], clip["t2v_prompt"]]
+    assert clip["i2v_prompt"] != clip["seedance_prompt"]
+    assert clip["seedance_prompt"] != clip["t2v_prompt"]
+    assert clip["i2v_prompt"] != clip["t2v_prompt"]
+    assert "prompt_kind=i2v" in clip["i2v_prompt"]
+    assert "prompt_kind=seedance" in clip["seedance_prompt"]
+    assert "prompt_kind=t2v" in clip["t2v_prompt"]
+    for prompt in provider_prompts:
+        for section in required_sections:
+            assert section in prompt
+        assert len(prompt) < len(clip["clip_prompt"])
+    assert clip["prompt_strategy"]["architecture"] == "Prompt Packet V1"
+    assert "compact surface packets" in clip["prompt_strategy"]["provider_prompts"]
 def test_storyboard_image_task_for_clip_design_sheet():
     handoff = build_video_handoff(_task())
     task = handoff["storyboard_image_tasks"][0]

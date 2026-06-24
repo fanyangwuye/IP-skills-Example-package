@@ -79,6 +79,18 @@ def _build_clip(index: int, shots: List[Dict], task: Dict, bible: Dict) -> Dict:
         continuity_state,
     ) if any(is_martial_arts_scene(shot.get("visual", ""), shot.get("storyboard_card", {}).get("action_scene_type", "")) for shot in shots) else {}
 
+    prompt_bundle = _clip_prompt_bundle(
+        clip_id,
+        timing,
+        shots,
+        continuity_state,
+        video_refs,
+        space_refs,
+        martial_arts_layer,
+        frame_specs,
+        storyboard_execution_map,
+    )
+
     return {
         "clip_id": clip_id,
         "order": index,
@@ -98,10 +110,11 @@ def _build_clip(index: int, shots: List[Dict], task: Dict, bible: Dict) -> Dict:
         "martial_arts_layer": martial_arts_layer,
         "previous_clip_end_frame": _previous_clip_end_frame(task, index, clip_id),
         "continuity_state": continuity_state,
-        "clip_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs, martial_arts_layer, frame_specs, storyboard_execution_map),
-        "i2v_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs, martial_arts_layer, frame_specs, storyboard_execution_map),
-        "seedance_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs, martial_arts_layer, frame_specs, storyboard_execution_map),
-        "t2v_prompt": _clip_prompt(clip_id, timing, shots, continuity_state, video_refs, space_refs, martial_arts_layer, frame_specs, storyboard_execution_map),
+        "clip_prompt": prompt_bundle["clip_prompt"],
+        "i2v_prompt": prompt_bundle["i2v_prompt"],
+        "seedance_prompt": prompt_bundle["seedance_prompt"],
+        "t2v_prompt": prompt_bundle["t2v_prompt"],
+        "prompt_strategy": prompt_bundle["prompt_strategy"],
         "negative_prompt": _merge_negative_prompt(shots),
         "retry_advice": _dedupe([item for shot in shots for item in (shot.get("retry_advice") or [])]),
         "quality_checks": _clip_quality_checks(),
@@ -125,6 +138,193 @@ def _shot_action(shot: Dict) -> str:
     return shot.get("continuity_state", {}).get("main_action_transition") or shot.get("visual", "")
 
 
+
+def _clip_prompt_bundle(
+    clip_id: str,
+    timing: Dict,
+    shots: List[Dict],
+    continuity_state: Dict,
+    video_refs: List[Dict],
+    space_refs: List[Dict],
+    martial_arts_layer: Dict,
+    frame_specs: Dict,
+    storyboard_execution_map: List[Dict],
+) -> Dict:
+    full_packet = _clip_prompt(
+        clip_id,
+        timing,
+        shots,
+        continuity_state,
+        video_refs,
+        space_refs,
+        martial_arts_layer,
+        frame_specs,
+        storyboard_execution_map,
+    )
+    return {
+        "clip_prompt": full_packet,
+        "i2v_prompt": _clip_provider_prompt(
+            "i2v",
+            clip_id,
+            timing,
+            shots,
+            continuity_state,
+            video_refs,
+            space_refs,
+            martial_arts_layer,
+            storyboard_execution_map,
+        ),
+        "seedance_prompt": _clip_provider_prompt(
+            "seedance",
+            clip_id,
+            timing,
+            shots,
+            continuity_state,
+            video_refs,
+            space_refs,
+            martial_arts_layer,
+            storyboard_execution_map,
+        ),
+        "t2v_prompt": _clip_provider_prompt(
+            "t2v",
+            clip_id,
+            timing,
+            shots,
+            continuity_state,
+            video_refs,
+            space_refs,
+            martial_arts_layer,
+            storyboard_execution_map,
+        ),
+        "prompt_strategy": {
+            "architecture": "Prompt Packet V1",
+            "control_prompt": "clip_prompt keeps the full audit packet",
+            "provider_prompts": "i2v/seedance/t2v are compact surface packets with all required sections",
+            "length_policy": "provider prompts keep locked facts, references, spatial blocking, timeline, and hard constraints first",
+        },
+    }
+
+
+def _clip_provider_prompt(
+    kind: str,
+    clip_id: str,
+    timing: Dict,
+    shots: List[Dict],
+    continuity_state: Dict,
+    video_refs: List[Dict],
+    space_refs: List[Dict],
+    martial_arts_layer: Dict,
+    storyboard_execution_map: List[Dict],
+) -> str:
+    characters = _dedupe([char for shot in shots for char in (shot.get("characters") or [])])
+    scene_ids = _dedupe([shot.get("scene_id") for shot in shots if shot.get("scene_id")])
+    shot_ids = [shot.get("shot_id", "") for shot in shots if shot.get("shot_id")]
+    visual = _clip_text("; ".join(shot.get("visual", "") for shot in shots if shot.get("visual")), 260)
+    action = _clip_text(continuity_state.get("main_action_transition", ""), 220)
+    spatial = _compact_spatial_text(shots)
+    timeline = _compact_timeline_text(shots)
+    refs = _compact_reference_text(video_refs, space_refs)
+    martial = _clip_text(martial_arts_text(martial_arts_layer), 180)
+    storyboard = _compact_storyboard_text(storyboard_execution_map)
+
+    if kind == "i2v":
+        mode_line = "Image-to-video. Use reference images as the identity, costume, scene, storyboard-composition and motion anchors."
+        surface = _english_surface_line(visual, action)
+        execution = "Execute the storyboard order exactly; keep one clear main action per shot; no subtitles, no fake text, no watermark, no title card, no songs, 无音乐铺底。"
+    elif kind == "t2v":
+        mode_line = "Text-to-video preview only. Do not treat this as final IP identity validation without character and scene references."
+        surface = _english_surface_line(visual, action)
+        execution = "Preview camera, blocking and action rhythm; do not invent new characters, props, spaces, dialogue text, subtitles or logos."
+    else:
+        mode_line = "Seedance clip prompt. 使用参考图锁定角色身份、服装、场景与故事板构图；动作短、清楚、可剪辑。"
+        surface = _chinese_surface_line(visual, action)
+        execution = "严格按故事板顺序执行；每个分镜只保留一个主动作和一个情绪落点；禁止字幕、伪文字、水印、片头片尾、歌曲和背景音乐。"
+
+    parts = [
+        f"Prompt Packet V1: {clip_id}; duration={timing.get('duration_sec')}s; generation_unit=clip; prompt_kind={kind}; shot_ids={shot_ids}.",
+        f"Global Context: {mode_line} Realistic cinematic short-drama texture; stable face, hair, costume, props, layout, light direction and screen direction.",
+        f"Internal Story Facts: characters={characters or ['empty/cutaway']}; scenes={scene_ids or ['unspecified']}; start={_clip_text(continuity_state.get('current_start_state', ''), 120)}; action={action}; end={_clip_text(continuity_state.get('current_end_state', ''), 120)}.",
+        f"Reference Bindings: {refs}; character refs lock identity and costume; scene refs lock layout and light; storyboard refs lock composition, blocking, action phase, screen direction and edit order.",
+        f"Spatial Blocking: {spatial}",
+        f"15s Timeline: {timeline}",
+        "Continuation Contract: Do not copy the previous clip composition unless hard_first_frame is explicitly selected; use reframed medium, close, wide, reverse, insert or cutaway shots only when continuity state, light, costume, prop hand and screen direction remain traceable.",
+        f"Platform-Safe Surface Wording: {surface} Surface wording must stay visually equivalent to the locked references and storyboard; do not replace locked characters with strangers, masks, machines, celebrities, animals or unrelated creatures.",
+        f"Execution Constraints: {storyboard} {martial} {execution}",
+    ]
+    return "\n".join(part.strip() for part in parts if part.strip())
+
+
+def _compact_reference_text(video_refs: List[Dict], space_refs: List[Dict]) -> str:
+    video = ", ".join(_ref_label(ref) for ref in video_refs[:4]) or "locked character/normal scene references"
+    space = ", ".join(_ref_label(ref) for ref in space_refs[:3]) or "panorama anchors for layout only"
+    return f"video_refs={video}; space_anchor_refs={space}"
+
+
+def _compact_spatial_text(shots: List[Dict]) -> str:
+    rows = []
+    for order, shot in enumerate(shots[:4], start=1):
+        card = shot.get("storyboard_card") or {}
+        axis = card.get("axis") or shot.get("axis", {})
+        screen = card.get("screen_direction") or shot.get("screen_direction", {})
+        eyeline = card.get("eyeline") or shot.get("eyeline", {})
+        rows.append(
+            f"shot{order}/{shot.get('shot_id', '')}: axis={_clip_text(axis, 90)}; screen={_clip_text(screen, 90)}; eyeline={_clip_text(eyeline, 70)}"
+        )
+    suffix = " Keep doors, windows, entrances, exits, foreground/background and danger side from teleporting."
+    high_risk = _clip_text(high_risk_spatial_template_text(shots), 220)
+    return _clip_text(" | ".join(rows) + suffix + (" " + high_risk if high_risk else ""), 520)
+
+
+def _compact_timeline_text(shots: List[Dict]) -> str:
+    rows = []
+    for order, shot in enumerate(shots[:5], start=1):
+        timing = shot.get("timing") or {}
+        card = shot.get("storyboard_card") or {}
+        state = shot.get("continuity_state") or {}
+        rows.append(
+            f"[{timing.get('start_sec')}-{timing.get('end_sec')}s] shot{order}={shot.get('shot_id', '')}: "
+            f"{_clip_text(shot.get('visual', ''), 120)}; camera={_clip_text(card.get('camera_motion', '') or 'follow storyboard camera', 60)}; "
+            f"start={_clip_text(state.get('current_start_state', ''), 70)}; end={_clip_text(state.get('current_end_state', ''), 70)}"
+        )
+    return _clip_text(" ".join(rows), 760)
+
+
+def _compact_storyboard_text(storyboard_execution_map: List[Dict]) -> str:
+    if not storyboard_execution_map:
+        return "Storyboard map required before live generation."
+    rows = []
+    for item in storyboard_execution_map[:5]:
+        rows.append(f"video shot {item.get('video_shot_order')} = storyboard {item.get('storyboard_shot_id')}")
+    return "Storyboard execution map: " + "; ".join(rows) + ". Do not delete, merge, reorder or rewrite storyboard shots."
+
+
+def _english_surface_line(visual: str, action: str) -> str:
+    return _clip_text(
+        "Create a visually equivalent cinematic clip from the locked references: "
+        + visual
+        + ". Main action: "
+        + action
+        + ". Keep named IP facts internal; use neutral visible descriptions while preserving the exact characters, props, space and action.",
+        420,
+    )
+
+
+def _chinese_surface_line(visual: str, action: str) -> str:
+    return _clip_text(
+        "按参考图和故事板生成视觉等价片段："
+        + visual
+        + "。主动作："
+        + action
+        + "。外部措辞可中性化，但不得增删角色、道具、空间和动作。",
+        420,
+    )
+
+
+def _clip_text(value, limit: int) -> str:
+    text = str(value or "").replace("\n", " ").strip()
+    if len(text) <= limit:
+        return text
+    return text[: max(limit - 3, 0)].rstrip(" ，。；,.;") + "..."
 def _clip_prompt(
     clip_id: str,
     timing: Dict,
