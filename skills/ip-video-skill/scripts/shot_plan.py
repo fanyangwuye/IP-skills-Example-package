@@ -5,6 +5,7 @@ try:
     from .martial_arts import is_martial_arts_scene
     from .prompt_quality import (
         build_negative_prompt,
+        build_negative_prompt_profile,
         build_prompt_profile,
         build_retry_advice,
         compose_i2v_prompt,
@@ -16,6 +17,7 @@ except ImportError:
     from martial_arts import is_martial_arts_scene
     from prompt_quality import (
         build_negative_prompt,
+        build_negative_prompt_profile,
         build_prompt_profile,
         build_retry_advice,
         compose_i2v_prompt,
@@ -94,6 +96,7 @@ def _build_shot(index: int, segment: Dict, bible: Dict, previous_end_state: str)
     visual_lock = _visual_lock(character_ids, scene_id, bible)
     reference_binding = _reference_binding(character_ids, scene_id, bible)
     storyboard_card = {
+        "shot_id": segment.get("shot_id") or f"shot_{index:03d}",
         "story_function": segment.get("beat_function") or segment.get("purpose") or segment.get("asset_goal", {}).get("purpose", "推进剧情"),
         "characters_present": character_ids,
         "axis": axis,
@@ -113,6 +116,7 @@ def _build_shot(index: int, segment: Dict, bible: Dict, previous_end_state: str)
     action_scene = _is_action_scene(visual)
     storyboard_card["action_scene_type"] = "martial_arts" if is_martial_arts_scene(visual) else ("action" if action_scene else "")
     prompt_profile = build_prompt_profile(index, visual, storyboard_card, continuity_state, visual_lock)
+    negative_prompt_profile = build_negative_prompt_profile(len(character_ids) >= 2, action_scene=action_scene, style=visual_lock.get("style", {}))
 
     return {
         "shot_id": segment.get("shot_id") or f"shot_{index:03d}",
@@ -133,7 +137,8 @@ def _build_shot(index: int, segment: Dict, bible: Dict, previous_end_state: str)
         "i2v_prompt": compose_i2v_prompt(visual, prompt_profile, reference_binding),
         "t2v_prompt": compose_t2v_prompt(visual, prompt_profile, visual_lock),
         "seedance_prompt": compose_seedance_prompt(visual, prompt_profile, reference_binding),
-        "negative_prompt": build_negative_prompt(len(character_ids) >= 2, action_scene=action_scene),
+        "negative_prompt": build_negative_prompt(len(character_ids) >= 2, action_scene=action_scene, style=visual_lock.get("style", {})),
+        "negative_prompt_profile": negative_prompt_profile,
         "retry_advice": build_retry_advice(prompt_profile, len(character_ids) >= 2),
         "quality_checks": _quality_checks(len(character_ids) >= 2),
     }

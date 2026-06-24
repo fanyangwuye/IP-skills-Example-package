@@ -18,6 +18,7 @@ def build_prompt_profile(index: int, visual: str, storyboard_card: Dict, continu
         else {}
     )
     return {
+        "shot_id": storyboard_card.get("shot_id", ""),
         "duration": duration,
         "narrative_intent": storyboard_card.get("story_function", "推进剧情"),
         "action_flow": _action_flow(visual, continuity_state),
@@ -94,27 +95,26 @@ def compose_seedance_prompt(visual: str, profile: Dict, reference_binding: Dict)
     )
 
 
-def build_negative_prompt(multichar: bool, action_scene: bool = False) -> str:
-    items = [
+def build_negative_prompt(multichar: bool, action_scene: bool = False, style: Dict = None) -> str:
+    profile = build_negative_prompt_profile(multichar, action_scene, style or {})
+    return "；".join(profile["provider_negative_prompt"])
+
+
+def build_negative_prompt_profile(multichar: bool, action_scene: bool = False, style: Dict = None) -> Dict:
+    style = style or {}
+    critical_identity = [
         "不要换脸",
         "不要改变发型",
         "不要改变服装颜色和材质",
         "不要新增无关人物",
-        "不要复制参考图中的无关背景或路人",
-        "不要重置场景布局",
-        "不要改变光源方向",
         "不要道具凭空出现或消失",
+    ]
+    spatial = ["不要重置场景布局", "不要改变光源方向"]
+    model_artifacts = [
         "不要塑料皮肤",
-        "不要过度磨皮",
         "不要AI模板脸",
-        "不要网红脸",
         "不要玻璃珠眼睛",
-        "不要蜡像感",
-        "不要影楼写真感",
         "不要完美对称五官",
-        "不要干净棚拍质感",
-        "不要夸张表情",
-        "不要无意义镜头乱晃",
         "不要字幕乱码或伪文字",
         "不要画面字幕",
         "不要片头片尾文字",
@@ -123,42 +123,80 @@ def build_negative_prompt(multichar: bool, action_scene: bool = False) -> str:
         "不要音乐铺底",
     ]
     if multichar:
-        items.extend(["不要越轴", "不要屏幕方向翻转", "不要视线同向错位", "不要人物距离瞬移"])
+        spatial.extend(["不要越轴", "不要屏幕方向翻转", "不要视线同向错位", "不要人物距离瞬移"])
+    action_safety = []
     if action_scene:
-        items.extend(
-            [
-                "无血腥",
-                "无伤口特写",
-                "无暴力血浆",
-                "动作风格化且非写实伤害展示",
-                "不要招式文字",
-                "不要动作轨迹线",
-                "不要漫画速度线",
-                "不要肢体断裂",
-            ]
-        )
-    return "；".join(items)
+        action_safety.extend(["无血腥", "无伤口特写", "无暴力血浆", "不要招式文字", "不要动作轨迹线", "不要肢体断裂"])
+    style_negatives = _style_negative_items(style)
+    provider_negative = _dedupe(critical_identity + spatial + model_artifacts[:8] + action_safety[:5] + style_negatives[:8])
+    audit_negative = _dedupe(critical_identity + spatial + model_artifacts + action_safety + style_negatives)
+    return {
+        "critical_identity_negatives": critical_identity,
+        "spatial_negatives": spatial,
+        "model_artifact_negatives": model_artifacts,
+        "action_safety_negatives": action_safety,
+        "style_negatives": style_negatives,
+        "provider_negative_prompt": provider_negative,
+        "audit_negative_prompt": audit_negative,
+        "length_policy": "provider_negative_prompt keeps identity, spatial, artifact, action, and style negatives in priority order",
+    }
 
 
 def build_retry_advice(profile: Dict, multichar: bool) -> List[str]:
     advice = list(profile.get("retry_advice") or [])
+    shot_id = profile.get("shot_id") or "this shot"
+    camera = str(profile.get("camera_control") or "")
+    spatial = str(profile.get("spatial_continuity") or "")
+    action_flow = str(profile.get("action_flow") or "")
     advice.extend(
         [
-            "如果脸漂移，缩短动作幅度并把角色参考设为锁脸优先。",
-            "如果服装变色，降低场景色光污染，重申服饰款式、材质、颜色不变。",
-            "如果场景重置，改用同一场景参考图并强调门、柜台、窗、道路等地标位置。",
+            f"{shot_id}: 如果脸漂移，缩短本镜动作幅度，优先使用锁脸参考，并把脸部保持在同一光源方向。",
+            f"{shot_id}: 如果服装变色，降低场景色光污染，重申服饰款式、材质、颜色和状态不变。",
+            f"{shot_id}: 如果场景重置，使用同一正常场景参考图，重申门、柜台、窗、道路、石阶等可见地标位置。",
         ]
     )
     if multichar:
         advice.extend(
             [
-                "如果越轴，重申A屏幕左朝右、B屏幕右朝左，机位固定在轴线同一侧。",
-                "如果视线错位，重申双方视线互补且高度匹配。",
+                f"{shot_id}: 如果越轴，按本镜空间连续性重申屏幕左右关系，机位固定在轴线同一侧。",
+                f"{shot_id}: 如果视线错位，重申双方视线互补且高度匹配，不要让两人看向同一侧。",
             ]
         )
-    return advice
+    if any(word in camera for word in ["handheld", "tracking", "action follow", "跟随"]):
+        advice.append(f"{shot_id}: 如果运镜太晃，改成低幅稳定跟拍，只在命中点或情绪点短暂停留。")
+    if profile.get("martial_arts_layer"):
+        advice.append(f"{shot_id}: 如果动作糊成一团，拆成起势、一次攻防、反应停顿、收势四拍，用中景拍清距离和脚步。")
+    if any(word in action_flow for word in ["门", "窗", "入口", "出口", "穿过", "关门"]):
+        advice.append(f"{shot_id}: 如果门窗/出入口空间错乱，明确内外侧、谁先过门、威胁停在哪一侧，再重抽。")
+    if "scene anchor" in spatial or "场景" in spatial:
+        advice.append(f"{shot_id}: 如果空间地标跳位，降低镜头运动复杂度，保留一个前景/后景地标作为连续锚点。")
+    return _dedupe(advice)
 
 
+def _dedupe(items: List[str]) -> List[str]:
+    seen = set()
+    result = []
+    for item in items:
+        text = str(item or "").strip()
+        if text and text not in seen:
+            result.append(text)
+            seen.add(text)
+    return result
+def _style_negative_items(style: Dict) -> List[str]:
+    items = []
+    for key in ("forbidden_drift", "style_realism_constraints"):
+        for value in style.get(key) or []:
+            text = str(value or "").strip()
+            if not text:
+                continue
+            if text.startswith("avoid "):
+                text = "不要" + text[len("avoid "):]
+            elif text.startswith("no "):
+                text = "不要" + text[len("no "):]
+            elif text.startswith("keep "):
+                continue
+            items.append(text)
+    return _dedupe(items)
 def _duration_text(storyboard_card: Dict) -> str:
     timing = storyboard_card.get("timing") or {}
     duration = timing.get("duration_sec")

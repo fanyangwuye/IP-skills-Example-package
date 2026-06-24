@@ -256,6 +256,25 @@ def test_action_opening_uses_content_driven_framing_camera_and_end_state():
     assert "stable action follow" in card["camera_motion"]
     assert "武器或关键道具已进入" in shot["continuity_state"]["current_end_state"]
     assert "高度警觉" in shot["prompt_profile"]["performance_control"]
+
+def test_negative_prompt_profile_prioritizes_provider_prompt_and_retry_advice_is_shot_specific():
+    task = copy.deepcopy(_martial_task())
+    task["style_preset"] = "realistic_xianxia_short_drama"
+    handoff = build_video_handoff(task)
+    shot = handoff["shots"][0]
+    profile = shot["negative_prompt_profile"]
+    assert profile["critical_identity_negatives"]
+    assert profile["spatial_negatives"]
+    assert profile["model_artifact_negatives"]
+    assert profile["action_safety_negatives"]
+    assert profile["style_negatives"]
+    assert len(profile["provider_negative_prompt"]) < len(profile["audit_negative_prompt"])
+    assert "不要换脸" in shot["negative_prompt"]
+    assert "不要越轴" in shot["negative_prompt"]
+    assert "不要招式文字" in shot["negative_prompt"]
+    assert "不要塑料皮肤" in shot["negative_prompt"]
+    assert any("shot_001" in item and "动作糊成一团" in item for item in shot["retry_advice"])
+    assert any("shot_001" in item and "运镜太晃" in item for item in shot["retry_advice"])
 def test_storyboard_image_task_for_clip_design_sheet():
     handoff = build_video_handoff(_task())
     task = handoff["storyboard_image_tasks"][0]
