@@ -9,6 +9,7 @@ try:
     from .continuity import build_continuity_bible
     from .shot_plan import build_i2v_prompts, build_shot_plan, build_t2v_prompts
     from .video_provider import prepare_video_generation_request, run_video_generation
+    from .preflight_video_episode import preflight_video_generation
     from .video_sequence import run_video_sequence
     from .video_handoff import build_edit_decision_list, build_video_handoff
 except ImportError:
@@ -17,6 +18,7 @@ except ImportError:
     from continuity import build_continuity_bible
     from shot_plan import build_i2v_prompts, build_shot_plan, build_t2v_prompts
     from video_provider import prepare_video_generation_request, run_video_generation
+    from preflight_video_episode import preflight_video_generation
     from video_sequence import run_video_sequence
     from video_handoff import build_edit_decision_list, build_video_handoff
 
@@ -77,6 +79,13 @@ def run_task(task: Dict) -> Dict:
         _write_json(path, edl)
         return _result(mode, {"edit_decision_list": edl}, path, "edit_decision_list")
 
+    if mode == "preflight_video_generation":
+        config = load_video_provider_config()
+        report = preflight_video_generation(task, config)
+        path = os.path.join(output_dir, task.get("preflight_filename", "video_preflight_report.json"))
+        _write_json(path, report)
+        return _result(mode, {"preflight_report": report}, path, "video_preflight_report")
+
     if mode == "prepare_video_generation":
         config = load_video_provider_config()
         request = prepare_video_generation_request(task, config)
@@ -108,7 +117,7 @@ def run_task(task: Dict) -> Dict:
     raise ValueError(
         "mode must be one of: build_continuity_bible, build_video_handoff, build_shot_plan, build_clip_plan, "
         "build_i2v_prompts, build_t2v_prompts, build_edit_decision_list, "
-        "prepare_video_generation, run_video_generation, run_video_sequence"
+        "preflight_video_generation, prepare_video_generation, run_video_generation, run_video_sequence"
     )
 
 

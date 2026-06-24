@@ -12,9 +12,11 @@ from continuity import build_continuity_bible  # noqa: E402
 from config import VideoProviderConfig  # noqa: E402
 from poyo_video_client import PoYoVideoClient  # noqa: E402
 from storyboard_panel_refs import build_storyboard_panel_refs  # noqa: E402
+import video_provider  # noqa: E402
 from video_provider import prepare_video_generation_request, run_video_generation  # noqa: E402
 import video_sequence  # noqa: E402
 from video_handoff import build_video_handoff  # noqa: E402
+from preflight_video_episode import preflight_video_generation  # noqa: E402
 from video_skill import run_task  # noqa: E402
 
 
@@ -1287,6 +1289,125 @@ def test_live_video_blocks_missing_prompt_packet_sections():
     else:
         raise AssertionError("live clip video should require Prompt Packet V1 sections")
 
+
+
+def test_preflight_video_generation_passes_all_purpose_clip():
+    handoff = build_video_handoff(_task())
+    config = VideoProviderConfig("poyo_video", "test", "https://api.example", "", "seedance-2", "9:16", "480p", 1, 5)
+    report = preflight_video_generation(
+        {
+            "mode": "preflight_video_generation",
+            "provider": "poyo_video",
+            "video_handoff": handoff,
+            "reference_policy": "all_purpose_reference",
+            "reference_image_urls": [
+                {"url": "https://files.example/linque.jpg", "role": "character_reference"},
+                {"url": "https://files.example/hall.jpg", "role": "video_scene_reference"},
+                {"url": "https://files.example/storyboard.jpg", "role": "storyboard_layout_reference"},
+            ],
+            "max_clips": 1,
+        },
+        config,
+    )
+    assert report["status"] == "pass"
+    assert report["checked_count"] == 1
+    assert not report["errors"]
+    assert any(item["name"] == "all_purpose_reference_urls" and item["status"] == "pass" for item in report["checks"])
+    assert any(item["name"] == "prompt_packet_v1" and item["status"] == "pass" for item in report["checks"])
+
+
+def test_preflight_video_generation_blocks_old_prompt_packet():
+    handoff = build_video_handoff(_task())
+    clip = copy.deepcopy(handoff["clip_plan"][0])
+    clip["clip_prompt"] = "旧格式提示词，只有普通描述，没有固定架构。"
+    clip["i2v_prompt"] = clip["clip_prompt"]
+    clip["seedance_prompt"] = clip["clip_prompt"]
+    config = VideoProviderConfig("poyo_video", "test", "https://api.example", "", "seedance-2", "9:16", "480p", 1, 5)
+    report = preflight_video_generation(
+        {
+            "mode": "preflight_video_generation",
+            "provider": "poyo_video",
+            "clip": clip,
+            "image_urls": [{"url": "https://files.example/first.png", "role": "first_frame"}],
+        },
+        config,
+    )
+    assert report["status"] == "fail"
+    assert any("Prompt Packet V1 missing sections" in error for error in report["errors"])
+
+
+def test_run_task_writes_preflight_report():
+    handoff = build_video_handoff(_task())
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                "mode": "preflight_video_generation",
+                "provider": "poyo_video",
+                "video_handoff": handoff,
+                "reference_policy": "all_purpose_reference",
+                "reference_image_urls": [{"url": "https://files.example/linque.jpg", "role": "character_reference"}],
+                "max_clips": 1,
+                "output_dir": output_dir,
+            }
+        )
+        path = result["artifacts"][0]["path"]
+        assert os.path.exists(path)
+        with open(path, "r", encoding="utf-8") as fh:
+            saved = json.load(fh)
+    assert saved["mode"] == "preflight_video_generation"
+    assert saved["checked_count"] == 1
+
+
+def test_live_video_all_purpose_reference_passes_with_fake_client():
+    handoff = build_video_handoff(_task())
+    captured = {}
+
+    class FakePoYoVideoClient:
+        def __init__(self, config):
+            self.config = config
+
+        def run_seedance2(self, request, output_dir="", callback_url=None, download=True):
+            captured["request"] = request
+            captured["output_dir"] = output_dir
+            captured["callback_url"] = callback_url
+            captured["download"] = download
+            return {"task_id": "fake_task", "credits_amount": 0, "local_paths": []}
+
+    original_client = video_provider.PoYoVideoClient
+    video_provider.PoYoVideoClient = FakePoYoVideoClient
+    try:
+        config = VideoProviderConfig("poyo_video", "test", "https://api.example", "", "seedance-2", "9:16", "480p", 1, 5)
+        result = run_video_generation(
+            {
+                "mode": "run_video_generation",
+                "provider": "poyo_video",
+                "video_handoff": handoff,
+                "reference_policy": "all_purpose_reference",
+                "reference_image_urls": [
+                    {"url": "https://files.example/linque.jpg", "role": "character_reference"},
+                    {"url": "https://files.example/hall.jpg", "role": "video_scene_reference"},
+                    {"url": "https://files.example/storyboard.jpg", "role": "storyboard_layout_reference"},
+                ],
+                "clip_index": 1,
+                "dry_run": False,
+                "download": False,
+            },
+            config,
+        )
+    finally:
+        video_provider.PoYoVideoClient = original_client
+
+    assert result["status"] == "success"
+    assert result["dry_run"] is False
+    request = captured["request"]
+    assert request["image_urls"] == []
+    assert [ref["role"] for ref in request["reference_image_urls"]] == [
+        "character_reference",
+        "video_scene_reference",
+        "storyboard_layout_reference",
+    ]
+    assert "全能参考模式已锁定" in request["prompt"]
+    assert request["transport"]["json"]["model"] == "seedance-2"
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_") and callable(fn):

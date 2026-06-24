@@ -19,6 +19,7 @@ Build the offline video structure layer for IP workflows:
 - `build_t2v_prompts`: create text-to-video prompts when no usable image reference exists.
 - `seedance_prompts`: create timed Chinese prompts with performance, camera, light, sound, realism, and retry guidance.
 - `build_edit_decision_list`: create a first-pass EDL for later assembly.
+- `preflight_video_generation`: build dry provider requests and block common paid/live generation mistakes before spending credits.
 - `prepare_video_generation`: convert one locked clip or shot into a provider-specific request without calling the provider.
 - `run_video_generation`: dry-run provider execution; live provider calls are intentionally blocked until an adapter is implemented and verified.
 
@@ -206,6 +207,7 @@ Paid/live PoYo video model policy is locked: default to `seedance-2`, not `seeda
 - `scripts/storyboard_panel_refs.py`: local first/mid/last storyboard panel cropper for provider layout references
 - `scripts/martial_arts.py`: martial-arts scene detector and combat prompt layer
 - `scripts/prompt_quality.py`: prompt quality layers for performance, camera, light, sound, realism, constraints, and retry advice
+- `scripts/preflight_video_episode.py`: local preflight checks for Prompt Packet V1, storyboard mapping, all-purpose references, paid model policy, spatial templates, duration, and text/audio constraints
 - `scripts/video_provider.py`: provider request builder and dry-run execution boundary
 - `scripts/poyo_video_client.py`: PoYo Seedance 2 submit, status polling, upload, and download client
 - `scripts/video_handoff.py`: handoff and EDL builder
