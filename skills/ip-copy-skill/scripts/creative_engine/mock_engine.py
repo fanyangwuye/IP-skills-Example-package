@@ -2,6 +2,7 @@ from typing import Any, Dict
 
 from .base import CreativeEngine, CreativeEngineRequest, CreativeEngineResult
 from .schemas import validate_scene_cards, validate_script_scenes
+from .review import review_creative_output
 
 
 class MockCreativeEngine(CreativeEngine):
@@ -19,11 +20,15 @@ class MockCreativeEngine(CreativeEngine):
             )
         data = self.outputs[request.kind]
         errors = _validate_by_schema(request.schema_name, data)
+        review_report = review_creative_output(request, data, schema_errors=errors)
         return CreativeEngineResult(
             status="success" if not errors else "schema_error",
             generation_source="mock_engine",
             data=data,
             errors=errors,
+            warnings=review_report.get("warnings", []),
+            raw_response={"review_report": review_report},
+            review_report=review_report,
         )
 
 

@@ -1,6 +1,7 @@
 from .base import CreativeEngine, CreativeEngineRequest, CreativeEngineResult, EngineBlockedError
 from .prompt_packs import build_prompt_pack
 from .provider_adapter import build_provider_request, summarize_provider_request
+from .review import build_post_response_review_plan
 
 
 class LiveLLMEngine(CreativeEngine):
@@ -18,6 +19,7 @@ class LiveLLMEngine(CreativeEngine):
             )
         prompt_pack = build_prompt_pack(request)
         provider_request = build_provider_request(prompt_pack, provider=self.provider, model=self.model, allow_live=self.allow_live, request_allow_live=request.allow_live)
+        review_plan = build_post_response_review_plan(request)
         return CreativeEngineResult(
             status="provider_request_ready",
             generation_source="live_llm_engine_dry_run",
@@ -27,6 +29,8 @@ class LiveLLMEngine(CreativeEngine):
                 "prompt_pack": prompt_pack,
                 "provider_request": provider_request,
                 "provider_request_summary": summarize_provider_request(provider_request),
+                "post_response_review_plan": review_plan,
                 "live_call_made": False,
             },
+            review_report=review_plan,
         )

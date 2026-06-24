@@ -4,6 +4,7 @@ from .mock_engine import MockCreativeEngine
 from .offline_engine import OfflineCreativeEngine
 from .prompt_packs import build_prompt_pack
 from .provider_adapter import build_provider_boundary, build_provider_request, summarize_provider_request
+from .review import REVIEW_VERSION, build_post_response_review_plan, review_creative_output
 
 __all__ = [
     "CreativeEngine",
@@ -17,4 +18,7 @@ __all__ = [
     "build_provider_boundary",
     "build_provider_request",
     "summarize_provider_request",
+    "REVIEW_VERSION",
+    "build_post_response_review_plan",
+    "review_creative_output",
 ]

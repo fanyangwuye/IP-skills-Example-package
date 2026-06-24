@@ -25,6 +25,7 @@ class CreativeEngineResult:
     errors: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
     raw_response: Optional[Any] = None
+    review_report: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def ok(self) -> bool:

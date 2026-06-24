@@ -6,7 +6,7 @@ from datetime import date
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from blueprint_validate import validate_blueprint  # noqa: E402
 from copy_skill import run_task  # noqa: E402
-from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_prompt_pack, build_provider_boundary, build_provider_request  # noqa: E402
+from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_post_response_review_plan, build_prompt_pack, build_provider_boundary, build_provider_request, review_creative_output  # noqa: E402
 from format_adapters import FeatureFilmAdapter, InteractiveFilmGameAdapter, LongSeriesAdapter, MurderMysteryAdapter, OverseasShortDramaAdapter, VerticalShortDramaAdapter  # noqa: E402
 from license_gate import check_license, gate  # noqa: E402
 from quality_evaluator import evaluate_scene_cards_quality, evaluate_script_quality  # noqa: E402
@@ -372,6 +372,68 @@ def test_mock_creative_engine_validates_scene_card_schema():
     assert bad_result.status == "schema_error"
     assert any("voiceover" in error for error in bad_result.errors)
 
+
+
+def test_creative_engine_review_reports_schema_and_drift_warnings():
+    request = CreativeEngineRequest(
+        kind="scene_cards",
+        schema_name="scene_cards",
+        source_text="林缺回到黄泉饭店，牛头员工端着托盘出现。",
+        format_name="vertical_short_drama",
+        payload={"characters": [{"name": "林缺"}, {"name": "牛头员工"}]},
+    )
+    data = [
+        {
+            "visual": "黄泉饭店大厅，林缺发现陌生手帕。",
+            "voiceover": "异常出现。",
+            "duration_sec": 8,
+            "asset_goal": {"type": "adapted scene key frame"},
+        }
+    ]
+    review = review_creative_output(request, data)
+    assert review["review_version"] == "copy-creative-engine-review-v1"
+    assert review["status"] == "warn"
+    assert review["ready_for_acceptance"] is True
+    assert "手帕" in review["checks"]["unsupported_details"]
+    assert any("unsupported detail" in item for item in review["warnings"])
+
+    bad_review = review_creative_output(request, [{"visual": "只有画面"}])
+    assert bad_review["status"] == "fail"
+    assert bad_review["requires_retry"] is True
+    assert any("schema_error" in item for item in bad_review["blockers"])
+
+
+def test_mock_and_live_engines_attach_review_artifacts():
+    request = CreativeEngineRequest(
+        kind="scene_cards",
+        schema_name="scene_cards",
+        source_text="林缺回到黄泉饭店。",
+        payload={"characters": [{"name": "林缺"}]},
+        allow_live=True,
+    )
+    mock = MockCreativeEngine(
+        {
+            "scene_cards": [
+                {
+                    "visual": "林缺站在黄泉饭店柜台后。",
+                    "voiceover": "饭店重新开门。",
+                    "duration_sec": 8,
+                    "asset_goal": {"type": "adapted scene key frame"},
+                }
+            ]
+        }
+    )
+    result = mock.generate(request)
+    assert result.ok
+    assert result.review_report["review_version"] == "copy-creative-engine-review-v1"
+    assert result.raw_response["review_report"]["status"] == "pass"
+
+    live = LiveLLMEngine(provider="openai", model="unit-test-model", allow_live=True)
+    live_result = live.generate(request)
+    assert live_result.status == "provider_request_ready"
+    assert live_result.raw_response["post_response_review_plan"]["when"] == "after_provider_json_response_before_accepting_creative_output"
+    assert "validate_schema_required_fields" in live_result.review_report["required_stages"]
+    assert build_post_response_review_plan(request)["review_version"] == "copy-creative-engine-review-v1"
 
 def test_live_llm_engine_blocks_without_explicit_double_approval():
     engine = LiveLLMEngine(provider="test", allow_live=False)
@@ -824,6 +886,7 @@ def test_build_adaptation_scene_cards_can_use_mock_creative_engine():
         assert cards[0]["generation_source"] == "mock_engine"
         assert "菜单账本" in cards[0]["visual"]
         assert cards[0]["subtitle"] == cards[0]["voiceover"]
+        assert cards[0]["creative_engine_review_status"] in {"pass", "warn"}
 
 
 def test_build_adaptation_scene_cards_rejects_bad_explicit_creative_engine_output():
@@ -1056,6 +1119,8 @@ def test_build_script_draft_can_use_mock_creative_engine_script_scenes():
         assert script["scenes"][0]["generation_source"] == "mock_engine"
         assert script["scenes"][0]["dialogue"][0]["line"] == "谁在点菜？"
         assert script["aspect_ratio"] == "9:16"
+        assert script["creative_engine_review"]["review_version"] == "copy-creative-engine-review-v1"
+        assert script["creative_engine_review"]["status"] in {"pass", "warn"}
 
 
 def test_build_script_draft_rejects_bad_explicit_creative_engine_script_scenes():
@@ -1216,6 +1281,7 @@ def test_polish_script_draft_can_use_mock_creative_engine_polished_scenes():
         assert polished["scenes"][0]["generation_source"] == "mock_engine"
         assert polished["scenes"][0]["dialogue"][0]["line"] == "账本自己翻页了。"
         assert polished["format_adapter"] == "vertical_short_drama"
+        assert polished["creative_engine_review"]["review_version"] == "copy-creative-engine-review-v1"
 
 
 def test_polish_script_draft_rejects_bad_explicit_creative_engine_output():

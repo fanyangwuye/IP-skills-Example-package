@@ -678,7 +678,8 @@ def _build_adaptation_scene_cards(state: Dict, task: Dict) -> List[Dict]:
 
     engine_result = _try_creative_scene_cards(state, task)
     if engine_result and engine_result.ok:
-        return _mark_scene_card_generation(_normalize_creative_scene_cards(engine_result.data, task), engine_result.generation_source)
+        cards = _mark_scene_card_generation(_normalize_creative_scene_cards(engine_result.data, task), engine_result.generation_source)
+        return _attach_scene_card_review(cards, engine_result.review_report)
     if engine_result and _creative_engine_explicit(task) and engine_result.status != "fallback_required":
         raise ValueError("CreativeEngine scene card generation failed: " + "；".join(engine_result.errors or engine_result.warnings))
 
@@ -770,6 +771,17 @@ def _normalize_creative_scene_cards(cards: List[Dict], task: Dict) -> List[Dict]
         normalized.append(item)
     return normalized
 
+
+def _attach_scene_card_review(cards: List[Dict], review_report: Dict) -> List[Dict]:
+    if not review_report:
+        return cards
+    attached = []
+    for card in cards:
+        item = dict(card)
+        item.setdefault("creative_engine_review_status", review_report.get("status", ""))
+        item.setdefault("creative_engine_review_warnings", review_report.get("warnings", []))
+        attached.append(item)
+    return attached
 
 def _mark_scene_card_generation(cards: List[Dict], source: str) -> List[Dict]:
     marked = []
@@ -880,11 +892,13 @@ def _build_script_draft(scene_cards: List[Dict], state: Dict, task: Dict) -> Dic
     constraints = state.get("constraints", task.get("constraints", [])) or []
     adapter = _format_adapter_from_task(task, direction)
     spec = adapter.spec()
+    creative_engine_review = {}
 
     engine_result = _try_creative_script_scenes(scene_cards, state, task, total_duration, adapter)
     if engine_result and engine_result.ok:
         scenes = _normalize_creative_script_scenes(engine_result.data, total_duration, engine_result.generation_source)
         generation_source = engine_result.generation_source
+        creative_engine_review = engine_result.review_report
     elif engine_result and _creative_engine_explicit(task) and engine_result.status != "fallback_required":
         raise ValueError("CreativeEngine script draft generation failed: " + "；".join(engine_result.errors or engine_result.warnings))
     else:
@@ -901,6 +915,7 @@ def _build_script_draft(scene_cards: List[Dict], state: Dict, task: Dict) -> Dic
         "rhythm_rules": spec.rhythm_rules,
         "quality_checks": spec.quality_checks,
         "generation_source": generation_source,
+        "creative_engine_review": creative_engine_review,
         "tone": direction.get("tone", ""),
         "viewpoint": direction.get("viewpoint", ""),
         "audience": direction.get("audience", ""),
@@ -1009,11 +1024,13 @@ def _polish_script_draft(script: Dict, task: Dict) -> Dict:
     constraints.extend(task.get("constraints") or [])
     adapter = _format_adapter_from_task(task, {"target": polished.get("target", "short_drama")})
     spec = adapter.spec()
+    creative_engine_review = {}
 
     engine_result = _try_creative_polished_scenes(polished, task, adapter)
     if engine_result and engine_result.ok:
         scenes = _normalize_polished_creative_scenes(engine_result.data, polished, engine_result.generation_source)
         generation_source = engine_result.generation_source
+        creative_engine_review = engine_result.review_report
     elif engine_result and _creative_engine_explicit(task) and engine_result.status != "fallback_required":
         raise ValueError("CreativeEngine script polish failed: " + "；".join(engine_result.errors or engine_result.warnings))
     else:
@@ -1040,6 +1057,7 @@ def _polish_script_draft(script: Dict, task: Dict) -> Dict:
 
     polished["scenes"] = scenes
     polished["generation_source"] = generation_source
+    polished["creative_engine_review"] = creative_engine_review
     polished["format_adapter"] = polished.get("format_adapter") or spec.format_name
     polished["aspect_ratio"] = polished.get("aspect_ratio") or spec.default_aspect_ratio
     polished["rhythm_rules"] = polished.get("rhythm_rules") or spec.rhythm_rules
