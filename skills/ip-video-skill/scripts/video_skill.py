@@ -7,6 +7,7 @@ try:
     from .clip_plan import build_clip_plan, build_clip_prompts
     from .config import load_video_provider_config
     from .continuity import build_continuity_bible
+    from .episode_readiness import build_episode_readiness_report
     from .asset_manifest import build_asset_manifest_review, build_asset_manifest_template, scan_asset_manifest_directory
     from .shot_plan import build_i2v_prompts, build_shot_plan, build_t2v_prompts
     from .video_provider import prepare_video_generation_request, run_video_generation
@@ -17,6 +18,7 @@ except ImportError:
     from clip_plan import build_clip_plan, build_clip_prompts
     from config import load_video_provider_config
     from continuity import build_continuity_bible
+    from episode_readiness import build_episode_readiness_report
     from asset_manifest import build_asset_manifest_review, build_asset_manifest_template, scan_asset_manifest_directory
     from shot_plan import build_i2v_prompts, build_shot_plan, build_t2v_prompts
     from video_provider import prepare_video_generation_request, run_video_generation
@@ -118,13 +120,19 @@ def run_task(task: Dict) -> Dict:
         _write_json(path, edl)
         return _result(mode, {"edit_decision_list": edl}, path, "edit_decision_list")
 
+    if mode == "episode_readiness":
+        config = load_video_provider_config()
+        report = build_episode_readiness_report(task, config)
+        path = os.path.join(output_dir, task.get("episode_readiness_filename", "episode_readiness_report.json"))
+        _write_json(path, report)
+        return _result(mode, {"episode_readiness_report": report}, path, "episode_readiness_report")
+
     if mode == "preflight_video_generation":
         config = load_video_provider_config()
         report = preflight_video_generation(task, config)
         path = os.path.join(output_dir, task.get("preflight_filename", "video_preflight_report.json"))
         _write_json(path, report)
         return _result(mode, {"preflight_report": report}, path, "video_preflight_report")
-
     if mode == "prepare_video_generation":
         config = load_video_provider_config()
         request = prepare_video_generation_request(task, config)
@@ -155,7 +163,7 @@ def run_task(task: Dict) -> Dict:
 
     raise ValueError(
         "mode must be one of: build_continuity_bible, build_video_handoff, build_shot_plan, build_clip_plan, "
-        "build_asset_manifest_template, scan_asset_manifest_directory, review_asset_manifest, build_i2v_prompts, build_t2v_prompts, build_edit_decision_list, "
+        "build_asset_manifest_template, scan_asset_manifest_directory, review_asset_manifest, episode_readiness, build_i2v_prompts, build_t2v_prompts, build_edit_decision_list, "
         "preflight_video_generation, prepare_video_generation, run_video_generation, run_video_sequence"
     )
 

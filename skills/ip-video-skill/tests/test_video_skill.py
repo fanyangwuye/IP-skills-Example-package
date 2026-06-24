@@ -17,6 +17,7 @@ from video_provider import prepare_video_generation_request, run_video_generatio
 import video_sequence  # noqa: E402
 from video_handoff import build_video_handoff  # noqa: E402
 from preflight_video_episode import preflight_video_generation  # noqa: E402
+from episode_readiness import build_episode_readiness_report  # noqa: E402
 from asset_manifest import build_asset_manifest_review, build_asset_manifest_template, scan_asset_manifest_directory, validate_asset_manifest  # noqa: E402
 from video_skill import run_task  # noqa: E402
 
@@ -1575,6 +1576,74 @@ def test_live_video_blocks_missing_prompt_packet_sections():
 
 
 
+
+
+def _complete_asset_manifest():
+    return {
+        "character_references": [
+            {"url": "https://files.example/linque.png", "role": "character_reference", "character_id": "lin_que"},
+            {"url": "https://files.example/niutou.png", "role": "character_reference", "character_id": "niu_tou"},
+        ],
+        "scene_references": [
+            {"url": "https://files.example/hall.png", "role": "video_scene_reference", "scene_id": "huangquan_hall_720"}
+        ],
+        "storyboard_references": [
+            {"url": "https://files.example/board.png", "role": "storyboard_layout_reference", "clip_id": "clip_001"}
+        ],
+        "space_anchor_refs": [
+            {"url": "https://files.example/panorama.png", "role": "space_anchor", "scene_id": "huangquan_hall_720"}
+        ],
+    }
+
+
+def test_episode_readiness_passes_with_complete_assets():
+    report = build_episode_readiness_report(
+        {
+            **_task(),
+            "provider": "poyo_video",
+            "reference_policy": "all_purpose_reference",
+            "asset_manifest": _complete_asset_manifest(),
+            "max_clips": 1,
+        },
+        VideoProviderConfig("poyo_video", "test", "https://api.example", "", "seedance-2", "9:16", "480p", 1, 5),
+    )
+
+    assert report["status"] == "ready_for_single_clip_test"
+    assert report["summary"]["blocker_count"] == 0
+    assert next(item for item in report["checks"] if item["name"] == "asset_manifest")["status"] == "pass"
+    assert next(item for item in report["checks"] if item["name"] == "prompt_packet_v1")["status"] == "pass"
+    assert next(item for item in report["checks"] if item["name"] == "reference_policy")["status"] == "pass"
+    assert report["preflight_report"]["status"] == "pass"
+
+
+def test_episode_readiness_blocks_missing_assets():
+    report = build_episode_readiness_report({**_task(), "reference_policy": "all_purpose_reference", "max_clips": 1})
+
+    assert report["status"] == "blocked"
+    assert any(item["name"] == "asset_manifest" for item in report["blockers"])
+    assert any(item.get("action") == "provide_asset_manifest_or_asset_dir" for item in report["blockers"])
+
+
+def test_run_task_writes_episode_readiness_report():
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                **_task(),
+                "mode": "episode_readiness",
+                "provider": "poyo_video",
+                "reference_policy": "all_purpose_reference",
+                "asset_manifest": _complete_asset_manifest(),
+                "max_clips": 1,
+                "output_dir": output_dir,
+            }
+        )
+        path = result["artifacts"][0]["path"]
+        assert os.path.exists(path)
+        with open(path, "r", encoding="utf-8") as fh:
+            saved = json.load(fh)
+
+    assert result["handoff"]["episode_readiness_report"]["status"] in {"ready_for_single_clip_test", "blocked"}
+    assert saved["episode_readiness_version"] == "1.0"
 
 def test_build_asset_manifest_template_includes_required_reference_ids():
     handoff = build_video_handoff(_task())

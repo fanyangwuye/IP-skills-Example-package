@@ -14,6 +14,7 @@ Build the offline video structure layer for IP workflows:
 - `build_asset_manifest_template`: generate a fill-in asset manifest template from the continuity bible and clip plan before preflight.
 - `scan_asset_manifest_directory`: scan approved local asset folders and fill a draft asset manifest by locked `character_id`, `scene_id`, and `clip_id`.
 - `review_asset_manifest`: create a human-readable readiness report for matched, missing, placeholder, fragile, and unassigned assets before preflight.
+- `episode_readiness`: build one generation gate report that summarizes video handoff, storyboard quality, Prompt Packet V1, all-purpose references, asset review, model policy, continuation strategy, and preflight status.
 - `build_shot_plan`: create continuity-aware storyboard cards.
 - `build_clip_plan`: group shots into 5-15 second continuity clips so generation is not split into too many tiny fragments.
 - `storyboard_image_tasks`: create image-generation tasks for clip-level storyboard boards, shot-table storyboards, and martial-arts action breakdown boards that share first/mid/last frame specs with video generation.
@@ -22,6 +23,7 @@ Build the offline video structure layer for IP workflows:
 - `build_t2v_prompts`: create text-to-video prompts when no usable image reference exists.
 - `seedance_prompts`: create timed Chinese prompts with performance, camera, light, sound, realism, and retry guidance.
 - `build_edit_decision_list`: create a first-pass EDL for later assembly.
+- `episode_readiness`: run the full local readiness gate before paid/live generation; it does not call a provider.
 - `preflight_video_generation`: build dry provider requests and block common paid/live generation mistakes before spending credits.
 - `prepare_video_generation`: convert one locked clip or shot into a provider-specific request without calling the provider.
 - `run_video_generation`: dry-run provider execution; live provider calls are intentionally blocked until an adapter is implemented and verified.
@@ -216,6 +218,7 @@ Paid/live PoYo video model policy is locked: default to `seedance-2`, not `seeda
 - `scripts/martial_arts.py`: martial-arts scene detector and combat prompt layer
 - `scripts/prompt_quality.py`: prompt quality layers for performance, camera, light, sound, realism, constraints, and retry advice
 - `scripts/asset_manifest.py`: asset manifest template builder, directory scanner, review report builder, and loader for character, scene, storyboard, and space-anchor reference binding
+- `scripts/episode_readiness.py`: one-page episode generation gate report that aggregates handoff, storyboard, prompt, reference, asset, model, continuation, and preflight readiness
 - `scripts/reference_integrity.py`: character reference binding completeness checks for preflight and live generation
 - `scripts/preflight_video_episode.py`: local preflight checks for Prompt Packet V1, storyboard mapping, all-purpose references, paid model policy, spatial templates, duration, and text/audio constraints
 - `scripts/video_provider.py`: provider request builder and dry-run execution boundary
@@ -229,6 +232,7 @@ Paid/live PoYo video model policy is locked: default to `seedance-2`, not `seeda
 - `assets/example_build_asset_manifest_template_task.json`: offline asset manifest template example
 - `assets/example_scan_asset_manifest_directory_task.json`: offline asset directory scanning example
 - `assets/example_review_asset_manifest_task.json`: offline asset manifest review example
+- `assets/example_episode_readiness_task.json`: offline episode readiness gate example
 - `assets/example_build_video_handoff_task.json`: offline example
 - `assets/example_preflight_video_generation_task.json`: clip-level all-purpose-reference preflight example
 - `assets/example_prepare_video_generation_task.json`: clip-level all-purpose-reference provider request example
