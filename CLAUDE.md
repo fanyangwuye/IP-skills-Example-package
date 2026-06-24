@@ -2,7 +2,7 @@
 
 Use this repository as an agent-facing IP creation skills package.
 
-Before executing an IP workflow, read the relevant skill files:
+Before executing an IP workflow, first read `docs/新窗口必读交接.md`, then read the relevant skill files:
 
 - `skills/ip-copy-skill/SKILL.md`
 - `skills/ip-image-skill/SKILL.md`

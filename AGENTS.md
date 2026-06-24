@@ -9,6 +9,8 @@ This repository provides four IP workflow skills:
 
 When an agent is asked to use this repository, it should read the relevant `SKILL.md` files before acting. For full IP/video workflows, read all four.
 
+Before starting a new window or resumed workflow, read `docs/新窗口必读交接.md` first; it records the current fixed video/reference/storyboard/model rules.
+
 Standard full workflow:
 
 ```text
