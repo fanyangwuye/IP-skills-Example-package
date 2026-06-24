@@ -8,13 +8,13 @@ from typing import Dict, List, Optional
 try:
     from .blueprint_validate import validate_blueprint
     from .creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_prompt_pack, build_provider_request, summarize_provider_request
-    from .format_adapters import FeatureFilmAdapter, LongSeriesAdapter, MurderMysteryAdapter, OverseasShortDramaAdapter, VerticalShortDramaAdapter
+    from .format_adapters import FeatureFilmAdapter, InteractiveFilmGameAdapter, LongSeriesAdapter, MurderMysteryAdapter, OverseasShortDramaAdapter, VerticalShortDramaAdapter
     from .license_gate import check_license, gate
     from .quality_evaluator import evaluate_scene_cards_quality, evaluate_script_quality
 except ImportError:
     from blueprint_validate import validate_blueprint
     from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_prompt_pack, build_provider_request, summarize_provider_request
-    from format_adapters import FeatureFilmAdapter, LongSeriesAdapter, MurderMysteryAdapter, OverseasShortDramaAdapter, VerticalShortDramaAdapter
+    from format_adapters import FeatureFilmAdapter, InteractiveFilmGameAdapter, LongSeriesAdapter, MurderMysteryAdapter, OverseasShortDramaAdapter, VerticalShortDramaAdapter
     from license_gate import check_license, gate
     from quality_evaluator import evaluate_scene_cards_quality, evaluate_script_quality
 
@@ -853,6 +853,8 @@ def _screenplay_section_summary(lines: List[str]) -> str:
 def _format_adapter_from_task(task: Dict, direction: Dict = None):
     direction = direction or {}
     name = str(task.get("format_adapter") or task.get("target_format") or direction.get("format_adapter") or direction.get("target") or "vertical_short_drama").strip().lower()
+    if name in {"interactive_film_game", "interactive_film", "interactive_game", "branching_film", "choice_drama", "互动影游", "互动剧", "互动电影", "分支剧情", "互动影游剧本"}:
+        return InteractiveFilmGameAdapter()
     if name in {"murder_mystery", "scripted_murder", "jubensha", "case_game", "detective_game", "剧本杀", "推理剧本", "案件本", "本格推理"}:
         return MurderMysteryAdapter()
     if name in {"long_series", "series", "tv_series", "drama_series", "long_drama", "tv_drama", "长剧", "长剧剧本", "剧集", "电视剧", "连续剧"}:

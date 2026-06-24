@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from blueprint_validate import validate_blueprint  # noqa: E402
 from copy_skill import run_task  # noqa: E402
 from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_prompt_pack, build_provider_request  # noqa: E402
-from format_adapters import FeatureFilmAdapter, LongSeriesAdapter, MurderMysteryAdapter, OverseasShortDramaAdapter, VerticalShortDramaAdapter  # noqa: E402
+from format_adapters import FeatureFilmAdapter, InteractiveFilmGameAdapter, LongSeriesAdapter, MurderMysteryAdapter, OverseasShortDramaAdapter, VerticalShortDramaAdapter  # noqa: E402
 from license_gate import check_license, gate  # noqa: E402
 from quality_evaluator import evaluate_scene_cards_quality, evaluate_script_quality  # noqa: E402
 
@@ -87,6 +87,39 @@ def test_overseas_short_drama_prompt_pack_uses_adapter_constraints():
         assert result["handoff"]["provider_request"]["network_call_allowed"] is False
 
 
+
+
+def test_interactive_film_game_adapter_spec_locks_branch_rules():
+    adapter = InteractiveFilmGameAdapter()
+    spec = adapter.spec()
+    assert spec.format_name == "interactive_film_game"
+    assert spec.structure_levels == ["project", "node", "choice", "branch", "consequence"]
+    assert spec.default_aspect_ratio == "16:9"
+    assert spec.default_episode_duration_sec == 3600
+    assert "branch_tree_integrity_clear" in spec.quality_checks
+    assert "choice_consequence_map" in spec.handoff_requirements["copy"]
+    assert "convergence_points_must_preserve_choice_memory_without_erasing_player_agency" in spec.rhythm_rules
+
+
+def test_interactive_film_game_prompt_pack_uses_adapter_constraints():
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                "mode": "build_creative_prompt_pack",
+                "target_format": "interactive_film_game",
+                "prompt_kind": "script_scenes",
+                "title": "黄泉饭店互动影游",
+                "source_text": "林缺回到黄泉饭店。玩家需要选择先查账本，还是跟随牛头员工进入后厨。",
+                "creative_brief": {"target": "interactive_film_game", "tone": "branching suspense adventure"},
+                "output_dir": output_dir,
+            }
+        )
+        prompt_pack = result["handoff"]["prompt_pack"]
+        assert prompt_pack["format_name"] == "interactive_film_game"
+        assert "branch_tree_integrity_clear" in prompt_pack["user_prompt"]
+        assert "choice_consequence_mapping_complete" in prompt_pack["user_prompt"]
+        assert "16:9" in prompt_pack["user_prompt"]
+        assert result["handoff"]["provider_request"]["network_call_allowed"] is False
 
 def test_murder_mystery_adapter_spec_locks_clue_logic_rules():
     adapter = MurderMysteryAdapter()
@@ -808,6 +841,33 @@ def test_build_script_draft_can_use_overseas_short_drama_adapter():
         assert "culture_safe_surface_wording" in script["handoff"]["copy_requirements"]
 
 
+
+
+def test_build_script_draft_can_use_interactive_film_game_adapter():
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                "mode": "build_script_draft",
+                "target_format": "interactive_film_game",
+                "title": "黄泉饭店互动影游",
+                "scene_cards": [
+                    {
+                        "visual": "黄泉饭店大厅，林缺站在账本和后厨门之间，玩家第一次选择决定调查路线。",
+                        "voiceover": "现在选择：查账本，还是跟着牛头员工进入后厨。",
+                        "duration_sec": 120,
+                        "asset_goal": {"scene": "黄泉饭店大厅", "type": "interactive choice node frame"},
+                    }
+                ],
+                "characters": [{"name": "林缺"}, {"name": "牛头员工"}],
+                "total_duration_sec": 120,
+                "output_dir": output_dir,
+            }
+        )
+        script = result["handoff"]["script_draft"]
+        assert script["format_adapter"] == "interactive_film_game"
+        assert script["aspect_ratio"] == "16:9"
+        assert "branch_tree_integrity_clear" in script["quality_checks"]
+        assert "choice_consequence_map" in script["handoff"]["copy_requirements"]
 
 def test_build_script_draft_can_use_murder_mystery_adapter():
     with tempfile.TemporaryDirectory() as output_dir:
