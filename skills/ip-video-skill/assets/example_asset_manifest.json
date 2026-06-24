@@ -1,0 +1,41 @@
+{
+  "asset_manifest_version": "1.0",
+  "project_title": "PROJECT_TITLE_HERE",
+  "reference_policy": "all_purpose_reference",
+  "character_references": [
+    {
+      "character_id": "lin_que",
+      "name": "林缺",
+      "path": "PATH_TO_LIN_QUE_CHARACTER_REFERENCE.png",
+      "role": "character_reference"
+    },
+    {
+      "character_id": "niu_tou",
+      "name": "牛头员工",
+      "path": "PATH_TO_NIU_TOU_CHARACTER_REFERENCE.png",
+      "role": "character_reference"
+    }
+  ],
+  "scene_references": [
+    {
+      "scene_id": "huangquan_hall",
+      "name": "黄泉饭店大厅",
+      "path": "PATH_TO_HUANGQUAN_HALL_SCENE_REFERENCE.png",
+      "role": "video_scene_reference"
+    }
+  ],
+  "storyboard_references": [
+    {
+      "clip_id": "clip_001",
+      "path": "PATH_TO_CLIP_001_STORYBOARD_BOARD.png",
+      "role": "storyboard_layout_reference"
+    }
+  ],
+  "space_anchor_refs": [
+    {
+      "scene_id": "huangquan_hall",
+      "path": "PATH_TO_HUANGQUAN_HALL_PANORAMA.png",
+      "role": "space_anchor"
+    }
+  ]
+}

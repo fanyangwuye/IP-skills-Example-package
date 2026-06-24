@@ -2,10 +2,12 @@ import os
 from typing import Dict, List, Optional
 
 try:
+    from .asset_manifest import manifest_reference_image_urls, manifest_space_anchor_refs
     from .config import VideoProviderConfig
     from .poyo_video_client import PoYoVideoClient
     from .storyboard_panel_refs import PANEL_REF_ROLES, build_storyboard_panel_refs
 except ImportError:
+    from asset_manifest import manifest_reference_image_urls, manifest_space_anchor_refs
     from config import VideoProviderConfig
     from poyo_video_client import PoYoVideoClient
     from storyboard_panel_refs import PANEL_REF_ROLES, build_storyboard_panel_refs
@@ -236,7 +238,7 @@ def _base_request(task: Dict, unit: Dict, provider: str, prompt_kind: str, confi
         "reference_audio_urls": _normalize_reference_list(task.get("reference_audio_urls") or []),
         "reference_images": _reference_images(task, unit),
         "video_reference_images": unit.get("video_reference_images", []),
-        "space_anchor_refs": unit.get("space_anchor_refs", []),
+        "space_anchor_refs": unit.get("space_anchor_refs", []) + manifest_space_anchor_refs(task),
         "storyboard_panel_refs": unit.get("storyboard_panel_refs", []),
         "storyboard_execution_map": unit.get("storyboard_execution_map", []),
         "previous_clip_end_frame": unit.get("previous_clip_end_frame"),
@@ -512,7 +514,7 @@ def _image_urls(task: Dict, unit: Dict) -> List:
 
 
 def _reference_image_urls(task: Dict, unit: Dict, image_urls: List) -> List:
-    explicit = task.get("reference_image_urls") or []
+    explicit = task.get("reference_image_urls") or manifest_reference_image_urls(task)
     storyboard_refs = []
     for item in unit.get("storyboard_panel_refs") or []:
         ref = _normalize_reference(item)

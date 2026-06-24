@@ -123,7 +123,7 @@ Video generation is clip-first by default: `clip_plan` groups shots into 5-15 se
 
 Video prompts keep only ambient sound and foley for generated audio. Background music, songs, music beds, on-screen subtitles, title cards, fake text, and watermarks are forbidden; BGM and subtitles belong in post-production/EDL.
 
-For live character video generation, obey the project reference policy exactly. If the project sets `reference_policy: all_purpose_reference`, the provider request must use `reference_image_urls` only and must not be rewritten into `image_urls`, first-frame, last-frame, previous-tail-frame, or keyframe I2V. Character refs, scene refs, and storyboard refs are all-purpose references in that mode. Use first/last-frame `image_urls` only when the project explicitly selects that policy.
+For live character video generation, obey the project reference policy exactly. If the project sets `reference_policy: all_purpose_reference`, load approved character, scene, and storyboard refs from `asset_manifest_path` or explicit `reference_image_urls`; the provider request must use `reference_image_urls` only and must not be rewritten into `image_urls`, first-frame, last-frame, previous-tail-frame, or keyframe I2V. Character refs, scene refs, and storyboard refs are all-purpose references in that mode. `space_anchor_refs` stay available for layout review but are not direct generation inputs. Use first/last-frame `image_urls` only when the project explicitly selects that policy.
 
 Single-frame extraction is only for clip-to-clip continuity reference. It cannot replace all-purpose references and cannot become the default first-frame generation path.
 

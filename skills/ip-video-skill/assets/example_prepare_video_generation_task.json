@@ -2,23 +2,10 @@
   "mode": "prepare_video_generation",
   "provider": "poyo_video",
   "video_handoff": "VIDEO_HANDOFF_JSON_HERE",
+  "asset_manifest_path": "PATH_TO_ASSET_MANIFEST.json",
   "clip_index": 1,
   "prompt_kind": "i2v",
   "reference_policy": "all_purpose_reference",
-  "reference_image_urls": [
-    {
-      "path": "PATH_TO_CHARACTER_REFERENCE.png",
-      "role": "character_reference"
-    },
-    {
-      "path": "PATH_TO_SCENE_REFERENCE.png",
-      "role": "video_scene_reference"
-    },
-    {
-      "path": "PATH_TO_STORYBOARD_BOARD.png",
-      "role": "storyboard_layout_reference"
-    }
-  ],
   "aspect_ratio": "9:16",
   "resolution": "480p",
   "duration_sec": 15,

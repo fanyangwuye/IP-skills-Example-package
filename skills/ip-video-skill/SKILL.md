@@ -207,6 +207,7 @@ Paid/live PoYo video model policy is locked: default to `seedance-2`, not `seeda
 - `scripts/storyboard_panel_refs.py`: local first/mid/last storyboard panel cropper for provider layout references
 - `scripts/martial_arts.py`: martial-arts scene detector and combat prompt layer
 - `scripts/prompt_quality.py`: prompt quality layers for performance, camera, light, sound, realism, constraints, and retry advice
+- `scripts/asset_manifest.py`: asset manifest loader for character, scene, storyboard, and space-anchor reference binding
 - `scripts/preflight_video_episode.py`: local preflight checks for Prompt Packet V1, storyboard mapping, all-purpose references, paid model policy, spatial templates, duration, and text/audio constraints
 - `scripts/video_provider.py`: provider request builder and dry-run execution boundary
 - `scripts/poyo_video_client.py`: PoYo Seedance 2 submit, status polling, upload, and download client
@@ -215,6 +216,7 @@ Paid/live PoYo video model policy is locked: default to `seedance-2`, not `seeda
 - `scripts/ffmpeg_assembly.py`: phase-3 placeholder for local assembly helpers
 - `references/workflows.md`: provider-agnostic workflow and consistency rules
 - `references/prompt_architecture.md`: fixed Prompt Packet structure, internal-facts vs platform-safe wording split, storyboard/spatial/live-generation gates
+- `assets/example_asset_manifest.json`: standard character/scene/storyboard/space-anchor asset manifest example
 - `assets/example_build_video_handoff_task.json`: offline example
 - `assets/example_preflight_video_generation_task.json`: clip-level all-purpose-reference preflight example
 - `assets/example_prepare_video_generation_task.json`: clip-level all-purpose-reference provider request example

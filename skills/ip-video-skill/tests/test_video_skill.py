@@ -1291,6 +1291,70 @@ def test_live_video_blocks_missing_prompt_packet_sections():
 
 
 
+
+
+def test_prepare_video_generation_uses_asset_manifest_reference_order():
+    handoff = build_video_handoff(_task())
+    config = VideoProviderConfig("poyo_video", "test", "https://api.example", "", "seedance-2", "9:16", "480p", 1, 5)
+    request = prepare_video_generation_request(
+        {
+            "provider": "poyo_video",
+            "video_handoff": handoff,
+            "reference_policy": "all_purpose_reference",
+            "asset_manifest": {
+                "character_references": [
+                    {"url": "https://files.example/linque.png", "role": "character_reference", "character_id": "lin_que"}
+                ],
+                "scene_references": [
+                    {"url": "https://files.example/hall.png", "role": "video_scene_reference", "scene_id": "hall"}
+                ],
+                "storyboard_references": [
+                    {"url": "https://files.example/board.png", "role": "storyboard_layout_reference", "clip_id": "clip_001"}
+                ],
+                "space_anchor_refs": [
+                    {"url": "https://files.example/panorama.png", "role": "space_anchor", "scene_id": "hall"}
+                ],
+            },
+            "clip_index": 1,
+        },
+        config,
+    )
+    assert request["image_urls"] == []
+    assert [ref["role"] for ref in request["reference_image_urls"]] == [
+        "character_reference",
+        "video_scene_reference",
+        "storyboard_layout_reference",
+    ]
+    assert [ref["role"] for ref in request["space_anchor_refs"]][-1] == "space_anchor"
+    input_obj = request["transport"]["json"]["input"]
+    assert "image_urls" not in input_obj
+    assert input_obj["reference_image_urls"] == [
+        "https://files.example/linque.png",
+        "https://files.example/hall.png",
+        "https://files.example/board.png",
+    ]
+
+
+def test_preflight_asset_manifest_warns_fragile_local_paths():
+    handoff = build_video_handoff(_task())
+    config = VideoProviderConfig("poyo_video", "test", "https://api.example", "", "seedance-2", "9:16", "480p", 1, 5)
+    report = preflight_video_generation(
+        {
+            "provider": "poyo_video",
+            "video_handoff": handoff,
+            "reference_policy": "all_purpose_reference",
+            "asset_manifest": {
+                "character_references": [{"path": "C:\\Users\\qjw\\Downloads\\linque.png", "role": "character_reference"}],
+                "scene_references": [{"url": "https://files.example/hall.png", "role": "video_scene_reference"}],
+                "storyboard_references": [{"url": "https://files.example/board.png", "role": "storyboard_layout_reference"}],
+            },
+            "clip_index": 1,
+        },
+        config,
+    )
+    assert report["status"] == "pass"
+    assert any("fragile local user/download path" in warning for warning in report["warnings"])
+
 def test_preflight_video_generation_passes_all_purpose_clip():
     handoff = build_video_handoff(_task())
     config = VideoProviderConfig("poyo_video", "test", "https://api.example", "", "seedance-2", "9:16", "480p", 1, 5)

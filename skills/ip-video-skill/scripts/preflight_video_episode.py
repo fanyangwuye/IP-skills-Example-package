@@ -3,10 +3,12 @@ import json
 from typing import Dict, List, Optional, Tuple
 
 try:
+    from .asset_manifest import validate_asset_manifest
     from .config import VideoProviderConfig, load_video_provider_config
     from .spatial_templates import high_risk_spatial_template_text
     from .video_provider import PROMPT_PACKET_REQUIRED_SECTIONS, prepare_video_generation_request
 except ImportError:
+    from asset_manifest import validate_asset_manifest
     from config import VideoProviderConfig, load_video_provider_config
     from spatial_templates import high_risk_spatial_template_text
     from video_provider import PROMPT_PACKET_REQUIRED_SECTIONS, prepare_video_generation_request
@@ -44,10 +46,11 @@ ALL_PURPOSE_POLICIES = {"all_purpose_reference", "all_purpose_reference_only"}
 def preflight_video_generation(task: Dict, config: Optional[VideoProviderConfig] = None) -> Dict:
     """Build dry provider requests and report blockers before any paid video call."""
     config = config or load_video_provider_config()
+    manifest_errors, manifest_warnings = validate_asset_manifest(task)
     requests, build_errors = _build_requests(task, config)
     checks = []
-    errors = list(build_errors)
-    warnings = []
+    errors = list(manifest_errors) + list(build_errors)
+    warnings = list(manifest_warnings)
 
     for index, request in enumerate(requests, start=1):
         unit_label = request.get("clip_id") or request.get("shot_id") or request.get("unit_id") or f"unit_{index}"
