@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from blueprint_validate import validate_blueprint  # noqa: E402
 from copy_skill import run_task  # noqa: E402
 from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_prompt_pack, build_provider_request  # noqa: E402
-from format_adapters import FeatureFilmAdapter, LongSeriesAdapter, OverseasShortDramaAdapter, VerticalShortDramaAdapter  # noqa: E402
+from format_adapters import FeatureFilmAdapter, LongSeriesAdapter, MurderMysteryAdapter, OverseasShortDramaAdapter, VerticalShortDramaAdapter  # noqa: E402
 from license_gate import check_license, gate  # noqa: E402
 from quality_evaluator import evaluate_scene_cards_quality, evaluate_script_quality  # noqa: E402
 
@@ -86,6 +86,39 @@ def test_overseas_short_drama_prompt_pack_uses_adapter_constraints():
         assert "culture_safe_surface_wording" in prompt_pack["user_prompt"]
         assert result["handoff"]["provider_request"]["network_call_allowed"] is False
 
+
+
+def test_murder_mystery_adapter_spec_locks_clue_logic_rules():
+    adapter = MurderMysteryAdapter()
+    spec = adapter.spec()
+    assert spec.format_name == "murder_mystery"
+    assert spec.structure_levels == ["project", "phase", "round", "scene", "clue"]
+    assert spec.default_aspect_ratio == "tabletop_packet"
+    assert spec.default_episode_duration_sec == 14400
+    assert "truth_chain_complete" in spec.quality_checks
+    assert "character_pov_packets" in spec.handoff_requirements["copy"]
+    assert "clue_distribution_must_be_fair_traceable_and_not_depend_on_out_of_band_information" in spec.rhythm_rules
+
+
+def test_murder_mystery_prompt_pack_uses_adapter_constraints():
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                "mode": "build_creative_prompt_pack",
+                "target_format": "murder_mystery",
+                "prompt_kind": "script_scenes",
+                "title": "黄泉饭店案件本",
+                "source_text": "林缺回到黄泉饭店。苏澜发现大厅异常。牛头员工端托盘出现，账本藏着第一条线索。",
+                "creative_brief": {"target": "murder_mystery", "tone": "fair play suspense case"},
+                "output_dir": output_dir,
+            }
+        )
+        prompt_pack = result["handoff"]["prompt_pack"]
+        assert prompt_pack["format_name"] == "murder_mystery"
+        assert "truth_chain_complete" in prompt_pack["user_prompt"]
+        assert "clue_distribution_fair" in prompt_pack["user_prompt"]
+        assert "tabletop_packet" in prompt_pack["user_prompt"]
+        assert result["handoff"]["provider_request"]["network_call_allowed"] is False
 
 def test_long_series_adapter_spec_locks_episode_arc_rules():
     adapter = LongSeriesAdapter()
@@ -774,6 +807,33 @@ def test_build_script_draft_can_use_overseas_short_drama_adapter():
         assert "dialogue_translation_ready" in script["quality_checks"]
         assert "culture_safe_surface_wording" in script["handoff"]["copy_requirements"]
 
+
+
+def test_build_script_draft_can_use_murder_mystery_adapter():
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                "mode": "build_script_draft",
+                "target_format": "murder_mystery",
+                "title": "黄泉饭店案件本",
+                "scene_cards": [
+                    {
+                        "visual": "黄泉饭店大厅，林缺、苏澜和牛头员工围着账本，第一轮公开线索指向被改写的菜单时间。",
+                        "voiceover": "主持人公布第一轮线索：菜单上的时间和所有人的记忆都对不上。",
+                        "duration_sec": 300,
+                        "asset_goal": {"scene": "黄泉饭店大厅", "type": "murder mystery clue reveal frame"},
+                    }
+                ],
+                "characters": [{"name": "林缺"}, {"name": "苏澜"}, {"name": "牛头员工"}],
+                "total_duration_sec": 300,
+                "output_dir": output_dir,
+            }
+        )
+        script = result["handoff"]["script_draft"]
+        assert script["format_adapter"] == "murder_mystery"
+        assert script["aspect_ratio"] == "tabletop_packet"
+        assert "truth_chain_complete" in script["quality_checks"]
+        assert "character_pov_packets" in script["handoff"]["copy_requirements"]
 
 def test_build_script_draft_can_use_long_series_adapter():
     with tempfile.TemporaryDirectory() as output_dir:
