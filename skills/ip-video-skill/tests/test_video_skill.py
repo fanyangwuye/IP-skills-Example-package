@@ -175,6 +175,9 @@ def test_build_video_handoff_has_required_shot_fields():
     assert "must_execute_in_order" in handoff["clip_plan"][0]["storyboard_execution_map"][0]["execution_rule"]
     assert "do_not_merge_away" in handoff["clip_plan"][0]["storyboard_execution_map"][0]["execution_rule"]
     assert handoff["clip_plan"][0]["storyboard_revision_suggestions"] == []
+    assert handoff["clip_plan"][0]["storyboard_quality"]["status"] == "pass"
+    assert handoff["clip_prompts"][0]["storyboard_quality"]["status"] == "pass"
+    assert handoff["quality_checks"]["storyboard_quality_summary"]["status"] == "pass"
     assert "故事板执行映射" in handoff["clip_plan"][0]["clip_prompt"]
     assert "Prompt Packet V1" in handoff["clip_plan"][0]["clip_prompt"]
     assert "Global Context" in handoff["clip_plan"][0]["clip_prompt"]
@@ -828,6 +831,70 @@ def test_clip_plan_groups_30_seconds_into_two_clips():
     assert clips[1]["continuity_state"]["current_start_state"] == handoff["shots"][3]["continuity_state"]["current_start_state"]
     assert clips[0]["space_anchor_refs"]
     assert clips[0]["video_reference_images"]
+
+
+def test_storyboard_quality_blocks_long_unbroken_running_shot():
+    task = copy.deepcopy(_task())
+    task["blueprint"]["segments"] = [
+        {
+            "index": 1,
+            "start_sec": 0,
+            "end_sec": 15,
+            "visual": "林缺在黄泉饭店走廊里持续奔跑，沿同一方向躲避追击，整段没有反应镜头和结果落点。",
+        }
+    ]
+    handoff = build_video_handoff(task)
+    clip = handoff["clip_plan"][0]
+    quality = clip["storyboard_quality"]
+
+    assert quality["status"] == "fail"
+    assert any(issue["code"] == "long_unbroken_motion" for issue in quality["issues"])
+    assert clip["storyboard_execution_map"][0]["storyboard_shot_id"] == "shot_001"
+    assert handoff["quality_checks"]["storyboard_quality_summary"]["status"] == "fail"
+
+    config = VideoProviderConfig("poyo_video", "test", "https://api.example", "", "seedance-2", "9:16", "480p", 1, 5)
+    report = preflight_video_generation(
+        {
+            "mode": "preflight_video_generation",
+            "provider": "poyo_video",
+            "video_handoff": handoff,
+            "clip_index": 1,
+            "image_urls": [{"url": "https://files.example/first.png", "role": "first_frame"}],
+        },
+        config,
+    )
+    assert report["status"] == "fail"
+    assert any("storyboard_quality failed" in error and "long_unbroken_motion" in error for error in report["errors"])
+
+
+def test_storyboard_quality_warns_dense_clip_without_reordering_map():
+    task = copy.deepcopy(_task())
+    task["target_clip_duration_sec"] = 15
+    task["blueprint"]["segments"] = [
+        {"index": idx + 1, "start_sec": idx * 2, "end_sec": (idx + 1) * 2, "visual": f"林缺发现柜台异常后完成第{idx + 1}个清楚动作落点。"}
+        for idx in range(6)
+    ]
+    handoff = build_video_handoff(task)
+    clip = handoff["clip_plan"][0]
+    quality = clip["storyboard_quality"]
+
+    assert quality["status"] == "warn"
+    assert any(issue["code"] == "high_shot_density" for issue in quality["issues"])
+    assert [item["storyboard_shot_id"] for item in clip["storyboard_execution_map"]] == clip["shot_ids"]
+
+    config = VideoProviderConfig("poyo_video", "test", "https://api.example", "", "seedance-2", "9:16", "480p", 1, 5)
+    report = preflight_video_generation(
+        {
+            "mode": "preflight_video_generation",
+            "provider": "poyo_video",
+            "video_handoff": handoff,
+            "clip_index": 1,
+            "image_urls": [{"url": "https://files.example/first.png", "role": "first_frame"}],
+        },
+        config,
+    )
+    assert report["status"] == "pass"
+    assert any("storyboard_quality warning" in warning and "high_shot_density" in warning for warning in report["warnings"])
 
 
 def test_bridge_clip_policy_adds_cutaway_between_clips():

@@ -248,6 +248,7 @@ def _base_request(task: Dict, unit: Dict, provider: str, prompt_kind: str, confi
         "storyboard_mode": unit.get("storyboard_mode", "production"),
         "storyboard_execution_map": unit.get("storyboard_execution_map", []),
         "storyboard_revision_suggestions": unit.get("storyboard_revision_suggestions", []),
+        "storyboard_quality": unit.get("storyboard_quality", {}),
         "previous_clip_end_frame": unit.get("previous_clip_end_frame"),
         "previous_clip_reference_frame": unit.get("previous_clip_reference_frame"),
         "first_frame_spec": frame_specs.get("first_frame_spec", {}),

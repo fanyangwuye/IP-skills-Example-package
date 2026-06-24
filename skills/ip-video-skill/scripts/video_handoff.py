@@ -6,12 +6,14 @@ try:
     from .continuity import build_continuity_bible
     from .shot_plan import build_i2v_prompts, build_shot_plan, build_t2v_prompts
     from .storyboard_assets import build_storyboard_image_tasks
+    from .storyboard_quality import summarize_storyboard_quality
 except ImportError:
     from bridge_clips import build_bridge_clips
     from clip_plan import build_clip_plan, build_clip_prompts
     from continuity import build_continuity_bible
     from shot_plan import build_i2v_prompts, build_shot_plan, build_t2v_prompts
     from storyboard_assets import build_storyboard_image_tasks
+    from storyboard_quality import summarize_storyboard_quality
 
 
 def build_video_handoff(task: Dict) -> Dict:
@@ -85,6 +87,7 @@ def build_edit_decision_list(task: Dict, shots: List[Dict], clips: List[Dict] = 
                 "clip_id": clip.get("clip_id"),
                 "shot_ids": clip.get("shot_ids"),
                 "storyboard_execution_map": clip.get("storyboard_execution_map", []),
+                "storyboard_quality": clip.get("storyboard_quality", {}),
                 "start_sec": clip.get("timing", {}).get("start_sec"),
                 "end_sec": clip.get("timing", {}).get("end_sec"),
                 "duration_sec": clip.get("timing", {}).get("duration_sec"),
@@ -133,10 +136,12 @@ def build_global_quality_checks(shots: List[Dict], clips: List[Dict] = None, bri
         }
         for shot in shots
         ],
+        "storyboard_quality_summary": summarize_storyboard_quality(clips or []),
         "clips": [
             {
                 "clip_id": clip.get("clip_id"),
                 "shot_ids": clip.get("shot_ids", []),
+                "storyboard_quality": clip.get("storyboard_quality", {}),
                 "must_pass": clip.get("quality_checks", []),
             }
             for clip in clips or []

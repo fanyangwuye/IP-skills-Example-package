@@ -47,6 +47,8 @@ Use this before any prompt writing.
 - `storyboard_mode=production` is the default for executable video prompts and paid/live generation.
 - `storyboard_mode=draft` may propose split, merge, or reorder notes for review, but the current `storyboard_execution_map` stays unchanged until the user approves and the storyboard is rebuilt.
 - Preflight and live provider generation must block `storyboard_mode=draft`; draft artifacts are for planning, not spending credits.
+- Review `storyboard_quality` before paid generation. `fail` blocks preflight; `warn` requires human review but does not change the storyboard by itself.
+- Typical `storyboard_quality` failures include a 12-15 second single action shot, especially continuous running/chasing without reaction or result beats. Typical warnings include high shot density, vague visual beats, weak story function, and spatial actions needing review.
 
 ## Storyboard Boards And Panel References
 

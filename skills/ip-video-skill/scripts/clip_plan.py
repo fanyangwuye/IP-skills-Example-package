@@ -5,9 +5,11 @@ PROVIDER_PROMPT_BUDGETS = {"seedance": 1600, "i2v": 1800, "t2v": 1400}
 try:
     from .martial_arts import build_martial_arts_layer, is_martial_arts_scene, martial_arts_text
     from .spatial_templates import high_risk_spatial_template_text
+    from .storyboard_quality import evaluate_storyboard_quality
 except ImportError:
     from martial_arts import build_martial_arts_layer, is_martial_arts_scene, martial_arts_text
     from spatial_templates import high_risk_spatial_template_text
+    from storyboard_quality import evaluate_storyboard_quality
 
 
 def build_clip_plan(task: Dict, shots: List[Dict], continuity_bible: Dict) -> List[Dict]:
@@ -41,6 +43,7 @@ def build_clip_prompts(clips: List[Dict]) -> List[Dict]:
             "storyboard_mode": clip.get("storyboard_mode", "production"),
             "storyboard_execution_map": clip.get("storyboard_execution_map", []),
             "storyboard_revision_suggestions": clip.get("storyboard_revision_suggestions", []),
+            "storyboard_quality": clip.get("storyboard_quality", {}),
             "prompt": clip["clip_prompt"],
             "negative_prompt": clip["negative_prompt"],
             "reference_binding": clip["reference_binding"],
@@ -79,6 +82,7 @@ def _build_clip(index: int, shots: List[Dict], task: Dict, bible: Dict) -> Dict:
     storyboard_mode = _storyboard_mode(task)
     storyboard_execution_map = _storyboard_execution_map(shots, storyboard_mode)
     storyboard_revision_suggestions = _storyboard_revision_suggestions(shots, timing, storyboard_mode)
+    storyboard_quality = evaluate_storyboard_quality(shots, timing)
     martial_arts_layer = build_martial_arts_layer(
         "；".join(shot.get("visual", "") for shot in shots),
         _clip_storyboard_card(shots),
@@ -106,6 +110,7 @@ def _build_clip(index: int, shots: List[Dict], task: Dict, bible: Dict) -> Dict:
         "storyboard_mode": storyboard_mode,
         "storyboard_execution_map": storyboard_execution_map,
         "storyboard_revision_suggestions": storyboard_revision_suggestions,
+        "storyboard_quality": storyboard_quality,
         "timing": timing,
         "visual": "；".join(shot.get("visual", "") for shot in shots if shot.get("visual")),
         "characters": characters,
@@ -127,7 +132,7 @@ def _build_clip(index: int, shots: List[Dict], task: Dict, bible: Dict) -> Dict:
         "prompt_strategy": prompt_bundle["prompt_strategy"],
         "negative_prompt": _merge_negative_prompt(shots),
         "retry_advice": _dedupe([item for shot in shots for item in (shot.get("retry_advice") or [])]),
-        "quality_checks": _clip_quality_checks(),
+        "quality_checks": _clip_quality_checks(storyboard_quality),
     }
 
 
@@ -810,8 +815,8 @@ def _ref_label(ref: Dict) -> str:
     return str(ref.get("scene_id") or ref.get("character_id") or ref.get("role") or ref.get("filename") or ref.get("url") or ref)
 
 
-def _clip_quality_checks() -> List[str]:
-    return [
+def _clip_quality_checks(storyboard_quality: Dict = None) -> List[str]:
+    checks = [
         "clip_prompt 是否使用 Prompt Packet V1 固定结构：Global Context / Internal Story Facts / Reference Bindings / Spatial Blocking / 15s Timeline / Continuation Contract / Platform-Safe Surface Wording / Execution Constraints",
         "clip 内所有 shot 是否被合并为连续动作，而不是互相断裂的小镜头",
         "如果存在 previous_clip_end_frame，当前 clip 第一帧是否继承上一 clip 尾帧",
@@ -822,7 +827,11 @@ def _clip_quality_checks() -> List[str]:
         "storyboard_execution_map 是否覆盖 clip 内每个 shot_id，且视频执行顺序未删除、未合并掉、未改顺序",
         "武戏段落是否看清起势、距离、一次攻防、重心变化和收势落点",
         "角色脸、发型、服饰、道具、空间布局和光源方向是否跨 clip 一致",
+        "storyboard_quality.status 必须不是 fail；warn 时需人工复核后再进入 live 生成",
     ]
+    if storyboard_quality:
+        checks.append("storyboard_quality: " + str(storyboard_quality.get("summary", "")))
+    return checks
 
 
 def _positive_float(value, default: float) -> float:

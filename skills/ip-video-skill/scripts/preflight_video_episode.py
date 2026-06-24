@@ -148,6 +148,19 @@ def _check_request(task: Dict, request: Dict, unit_label: str) -> Tuple[List[Dic
     if not draft_ok:
         errors.append(f"{unit_label}: storyboard_mode=draft is planning-only; approve and rebuild production storyboard mapping before paid generation")
 
+    storyboard_quality = request.get("storyboard_quality") or {}
+    quality_status = str(storyboard_quality.get("status") or "unknown")
+    quality_ok = quality_status != "fail"
+    _add_check(checks, unit_label, "storyboard_quality", quality_ok, storyboard_quality)
+    if quality_status == "fail":
+        issue_codes = ", ".join(item.get("code", "") for item in storyboard_quality.get("issues") or [])
+        errors.append(f"{unit_label}: storyboard_quality failed before paid generation: {issue_codes}")
+    elif quality_status == "warn":
+        issue_codes = ", ".join(item.get("code", "") for item in storyboard_quality.get("issues") or [])
+        warnings.append(f"{unit_label}: storyboard_quality warning requires human review: {issue_codes}")
+    elif quality_status == "unknown":
+        warnings.append(f"{unit_label}: storyboard_quality report is missing; rebuild handoff with current ip-video-skill before paid generation")
+
     all_purpose = _uses_all_purpose_reference(task, request)
     if all_purpose:
         image_urls = request.get("image_urls") or []

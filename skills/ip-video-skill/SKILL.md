@@ -63,7 +63,8 @@ Storyboard is the execution blueprint, not optional inspiration. Once a storyboa
 - Prompt text may only strengthen existing reference and storyboard details. It must not add, modify, or reduce the content established by the references and storyboard.
 - `storyboard_mode` defaults to `production`: the map is mandatory, strict, and must execute in order.
 - `storyboard_mode=draft` is planning-only: keep the current map unchanged, output split/merge/reorder suggestions as review notes only, and do not apply them without user approval.
-- For paid/live clip generation, stop if `storyboard_execution_map` is missing, does not exactly match the clip `shot_ids`, or the clip is still in `storyboard_mode=draft`.
+- Every clip carries `storyboard_quality`; review `status`, `score`, `issues`, and `recommendation` before video generation.
+- For paid/live clip generation, stop if `storyboard_execution_map` is missing, does not exactly match the clip `shot_ids`, the clip is still in `storyboard_mode=draft`, or `storyboard_quality.status=fail`.
 
 ## Mandatory Video Continuation Gate
 
@@ -206,6 +207,7 @@ Paid/live PoYo video model policy is locked: default to `seedance-2`, not `seeda
 - `scripts/clip_plan.py`: clip grouping, clip prompts, video reference images, space anchors, and previous-frame handoff
 - `scripts/spatial_templates.py`: high-risk chase, throw-back, door/threshold, and window/glass spatial templates
 - `scripts/storyboard_assets.py`: clip-level storyboard design sheet image task builder
+- `scripts/storyboard_quality.py`: deterministic storyboard density, narrative, and execution-risk scoring before paid generation
 - `scripts/storyboard_panel_refs.py`: local first/mid/last storyboard panel cropper for provider layout references
 - `scripts/martial_arts.py`: martial-arts scene detector and combat prompt layer
 - `scripts/prompt_quality.py`: prompt quality layers for performance, camera, light, sound, realism, constraints, and retry advice
