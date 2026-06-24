@@ -136,6 +136,24 @@ Provider adapters must preserve:
 - `screen_direction`
 - `eyeline`
 
+
+## Offline Prompt Architecture Audit
+
+Run `prompt_architecture_audit` after `build_video_handoff` and before `episode_readiness`, `preflight_video_generation`, `prepare_video_generation`, or any paid/live provider call.
+
+This audit does not call a video provider. It checks each clip's `clip_prompt`, `i2v_prompt`, `seedance_prompt`, and `t2v_prompt` for:
+
+- fixed Prompt Packet V1 sections in the required order
+- provider-specific prompt variants and `prompt_kind` markers
+- provider prompt length budgets
+- storyboard execution map matching `clip.shot_ids`
+- `15s Timeline` coverage for every mapped shot id
+- internal story facts separated from platform-safe surface wording
+- high-risk spatial template text for chase, throw-back, door/threshold, and window/glass scenes
+- all-purpose reference policy wording when that policy is locked
+- explicit no subtitles, no fake text, no title cards, no watermarks, no songs, and no music beds constraints
+
+If the audit status is `fail`, regenerate or fix the prompt packet before moving to preflight. If it returns warnings, review them before spending credits.
 ## Provider Request Flow
 
 Use this flow before any paid video generation:
@@ -147,15 +165,16 @@ Use this flow before any paid video generation:
 5. Apply the locked reference policy. If `reference_policy: all_purpose_reference` is set, load approved character, scene, and storyboard refs from `asset_manifest_path` or explicit `reference_image_urls`; verify every character ref has `character_id`, every scene ref has `scene_id`, every storyboard ref has `clip_id`, and the request has no `image_urls`.
 6. If a storyboard board was generated, pass `storyboard_image_path` or `storyboard_image_paths`; the provider layer crops first/mid/last panel layout refs automatically.
 7. Prefer one `clip_id` or `clip_index` for normal generation; use `shot_id` or `shot_index` only for troubleshooting.
-8. Run `episode_readiness`; do not start paid/live generation while `status=blocked`.
-9. Run `preflight_video_generation`; do not start paid/live generation while the report status is `fail`.
-10. Run `prepare_video_generation`.
-11. Inspect `provider_request.prompt`, including the fixed Prompt Packet sections, `image_urls`, `reference_images`, `reference_image_urls`, `storyboard_panel_refs`, `video_reference_images`, `space_anchor_refs`, `continuity_state`, and `transport`.
-12. Confirm `@Image` bindings are explicit: in all-purpose reference mode, character refs are identity refs, scene refs are space refs, storyboard refs are layout/edit refs, and no first-frame/keyframe binding appears unless explicitly selected.
-13. Confirm the prompt says storyboard panel refs only lock layout and forbids copying line art, labels, table borders, arrows, and text.
-14. Confirm the prompt says ambient sound/foley only and forbids BGM, songs, subtitles, title cards, fake text, and watermarks.
-15. For martial-arts clips, confirm the prompt includes `武戏调度` and only one readable attack-defense beat.
-16. Generate only one short I2V test clip after the provider adapter is confirmed.
+8. Run `prompt_architecture_audit`; do not continue while `status=fail`.
+9. Run `episode_readiness`; do not start paid/live generation while `status=blocked`.
+10. Run `preflight_video_generation`; do not start paid/live generation while the report status is `fail`.
+11. Run `prepare_video_generation`.
+12. Inspect `provider_request.prompt`, including the fixed Prompt Packet sections, `image_urls`, `reference_images`, `reference_image_urls`, `storyboard_panel_refs`, `video_reference_images`, `space_anchor_refs`, `continuity_state`, and `transport`.
+13. Confirm `@Image` bindings are explicit: in all-purpose reference mode, character refs are identity refs, scene refs are space refs, storyboard refs are layout/edit refs, and no first-frame/keyframe binding appears unless explicitly selected.
+14. Confirm the prompt says storyboard panel refs only lock layout and forbids copying line art, labels, table borders, arrows, and text.
+15. Confirm the prompt says ambient sound/foley only and forbids BGM, songs, subtitles, title cards, fake text, and watermarks.
+16. For martial-arts clips, confirm the prompt includes `武戏调度` and only one readable attack-defense beat.
+17. Generate only one short I2V test clip after the provider adapter is confirmed.
 
 Supported provider request shapes:
 

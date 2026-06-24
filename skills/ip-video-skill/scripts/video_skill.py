@@ -12,6 +12,7 @@ try:
     from .shot_plan import build_i2v_prompts, build_shot_plan, build_t2v_prompts
     from .video_provider import prepare_video_generation_request, run_video_generation
     from .preflight_video_episode import preflight_video_generation
+    from .prompt_architecture_audit import build_prompt_architecture_audit
     from .video_sequence import run_video_sequence
     from .video_handoff import build_edit_decision_list, build_video_handoff
 except ImportError:
@@ -23,6 +24,7 @@ except ImportError:
     from shot_plan import build_i2v_prompts, build_shot_plan, build_t2v_prompts
     from video_provider import prepare_video_generation_request, run_video_generation
     from preflight_video_episode import preflight_video_generation
+    from prompt_architecture_audit import build_prompt_architecture_audit
     from video_sequence import run_video_sequence
     from video_handoff import build_edit_decision_list, build_video_handoff
 
@@ -127,6 +129,11 @@ def run_task(task: Dict) -> Dict:
         _write_json(path, report)
         return _result(mode, {"episode_readiness_report": report}, path, "episode_readiness_report")
 
+    if mode == "prompt_architecture_audit":
+        report = build_prompt_architecture_audit(task)
+        path = os.path.join(output_dir, task.get("prompt_architecture_audit_filename", "prompt_architecture_audit_report.json"))
+        _write_json(path, report)
+        return _result(mode, {"prompt_architecture_audit_report": report}, path, "prompt_architecture_audit_report")
     if mode == "preflight_video_generation":
         config = load_video_provider_config()
         report = preflight_video_generation(task, config)
@@ -163,7 +170,7 @@ def run_task(task: Dict) -> Dict:
 
     raise ValueError(
         "mode must be one of: build_continuity_bible, build_video_handoff, build_shot_plan, build_clip_plan, "
-        "build_asset_manifest_template, scan_asset_manifest_directory, review_asset_manifest, episode_readiness, build_i2v_prompts, build_t2v_prompts, build_edit_decision_list, "
+        "build_asset_manifest_template, scan_asset_manifest_directory, review_asset_manifest, episode_readiness, prompt_architecture_audit, build_i2v_prompts, build_t2v_prompts, build_edit_decision_list, "
         "preflight_video_generation, prepare_video_generation, run_video_generation, run_video_sequence"
     )
 

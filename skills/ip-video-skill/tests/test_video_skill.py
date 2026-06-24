@@ -17,6 +17,7 @@ from video_provider import prepare_video_generation_request, run_video_generatio
 import video_sequence  # noqa: E402
 from video_handoff import build_video_handoff  # noqa: E402
 from preflight_video_episode import preflight_video_generation  # noqa: E402
+from prompt_architecture_audit import build_prompt_architecture_audit  # noqa: E402
 from episode_readiness import build_episode_readiness_report  # noqa: E402
 from asset_manifest import build_asset_manifest_review, build_asset_manifest_template, scan_asset_manifest_directory, validate_asset_manifest  # noqa: E402
 from video_skill import run_task  # noqa: E402
@@ -2038,6 +2039,48 @@ def test_live_video_all_purpose_reference_passes_with_fake_client():
     ]
     assert "全能参考模式已锁定" in request["prompt"]
     assert request["transport"]["json"]["model"] == "seedance-2"
+
+def test_prompt_architecture_audit_passes_current_prompt_packets():
+    handoff = build_video_handoff(_task())
+    report = build_prompt_architecture_audit({"video_handoff": handoff, "reference_policy": "all_purpose_reference"})
+
+    assert report["status"] == "pass"
+    assert report["summary"]["clip_count"] == 1
+    assert report["summary"]["checked_prompt_count"] == 4 * len(handoff["clip_plan"])
+    assert not report["errors"]
+    for clip_report in report["clip_reports"]:
+        assert clip_report["status"] == "pass"
+        assert {item["prompt_kind"] for item in clip_report["prompt_reports"]} == {"full_packet", "i2v", "seedance", "t2v"}
+    assert any(item["name"] == "provider_prompt_differentiation" and item["status"] == "pass" for item in report["checks"])
+    assert any(item["name"] == "prompt_packet_sections" and item["status"] == "pass" for item in report["checks"])
+
+
+def test_prompt_architecture_audit_blocks_old_or_flat_prompts():
+    handoff = build_video_handoff(_task())
+    clip = copy.deepcopy(handoff["clip_plan"][0])
+    clip["clip_prompt"] = "旧格式提示词，只有普通描述，没有固定架构。"
+    clip["i2v_prompt"] = clip["clip_prompt"]
+    clip["seedance_prompt"] = clip["clip_prompt"]
+    clip["t2v_prompt"] = clip["clip_prompt"]
+
+    report = build_prompt_architecture_audit({"video_handoff": {"source_title": "旧格式", "clip_plan": [clip]}})
+
+    assert report["status"] == "fail"
+    assert any("Prompt Packet V1 missing sections" in error for error in report["errors"])
+    assert any("provider-specific" in error for error in report["errors"])
+    assert any(item["priority"] == "blocker" for item in report["action_items"])
+
+
+def test_run_task_writes_prompt_architecture_audit_report():
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task({**_task(), "mode": "prompt_architecture_audit", "output_dir": output_dir})
+        path = result["artifacts"][0]["path"]
+        assert os.path.exists(path)
+        with open(path, "r", encoding="utf-8") as fh:
+            saved = json.load(fh)
+
+    assert result["handoff"]["prompt_architecture_audit_report"]["status"] == "pass"
+    assert saved["prompt_architecture_audit_version"] == "1.0"
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_") and callable(fn):

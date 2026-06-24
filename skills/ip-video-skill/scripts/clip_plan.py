@@ -258,11 +258,14 @@ def _clip_provider_prompt(
     elif kind == "t2v":
         mode_line = "Text-to-video preview only. Do not treat this as final IP identity validation without character and scene references."
         surface = _english_surface_line(visual, action)
-        execution = "Preview camera, blocking and action rhythm; do not invent new characters, props, spaces, dialogue text, subtitles or logos."
+        execution = "Preview camera, blocking and action rhythm; do not invent new characters, props, spaces, dialogue text, subtitles or logos; no subtitles, no fake text, no watermark, no title card, no songs, no background music."
     else:
         mode_line = "Seedance clip prompt. 使用参考图锁定角色身份、服装、场景与故事板构图；动作短、清楚、可剪辑。"
         surface = _chinese_surface_line(visual, action)
         execution = "严格按故事板顺序执行；每个分镜只保留一个主动作和一个情绪落点；禁止字幕、伪文字、水印、片头片尾、歌曲和背景音乐。"
+
+    storyboard_label = "Storyboard execution map draft review" if storyboard_mode == "draft" else "Storyboard execution map"
+    execution = storyboard_label + "; no subtitles, no fake text, no watermark, no title card, no songs, no background music, 无音乐铺底; " + execution
 
     parts = [
         f"Prompt Packet V1: {clip_id}; duration={timing.get('duration_sec')}s; generation_unit=clip; prompt_kind={kind}; shot_ids={shot_ids}.",
@@ -273,7 +276,7 @@ def _clip_provider_prompt(
         f"15s Timeline: {timeline}",
         "Continuation Contract: Do not copy the previous clip composition unless hard_first_frame is explicitly selected; use reframed medium, close, wide, reverse, insert or cutaway shots only when continuity state, light, costume, prop hand and screen direction remain traceable.",
         f"Platform-Safe Surface Wording: {surface} Surface wording must stay visually equivalent to the locked references and storyboard; do not replace locked characters with strangers, masks, machines, celebrities, animals or unrelated creatures.",
-        f"Execution Constraints: {storyboard} {martial} {execution}",
+        f"Execution Constraints: {execution} {storyboard} {martial}",
     ]
     return _budget_provider_prompt(kind, parts)
 
