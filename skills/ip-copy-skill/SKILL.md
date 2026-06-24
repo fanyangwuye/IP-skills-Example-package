@@ -25,7 +25,7 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 - Apply the `long_series` FormatAdapter V1 for 16:9 long-form episode structure, act breaks, A/B story tracks, character arcs, and season-arc handoff requirements
 - Apply the `murder_mystery` FormatAdapter V1 for tabletop case structure, separated character POV packets, fair clue distribution, truth-chain logic, and host-script handoff requirements
 - Apply the `interactive_film_game` FormatAdapter V1 for branching node graphs, player choices, state flags, convergence points, endings, and replay handoff requirements
-- Build CreativeEngine prompt packs and provider request dry-run JSON for review without making live calls
+- Build CreativeEngine prompt packs, provider request dry-run JSON, and provider boundary metadata for review without making live calls
 - Include creative diagnostics in prompt packs: genre profile, character voice contract, causality contract, rhythm contract, forbidden drift, and quality gate
 - Include deterministic creative-quality checks in `quality_report`: unsupported details, character consistency, dialogue voice, causality, hook density, emotion curve, and format-specific checks for branch/case structures
 
@@ -64,7 +64,7 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 
 1. Accept `source_text`, `creative_brief`, `prompt_kind`, optional `scene_cards` / `script_draft`, and provider/model labels.
 2. Build a `copy-creative-prompt-pack-v1` prompt pack with source material, format constraints, creative diagnostics, response contract, safety constraints, task instructions, and quality targets.
-3. Build a `copy-live-provider-request-v1` provider request wrapper with `network_call_allowed=false`.
+3. Build a `copy-live-provider-request-v1` provider request wrapper with `network_call_allowed=false` and `copy-provider-boundary-v1` metadata for provider/model/key/budget/live-guard review.
 4. Write `creative_prompt_pack.json` and return `live_call_made=false`.
 5. Use this mode for review, testing, and handoff before any explicit live provider integration.
 
@@ -151,5 +151,5 @@ If only `source_text` is provided, extract multiple important named roles, title
 
 This version provides controlled adaptation planning, CreativeEngine routing, vertical short-drama structure, overseas short-drama structure, feature-film structure, long-series structure, murder-mystery structure, interactive film/game structure, scaffold fallback, and quality reports.
 It still does not claim final polished prose or full model-native rewriting.
-Offline mode never calls a provider and now returns a reviewable prompt pack under `raw_response`. Mock mode is for tests. The live LLM engine is guarded; after double approval it currently builds a dry-run provider request with `network_call_allowed=false` and still does not make provider calls. Prompt packs are stronger control artifacts, not proof that final creative prose has been generated.
+Offline mode never calls a provider and now returns a reviewable prompt pack under `raw_response`. Mock mode is for tests. The live LLM engine is guarded; after double approval it currently builds a dry-run provider request with `network_call_allowed=false` plus provider boundary blockers, and still does not make provider calls. Prompt packs are stronger control artifacts, not proof that final creative prose has been generated.
 For production writing, an agent should use this state, adapter metadata, and scene/script structure as the control layer, then call an explicitly approved writing model for richer dialogue and prose where needed.

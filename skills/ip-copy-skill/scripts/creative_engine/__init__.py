@@ -3,7 +3,7 @@ from .live_llm_engine import LiveLLMEngine
 from .mock_engine import MockCreativeEngine
 from .offline_engine import OfflineCreativeEngine
 from .prompt_packs import build_prompt_pack
-from .provider_adapter import build_provider_request, summarize_provider_request
+from .provider_adapter import build_provider_boundary, build_provider_request, summarize_provider_request
 
 __all__ = [
     "CreativeEngine",
@@ -14,6 +14,7 @@ __all__ = [
     "MockCreativeEngine",
     "OfflineCreativeEngine",
     "build_prompt_pack",
+    "build_provider_boundary",
     "build_provider_request",
     "summarize_provider_request",
 ]

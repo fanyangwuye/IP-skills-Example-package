@@ -6,7 +6,7 @@ from datetime import date
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from blueprint_validate import validate_blueprint  # noqa: E402
 from copy_skill import run_task  # noqa: E402
-from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_prompt_pack, build_provider_request  # noqa: E402
+from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_prompt_pack, build_provider_boundary, build_provider_request  # noqa: E402
 from format_adapters import FeatureFilmAdapter, InteractiveFilmGameAdapter, LongSeriesAdapter, MurderMysteryAdapter, OverseasShortDramaAdapter, VerticalShortDramaAdapter  # noqa: E402
 from license_gate import check_license, gate  # noqa: E402
 from quality_evaluator import evaluate_scene_cards_quality, evaluate_script_quality  # noqa: E402
@@ -419,6 +419,9 @@ def test_prompt_pack_builds_adapter_constraints_and_provider_request():
     assert provider_request["mode"] == "dry_run_provider_request"
     assert provider_request["messages"][0]["role"] == "system"
     assert provider_request["response_format"]["schema_name"] == "scene_cards"
+    assert provider_request["provider_boundary"]["provider_boundary_version"] == "copy-provider-boundary-v1"
+    assert provider_request["provider_boundary"]["api_key_env_var"] == "OPENAI_API_KEY"
+    assert "network_adapter_not_implemented" in provider_request["provider_boundary"]["blockers"]
 
 
 
@@ -447,6 +450,35 @@ def test_prompt_pack_builds_character_voice_contract_from_roles():
     assert voice_contract[1]["name"] == "苏澜"
     assert any("evidence" in item for item in voice_contract[1]["voice_rules"])
     assert "do not add unsupported plot facts" in prompt_pack["creative_diagnostics"]["forbidden_drift"]
+
+def test_provider_boundary_records_live_guard_budget_and_blockers():
+    prompt_pack = build_prompt_pack(
+        CreativeEngineRequest(
+            kind="script_scenes",
+            source_text="林缺回到黄泉饭店。",
+            schema_name="script_scenes",
+        )
+    )
+    boundary = build_provider_boundary(
+        prompt_pack,
+        provider="openai",
+        model="unit-test-model",
+        allow_live=True,
+        request_allow_live=True,
+        max_input_chars=1,
+        max_output_tokens=2048,
+        max_cost_usd=0.25,
+    )
+    assert boundary["provider_boundary_version"] == "copy-provider-boundary-v1"
+    assert boundary["provider"] == "openai"
+    assert boundary["api_key_env_var"] == "OPENAI_API_KEY"
+    assert boundary["engine_allow_live"] is True
+    assert boundary["request_allow_live"] is True
+    assert boundary["network_call_allowed"] is False
+    assert boundary["ready_for_live_call"] is False
+    assert "prompt_exceeds_max_input_chars" in boundary["blockers"]
+    assert "network_adapter_not_implemented" in boundary["blockers"]
+
 def test_run_task_build_creative_prompt_pack_writes_dry_run_provider_request():
     with tempfile.TemporaryDirectory() as output_dir:
         result = run_task(

@@ -190,6 +190,11 @@ def _run_build_creative_prompt_pack(task: Dict, output_dir: str) -> Dict:
         prompt_pack,
         provider=str(task.get("llm_provider") or task.get("provider") or ""),
         model=str(task.get("llm_model") or task.get("model") or ""),
+        allow_live=bool(task.get("allow_live_llm")),
+        request_allow_live=bool(task.get("live_generation") or task.get("allow_live_llm")),
+        max_input_chars=int(task.get("max_input_chars") or 0),
+        max_output_tokens=int(task.get("max_output_tokens") or 0),
+        max_cost_usd=float(task.get("max_cost_usd") or 0.0),
     )
     payload = {
         "prompt_pack": prompt_pack,

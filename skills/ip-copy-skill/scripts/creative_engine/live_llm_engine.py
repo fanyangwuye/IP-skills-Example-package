@@ -17,7 +17,7 @@ class LiveLLMEngine(CreativeEngine):
                 "Live LLM generation is blocked by default. Set allow_live on both engine and request after explicit user approval."
             )
         prompt_pack = build_prompt_pack(request)
-        provider_request = build_provider_request(prompt_pack, provider=self.provider, model=self.model)
+        provider_request = build_provider_request(prompt_pack, provider=self.provider, model=self.model, allow_live=self.allow_live, request_allow_live=request.allow_live)
         return CreativeEngineResult(
             status="provider_request_ready",
             generation_source="live_llm_engine_dry_run",
