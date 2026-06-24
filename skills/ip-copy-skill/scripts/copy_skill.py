@@ -7,13 +7,13 @@ from typing import Dict, List, Optional
 
 try:
     from .blueprint_validate import validate_blueprint
-    from .creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine
+    from .creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_prompt_pack, build_provider_request, summarize_provider_request
     from .format_adapters import VerticalShortDramaAdapter
     from .license_gate import check_license, gate
     from .quality_evaluator import evaluate_scene_cards_quality, evaluate_script_quality
 except ImportError:
     from blueprint_validate import validate_blueprint
-    from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine
+    from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_prompt_pack, build_provider_request, summarize_provider_request
     from format_adapters import VerticalShortDramaAdapter
     from license_gate import check_license, gate
     from quality_evaluator import evaluate_scene_cards_quality, evaluate_script_quality
@@ -28,6 +28,8 @@ def run_task(task: Dict) -> Dict:
         return _run_check_license(task)
     if mode == "update_adaptation_state":
         return _run_update_adaptation_state(task, output_dir)
+    if mode == "build_creative_prompt_pack":
+        return _run_build_creative_prompt_pack(task, output_dir)
     if mode == "build_adaptation_scene_cards":
         return _run_build_adaptation_scene_cards(task, output_dir)
     if mode == "build_script_draft":
@@ -42,7 +44,7 @@ def run_task(task: Dict) -> Dict:
         return _run_build_character_handoff(task, output_dir)
     if mode == "build_blueprint":
         return _run_build_blueprint(task, output_dir)
-    raise ValueError("mode must be one of: check_license, build_blueprint, build_character_handoff, build_ip_asset_pack, update_adaptation_state, build_adaptation_scene_cards, build_script_draft, polish_script_draft, build_viral_explainer_script")
+    raise ValueError("mode must be one of: check_license, build_blueprint, build_character_handoff, build_ip_asset_pack, update_adaptation_state, build_creative_prompt_pack, build_adaptation_scene_cards, build_script_draft, polish_script_draft, build_viral_explainer_script")
 
 
 def _run_check_license(task: Dict) -> Dict:
@@ -178,6 +180,73 @@ def _run_polish_script_draft(task: Dict, output_dir: str) -> Dict:
         },
         "logs": [f"polished script draft with {len(polished['scenes'])} scenes"],
     }
+
+
+
+def _run_build_creative_prompt_pack(task: Dict, output_dir: str) -> Dict:
+    request = _creative_prompt_request_from_task(task)
+    prompt_pack = build_prompt_pack(request)
+    provider_request = build_provider_request(
+        prompt_pack,
+        provider=str(task.get("llm_provider") or task.get("provider") or ""),
+        model=str(task.get("llm_model") or task.get("model") or ""),
+    )
+    payload = {
+        "prompt_pack": prompt_pack,
+        "provider_request": provider_request,
+        "provider_request_summary": summarize_provider_request(provider_request),
+        "live_call_made": False,
+    }
+    out_path = os.path.join(output_dir, task.get("prompt_pack_filename", "creative_prompt_pack.json"))
+    _write_json(out_path, payload)
+    return {
+        "status": "success",
+        "skill": "ip-copy-skill",
+        "mode": "build_creative_prompt_pack",
+        "task_id": task.get("task_id", "build_creative_prompt_pack"),
+        "artifacts": [
+            {"type": "json", "path": out_path, "meta": {"kind": "creative_prompt_pack"}}
+        ],
+        "handoff": payload,
+        "logs": ["creative prompt pack built in dry-run mode; no live provider call was made"],
+    }
+
+
+def _creative_prompt_request_from_task(task: Dict) -> CreativeEngineRequest:
+    state = task.get("adaptation_state") or {}
+    creative_brief = task.get("creative_brief") or state.get("creative_direction") or task.get("creative_direction") or {}
+    adapter = _format_adapter_from_task(task, creative_brief)
+    kind = str(task.get("prompt_kind") or task.get("creative_kind") or "scene_cards").strip()
+    schema_name = task.get("schema_name") or _schema_for_creative_kind(kind)
+    payload = dict(task.get("payload") or {})
+    payload.setdefault("title", state.get("title", task.get("title", "")))
+    payload.setdefault("characters", state.get("characters", task.get("characters", [])))
+    payload.setdefault("scenes", state.get("scenes", task.get("scenes", [])))
+    payload.setdefault("story_beats", state.get("story_beats", task.get("story_beats", [])))
+    if task.get("scene_cards") is not None:
+        payload.setdefault("scene_cards", task.get("scene_cards"))
+    if task.get("script_draft") is not None:
+        payload.setdefault("script", task.get("script_draft"))
+    payload.setdefault("adapter", adapter.creative_engine_payload(state, task))
+    return CreativeEngineRequest(
+        kind=kind,
+        source_text=state.get("source_text", task.get("source_text", "")),
+        creative_brief=creative_brief,
+        format_name=adapter.spec().format_name,
+        schema_name=schema_name,
+        payload=payload,
+        allow_live=bool(task.get("allow_live_llm") or task.get("live_generation")),
+    )
+
+
+def _schema_for_creative_kind(kind: str) -> str:
+    if kind == "scene_cards":
+        return "scene_cards"
+    if kind in {"script_scenes", "polished_script_scenes"}:
+        return "script_scenes"
+    if kind == "source_analysis":
+        return "source_analysis"
+    return kind
 
 
 def _run_build_character_handoff(task: Dict, output_dir: str) -> Dict:
@@ -644,11 +713,12 @@ def _build_adaptation_scene_cards(state: Dict, task: Dict) -> List[Dict]:
 
 def _try_creative_scene_cards(state: Dict, task: Dict):
     engine = _creative_engine_from_task(task)
+    adapter = _format_adapter_from_task(task, state.get("creative_direction", {}))
     request = CreativeEngineRequest(
         kind="scene_cards",
         source_text=state.get("source_text", task.get("source_text", "")),
         creative_brief=state.get("creative_direction", task.get("creative_direction", {})),
-        format_name=task.get("target_format") or state.get("creative_direction", {}).get("target") or "vertical_short_drama",
+        format_name=adapter.spec().format_name,
         schema_name="scene_cards",
         payload={
             "title": state.get("title", task.get("title", "")),
@@ -657,6 +727,7 @@ def _try_creative_scene_cards(state: Dict, task: Dict):
             "story_beats": state.get("story_beats", []),
             "n_scene_cards": task.get("n_scene_cards", state.get("n_scene_cards", 5)),
             "total_duration_sec": task.get("total_duration_sec", 30),
+            "adapter": adapter.creative_engine_payload(state, task),
         },
         allow_live=bool(task.get("allow_live_llm") or task.get("live_generation")),
     )
@@ -672,7 +743,7 @@ def _creative_engine_from_task(task: Dict):
     if mode == "mock" or outputs:
         return MockCreativeEngine(outputs)
     if mode in {"live", "live_llm", "llm"}:
-        return LiveLLMEngine(provider=str(task.get("llm_provider") or task.get("provider") or ""), allow_live=bool(task.get("allow_live_llm")))
+        return LiveLLMEngine(provider=str(task.get("llm_provider") or task.get("provider") or ""), model=str(task.get("llm_model") or task.get("model") or ""), allow_live=bool(task.get("allow_live_llm")))
     return OfflineCreativeEngine()
 
 

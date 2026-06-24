@@ -20,6 +20,7 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 - Route scene-card, script-draft, and polish flows through the guarded CreativeEngine interface when configured
 - Attach `generation_source` and `quality_report` fields so downstream agents know whether an output is fallback scaffold, mock engine output, or future live output
 - Apply the `vertical_short_drama` FormatAdapter V1 for 9:16 short-drama structure, rhythm rules, and downstream handoff requirements
+- Build CreativeEngine prompt packs and provider request dry-run JSON for review without making live calls
 
 ## Tool Boundaries
 
@@ -30,10 +31,12 @@ description: "Build structured IP adaptation outputs for downstream agent skills
   - Write results into `output_dir`
   - Use offline/mock CreativeEngine modes for tests and structured handoff validation
   - Return quality reports for scene cards, script drafts, and polished scripts
+  - Build `build_creative_prompt_pack` dry-run artifacts with `network_call_allowed=false`
 - Forbidden:
   - Bypass the license gate
   - Claim full AI prose adaptation when only deterministic planning or mock output is implemented
   - Call live LLM/image/video/music providers unless the user explicitly confirms live generation and the task enables it
+  - Treat a provider request dry-run artifact as evidence that a live call happened
 
 ## Core Flows
 
@@ -49,6 +52,14 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 2. Normalize timeline durations
 3. Build a validated blueprint
 4. Return image-facing handoff data
+
+### Flow B0: Creative Prompt Pack Dry Run
+
+1. Accept `source_text`, `creative_brief`, `prompt_kind`, optional `scene_cards` / `script_draft`, and provider/model labels.
+2. Build a `copy-creative-prompt-pack-v1` prompt pack with source material, format constraints, response contract, safety constraints, and quality targets.
+3. Build a `copy-live-provider-request-v1` provider request wrapper with `network_call_allowed=false`.
+4. Write `creative_prompt_pack.json` and return `live_call_made=false`.
+5. Use this mode for review, testing, and handoff before any explicit live provider integration.
 
 ### Flow B1: Interactive Adaptation State
 
@@ -133,5 +144,5 @@ If only `source_text` is provided, extract multiple important named roles, title
 
 This version provides controlled adaptation planning, CreativeEngine routing, vertical short-drama structure, scaffold fallback, and quality reports.
 It still does not claim final polished prose or full model-native rewriting.
-Offline mode never calls a provider. Mock mode is for tests. The live LLM engine is guarded and currently returns `not_implemented` rather than making provider calls.
+Offline mode never calls a provider and now returns a reviewable prompt pack under `raw_response`. Mock mode is for tests. The live LLM engine is guarded; after double approval it currently builds a dry-run provider request with `network_call_allowed=false` and still does not make provider calls.
 For production writing, an agent should use this state, adapter metadata, and scene/script structure as the control layer, then call an explicitly approved writing model for richer dialogue and prose where needed.

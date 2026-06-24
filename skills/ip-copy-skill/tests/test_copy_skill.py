@@ -6,7 +6,7 @@ from datetime import date
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from blueprint_validate import validate_blueprint  # noqa: E402
 from copy_skill import run_task  # noqa: E402
-from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine  # noqa: E402
+from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_prompt_pack, build_provider_request  # noqa: E402
 from format_adapters import VerticalShortDramaAdapter  # noqa: E402
 from license_gate import check_license, gate  # noqa: E402
 from quality_evaluator import evaluate_scene_cards_quality, evaluate_script_quality  # noqa: E402
@@ -132,10 +132,67 @@ def test_live_llm_engine_blocks_without_explicit_double_approval():
         raise AssertionError("live LLM engine must block without engine-level approval")
 
     approved_engine = LiveLLMEngine(provider="test", allow_live=True)
-    result = approved_engine.generate(CreativeEngineRequest(kind="scene_cards", allow_live=True))
-    assert result.status == "not_implemented"
-    assert "no provider call" in result.errors[0]
+    result = approved_engine.generate(CreativeEngineRequest(kind="scene_cards", schema_name="scene_cards", allow_live=True))
+    assert result.status == "provider_request_ready"
+    assert result.raw_response["live_call_made"] is False
+    assert result.raw_response["provider_request"]["network_call_allowed"] is False
+    assert result.raw_response["provider_request"]["prompt_pack"]["kind"] == "scene_cards"
 
+
+
+def test_prompt_pack_builds_adapter_constraints_and_provider_request():
+    adapter = VerticalShortDramaAdapter()
+    request = CreativeEngineRequest(
+        kind="scene_cards",
+        source_text="林缺在雨夜回到黄泉饭店，牛头员工端着托盘出现。",
+        creative_brief={"target": "short_drama", "tone": "悬疑诡异"},
+        format_name=adapter.spec().format_name,
+        schema_name="scene_cards",
+        payload={"adapter": adapter.creative_engine_payload({"title": "黄泉饭店"}, {"n_scene_cards": 3})},
+    )
+    prompt_pack = build_prompt_pack(request)
+    assert prompt_pack["prompt_pack_version"] == "copy-creative-prompt-pack-v1"
+    assert prompt_pack["response_contract"]["json_only"] is True
+    assert "visual" in prompt_pack["response_contract"]["item_required"]
+    assert "9:16" in prompt_pack["user_prompt"]
+    assert "no_unapproved_new_plot_facts" in prompt_pack["safety_constraints"]
+
+    provider_request = build_provider_request(prompt_pack, provider="openai", model="unit-test-model")
+    assert provider_request["network_call_allowed"] is False
+    assert provider_request["mode"] == "dry_run_provider_request"
+    assert provider_request["messages"][0]["role"] == "system"
+    assert provider_request["response_format"]["schema_name"] == "scene_cards"
+
+
+def test_run_task_build_creative_prompt_pack_writes_dry_run_provider_request():
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                "mode": "build_creative_prompt_pack",
+                "prompt_kind": "script_scenes",
+                "title": "黄泉饭店",
+                "source_text": "林缺回到黄泉饭店。牛头员工端托盘出现。",
+                "creative_brief": {"target": "short_drama", "tone": "悬疑诡异"},
+                "scene_cards": [
+                    {
+                        "visual": "黄泉饭店大厅，林缺翻开菜单账本。",
+                        "voiceover": "规则变了。",
+                        "duration_sec": 8,
+                        "asset_goal": {"type": "adapted scene key frame"},
+                    }
+                ],
+                "llm_provider": "openai",
+                "llm_model": "unit-test-model",
+                "output_dir": output_dir,
+            }
+        )
+        handoff = result["handoff"]
+        assert result["status"] == "success"
+        assert handoff["live_call_made"] is False
+        assert handoff["provider_request"]["network_call_allowed"] is False
+        assert handoff["provider_request_summary"]["schema_name"] == "script_scenes"
+        assert handoff["prompt_pack"]["kind"] == "script_scenes"
+        assert os.path.exists(os.path.join(output_dir, "creative_prompt_pack.json"))
 def test_license_pass():
     ok, reasons = check_license(LICENSE, "short_drama", commercial_use=True, today=date(2026, 1, 1))
     assert ok and reasons == [], reasons
