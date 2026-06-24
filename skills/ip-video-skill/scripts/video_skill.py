@@ -7,7 +7,7 @@ try:
     from .clip_plan import build_clip_plan, build_clip_prompts
     from .config import load_video_provider_config
     from .continuity import build_continuity_bible
-    from .asset_manifest import build_asset_manifest_template
+    from .asset_manifest import build_asset_manifest_template, scan_asset_manifest_directory
     from .shot_plan import build_i2v_prompts, build_shot_plan, build_t2v_prompts
     from .video_provider import prepare_video_generation_request, run_video_generation
     from .preflight_video_episode import preflight_video_generation
@@ -17,7 +17,7 @@ except ImportError:
     from clip_plan import build_clip_plan, build_clip_prompts
     from config import load_video_provider_config
     from continuity import build_continuity_bible
-    from asset_manifest import build_asset_manifest_template
+    from asset_manifest import build_asset_manifest_template, scan_asset_manifest_directory
     from shot_plan import build_i2v_prompts, build_shot_plan, build_t2v_prompts
     from video_provider import prepare_video_generation_request, run_video_generation
     from preflight_video_episode import preflight_video_generation
@@ -53,6 +53,18 @@ def run_task(task: Dict) -> Dict:
         path = os.path.join(output_dir, task.get("asset_manifest_template_filename", "asset_manifest_template.json"))
         _write_json(path, manifest)
         return _result(mode, {"asset_manifest_template": manifest}, path, "asset_manifest_template")
+
+    if mode == "scan_asset_manifest_directory":
+        handoff = task.get("video_handoff") or task.get("handoff")
+        bible = task.get("continuity_bible")
+        if not handoff:
+            handoff = build_video_handoff(task)
+        if not bible:
+            bible = handoff.get("continuity_bible") or build_continuity_bible(task)
+        manifest = scan_asset_manifest_directory(task, continuity_bible=bible, video_handoff=handoff)
+        path = os.path.join(output_dir, task.get("asset_manifest_scan_filename", "asset_manifest_scan.json"))
+        _write_json(path, manifest)
+        return _result(mode, {"asset_manifest": manifest}, path, "asset_manifest_scan")
 
     if mode == "build_shot_plan":
         bible = build_continuity_bible(task)
@@ -130,7 +142,7 @@ def run_task(task: Dict) -> Dict:
 
     raise ValueError(
         "mode must be one of: build_continuity_bible, build_video_handoff, build_shot_plan, build_clip_plan, "
-        "build_asset_manifest_template, build_i2v_prompts, build_t2v_prompts, build_edit_decision_list, "
+        "build_asset_manifest_template, scan_asset_manifest_directory, build_i2v_prompts, build_t2v_prompts, build_edit_decision_list, "
         "preflight_video_generation, prepare_video_generation, run_video_generation, run_video_sequence"
     )
 

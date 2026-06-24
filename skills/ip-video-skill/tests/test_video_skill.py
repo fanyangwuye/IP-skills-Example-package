@@ -17,7 +17,7 @@ from video_provider import prepare_video_generation_request, run_video_generatio
 import video_sequence  # noqa: E402
 from video_handoff import build_video_handoff  # noqa: E402
 from preflight_video_episode import preflight_video_generation  # noqa: E402
-from asset_manifest import build_asset_manifest_template, validate_asset_manifest  # noqa: E402
+from asset_manifest import build_asset_manifest_template, scan_asset_manifest_directory, validate_asset_manifest  # noqa: E402
 from video_skill import run_task  # noqa: E402
 
 
@@ -1589,6 +1589,77 @@ def test_build_asset_manifest_template_includes_required_reference_ids():
     assert manifest["storyboard_references"][0]["shot_ids"] == ["shot_001", "shot_002"]
     assert "character identity comes from character references" in manifest["notes"][2]
 
+
+
+def test_scan_asset_manifest_directory_matches_locked_ids():
+    with tempfile.TemporaryDirectory() as asset_dir:
+        for filename in [
+            "lin_que_character_reference.png",
+            "niu_tou_identity_ref.jpg",
+            "huangquan_hall_720_video_scene_reference.png",
+            "huangquan_hall_720_panorama_space_anchor.png",
+            "clip_001_storyboard_board.png",
+            "random_unused.png",
+        ]:
+            with open(os.path.join(asset_dir, filename), "wb") as fh:
+                fh.write(b"fake")
+
+        handoff = build_video_handoff(_task())
+        manifest = scan_asset_manifest_directory({**_task(), "asset_dir": asset_dir}, video_handoff=handoff)
+
+    assert [ref["scan_status"] for ref in manifest["character_references"]] == ["matched", "matched"]
+    assert manifest["scene_references"][0]["scan_status"] == "matched"
+    assert manifest["space_anchor_refs"][0]["scan_status"] == "matched"
+    assert manifest["storyboard_references"][0]["scan_status"] == "matched"
+    assert manifest["character_references"][0]["character_id"] == "lin_que"
+    assert manifest["scene_references"][0]["scene_id"] == "huangquan_hall_720"
+    assert manifest["storyboard_references"][0]["clip_id"] == "clip_001"
+    assert manifest["scan_report"]["matched_count"] == 5
+    assert manifest["scan_report"]["missing_count"] == 0
+    assert any(item["filename"] == "random_unused.png" for item in manifest["scan_report"]["unassigned_assets"])
+    errors, warnings = validate_asset_manifest({"asset_manifest": manifest})
+    assert errors == []
+    assert any("fragile local user/download path" in warning for warning in warnings)
+
+
+def test_scan_asset_manifest_directory_reports_missing_assets():
+    with tempfile.TemporaryDirectory() as asset_dir:
+        with open(os.path.join(asset_dir, "lin_que_character_reference.png"), "wb") as fh:
+            fh.write(b"fake")
+        manifest = scan_asset_manifest_directory({**_task(), "asset_dir": asset_dir}, video_handoff=build_video_handoff(_task()))
+
+    assert manifest["scan_report"]["matched_count"] == 1
+    assert manifest["scan_report"]["missing_count"] == 4
+    assert any(item["character_id"] == "niu_tou" for item in manifest["scan_report"]["missing_references"])
+    errors, _warnings = validate_asset_manifest({"asset_manifest": manifest})
+    assert any("missing path/url" in error for error in errors)
+
+
+def test_validate_asset_manifest_blocks_template_placeholders():
+    manifest = build_asset_manifest_template(_task(), video_handoff=build_video_handoff(_task()))
+    errors, _warnings = validate_asset_manifest({"asset_manifest": manifest})
+    assert any("still has placeholder path/url" in error for error in errors)
+
+
+def test_run_task_writes_asset_manifest_scan():
+    with tempfile.TemporaryDirectory() as asset_dir, tempfile.TemporaryDirectory() as output_dir:
+        for filename in [
+            "lin_que_character_reference.png",
+            "niu_tou_character_reference.png",
+            "huangquan_hall_720_video_scene_reference.png",
+            "huangquan_hall_720_panorama_space_anchor.png",
+            "clip_001_storyboard_board.png",
+        ]:
+            with open(os.path.join(asset_dir, filename), "wb") as fh:
+                fh.write(b"fake")
+        result = run_task({**_task(), "mode": "scan_asset_manifest_directory", "asset_dir": asset_dir, "output_dir": output_dir})
+        path = result["artifacts"][0]["path"]
+        assert os.path.exists(path)
+        with open(path, "r", encoding="utf-8") as fh:
+            saved = json.load(fh)
+
+    assert result["handoff"]["asset_manifest"]["scan_report"]["missing_count"] == 0
+    assert saved["character_references"][0]["scan_status"] == "matched"
 
 def test_validate_asset_manifest_requires_role_specific_ids():
     errors, warnings = validate_asset_manifest(

@@ -1,4 +1,5 @@
 import json
+import os
 from typing import Dict, List, Tuple
 
 
@@ -18,6 +19,15 @@ REFERENCE_ROLE_ORDER = {
 CHARACTER_ROLES = {"character_reference", "character_design_sheet", "identity", "costume"}
 SCENE_ROLES = {"video_scene_reference", "scene", "environment"}
 STORYBOARD_ROLES = {"storyboard_layout_reference", "storyboard_panel_reference"}
+SPACE_ANCHOR_ROLES = {"space_anchor"}
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}
+PLACEHOLDER_PREFIXES = ("PATH_OR_URL", "PATH_TO_", "REPLACE_WITH_")
+ROLE_MATCH_TERMS = {
+    "character": ["character", "char", "role", "identity", "face", "costume", "sheet", "reference", "ref", "人物", "角色", "脸", "定妆", "设定"],
+    "scene": ["scene", "environment", "env", "room", "hall", "space", "reference", "ref", "场景", "环境", "大厅", "空间"],
+    "storyboard": ["storyboard", "board", "shot", "panel", "layout", "分镜", "故事板", "线稿", "漫画"],
+    "space_anchor": ["panorama", "pano", "space_anchor", "spaceanchor", "anchor", "720", "wide", "全景", "空间锚点", "空间参考"],
+}
 MANIFEST_REQUIRED_KEYS = {
     "character_reference": ["character_id", "path_or_url"],
     "character_design_sheet": ["character_id", "path_or_url"],
@@ -102,6 +112,41 @@ def build_asset_manifest_template(task: Dict, continuity_bible: Dict = None, vid
     return manifest
 
 
+def scan_asset_manifest_directory(task: Dict, continuity_bible: Dict = None, video_handoff: Dict = None) -> Dict:
+    roots = _asset_scan_roots(task)
+    files = _scan_asset_files(roots, task.get("asset_extensions") or IMAGE_EXTENSIONS)
+    manifest = build_asset_manifest_template(task, continuity_bible=continuity_bible, video_handoff=video_handoff)
+    used_paths = set()
+    matches = []
+    missing = []
+
+    for key in ("character_references", "scene_references", "storyboard_references", "space_anchor_refs"):
+        for ref in manifest.get(key) or []:
+            match = _best_asset_match(ref, files, used_paths)
+            if match:
+                ref["path"] = match["path"]
+                ref["scan_status"] = "matched"
+                ref["match_score"] = match["score"]
+                ref["matched_filename"] = match["filename"]
+                ref["matched_by"] = match["matched_by"]
+                used_paths.add(match["path"])
+                matches.append({"role": _role(ref), "path": match["path"], "score": match["score"], "matched_by": match["matched_by"]})
+            else:
+                ref["path"] = ""
+                ref["scan_status"] = "missing_path"
+                missing.append(_missing_reference(ref))
+
+    manifest["scan_report"] = {
+        "asset_roots": roots,
+        "scanned_file_count": len(files),
+        "matched_count": len(matches),
+        "missing_count": len(missing),
+        "missing_references": missing,
+        "unassigned_assets": [item for item in files if item["path"] not in used_paths],
+    }
+    return manifest
+
+
 def load_asset_manifest(task: Dict) -> Dict:
     manifest = task.get("asset_manifest")
     if manifest:
@@ -157,6 +202,8 @@ def validate_asset_manifest(task: Dict) -> Tuple[List[str], List[str]]:
         value = str(ref.get("path") or ref.get("url") or "")
         if not value and "path_or_url" not in MANIFEST_REQUIRED_KEYS.get(role, []):
             errors.append(f"asset_manifest reference missing path/url: {ref}")
+        if _is_placeholder_path(value):
+            errors.append(f"asset_manifest {role} still has placeholder path/url: {ref}")
         if value.startswith("C:\\Users\\") or "\\Downloads\\" in value:
             warnings.append(f"asset_manifest reference uses fragile local user/download path: {value}")
         required = MANIFEST_REQUIRED_KEYS.get(role, [])
@@ -169,6 +216,154 @@ def validate_asset_manifest(task: Dict) -> Tuple[List[str], List[str]]:
         if "path_or_url" in required and not value:
             errors.append(f"asset_manifest {role} missing path/url: {ref}")
     return errors, warnings
+
+
+def _asset_scan_roots(task: Dict) -> List[str]:
+    raw_roots = task.get("asset_dirs") or task.get("asset_roots") or []
+    if isinstance(raw_roots, str):
+        roots = [raw_roots]
+    else:
+        roots = list(raw_roots)
+    if task.get("asset_dir"):
+        roots.append(task["asset_dir"])
+    normalized = []
+    for root in roots:
+        if not root:
+            continue
+        path = os.path.abspath(os.path.expanduser(str(root)))
+        if not os.path.isdir(path):
+            raise AssetManifestError(f"asset scan root does not exist or is not a directory: {path}")
+        normalized.append(path)
+    if not normalized:
+        raise AssetManifestError("asset_dir or asset_dirs is required for scan_asset_manifest_directory")
+    return normalized
+
+
+def _scan_asset_files(roots: List[str], extensions) -> List[Dict]:
+    allowed = {str(ext).lower() if str(ext).startswith(".") else f".{str(ext).lower()}" for ext in extensions}
+    files = []
+    for root in roots:
+        for current_root, dirnames, filenames in os.walk(root):
+            dirnames[:] = [name for name in dirnames if not name.startswith(".") and name not in {"__pycache__", ".git"}]
+            for filename in filenames:
+                ext = os.path.splitext(filename)[1].lower()
+                if ext not in allowed:
+                    continue
+                path = os.path.abspath(os.path.join(current_root, filename))
+                rel_path = os.path.relpath(path, root)
+                files.append(
+                    {
+                        "path": path,
+                        "filename": filename,
+                        "relative_path": rel_path,
+                        "search_text": _normalize_search_text(filename + " " + rel_path),
+                    }
+                )
+    return sorted(files, key=lambda item: item["path"])
+
+
+def _best_asset_match(ref: Dict, files: List[Dict], used_paths: set) -> Dict:
+    role = _role(ref)
+    best = None
+    for item in files:
+        if item["path"] in used_paths:
+            continue
+        score, matched_by = _asset_match_score(ref, item)
+        if score < _minimum_match_score(ref):
+            continue
+        candidate = dict(item)
+        candidate["score"] = score
+        candidate["matched_by"] = matched_by
+        if not best or (candidate["score"], candidate["path"]) > (best["score"], best["path"]):
+            best = candidate
+    if best and role in SCENE_ROLES and _has_role_terms(best["search_text"], ROLE_MATCH_TERMS["space_anchor"]):
+        non_space = [item for item in files if item["path"] not in used_paths and item["path"] != best["path"]]
+        replacement = None
+        for item in non_space:
+            score, matched_by = _asset_match_score(ref, item)
+            if score >= _minimum_match_score(ref) and not _has_role_terms(item["search_text"], ROLE_MATCH_TERMS["space_anchor"]):
+                candidate = dict(item)
+                candidate["score"] = score
+                candidate["matched_by"] = matched_by
+                if not replacement or (candidate["score"], candidate["path"]) > (replacement["score"], replacement["path"]):
+                    replacement = candidate
+        if replacement:
+            return replacement
+    return best
+
+
+def _asset_match_score(ref: Dict, item: Dict) -> Tuple[int, List[str]]:
+    text = item["search_text"]
+    score = 0
+    matched_by = []
+    for key in ("character_id", "scene_id", "clip_id"):
+        value = str(ref.get(key) or "")
+        if value and _contains_normalized(text, value):
+            score += 120
+            matched_by.append(key)
+    name = str(ref.get("name") or "")
+    if name and _contains_normalized(text, name):
+        score += 90
+        matched_by.append("name")
+    group = _role_group(_role(ref))
+    if group and _has_role_terms(text, ROLE_MATCH_TERMS[group]):
+        score += 40
+        matched_by.append(f"role:{group}")
+    if group == "scene" and _has_role_terms(text, ROLE_MATCH_TERMS["space_anchor"]):
+        score -= 35
+    if group == "space_anchor" and not _has_role_terms(text, ROLE_MATCH_TERMS["space_anchor"]):
+        score -= 20
+    return score, matched_by
+
+
+def _minimum_match_score(ref: Dict) -> int:
+    return 100 if (ref.get("character_id") or ref.get("scene_id") or ref.get("clip_id")) else 130
+
+
+def _role_group(role: str) -> str:
+    if role in CHARACTER_ROLES:
+        return "character"
+    if role in SCENE_ROLES:
+        return "scene"
+    if role in STORYBOARD_ROLES:
+        return "storyboard"
+    if role in SPACE_ANCHOR_ROLES:
+        return "space_anchor"
+    return ""
+
+
+def _contains_normalized(text: str, value: str) -> bool:
+    normalized_value = _normalize_search_text(value)
+    compact_value = normalized_value.replace("_", "")
+    return normalized_value in text or bool(compact_value and compact_value in text.replace("_", ""))
+
+
+def _has_role_terms(text: str, terms: List[str]) -> bool:
+    return any(_contains_normalized(text, term) for term in terms)
+
+
+def _normalize_search_text(value: str) -> str:
+    lowered = str(value).lower()
+    for char in ("-", " ", ".", "(", ")", "[", "]", "{", "}"):
+        lowered = lowered.replace(char, "_")
+    while "__" in lowered:
+        lowered = lowered.replace("__", "_")
+    return lowered
+
+
+def _missing_reference(ref: Dict) -> Dict:
+    return {
+        "role": _role(ref),
+        "character_id": ref.get("character_id"),
+        "scene_id": ref.get("scene_id"),
+        "clip_id": ref.get("clip_id"),
+        "name": ref.get("name"),
+    }
+
+
+def _is_placeholder_path(value: str) -> bool:
+    stripped = str(value or "").strip()
+    return bool(stripped) and any(stripped.startswith(prefix) for prefix in PLACEHOLDER_PREFIXES)
 
 
 def _collect_named(manifest: Dict, key: str, default_role: str) -> List[Dict]:
