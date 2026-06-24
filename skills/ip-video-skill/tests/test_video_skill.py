@@ -17,6 +17,7 @@ from video_provider import prepare_video_generation_request, run_video_generatio
 import video_sequence  # noqa: E402
 from video_handoff import build_video_handoff  # noqa: E402
 from preflight_video_episode import preflight_video_generation  # noqa: E402
+from asset_manifest import build_asset_manifest_template, validate_asset_manifest  # noqa: E402
 from video_skill import run_task  # noqa: E402
 
 
@@ -1574,6 +1575,51 @@ def test_live_video_blocks_missing_prompt_packet_sections():
 
 
 
+
+def test_build_asset_manifest_template_includes_required_reference_ids():
+    handoff = build_video_handoff(_task())
+    manifest = build_asset_manifest_template(_task(), video_handoff=handoff)
+
+    assert manifest["asset_manifest_version"] == "1.1"
+    assert manifest["reference_policy"] == "all_purpose_reference"
+    assert [ref["character_id"] for ref in manifest["character_references"]] == ["lin_que", "niu_tou"]
+    assert manifest["scene_references"][0]["scene_id"] == "huangquan_hall_720"
+    assert manifest["space_anchor_refs"][0]["scene_id"] == "huangquan_hall_720"
+    assert manifest["storyboard_references"][0]["clip_id"] == "clip_001"
+    assert manifest["storyboard_references"][0]["shot_ids"] == ["shot_001", "shot_002"]
+    assert "character identity comes from character references" in manifest["notes"][2]
+
+
+def test_validate_asset_manifest_requires_role_specific_ids():
+    errors, warnings = validate_asset_manifest(
+        {
+            "asset_manifest": {
+                "character_references": [{"url": "https://files.example/linque.png", "role": "character_reference"}],
+                "scene_references": [{"url": "https://files.example/hall.png", "role": "video_scene_reference"}],
+                "storyboard_references": [{"url": "https://files.example/board.png", "role": "storyboard_layout_reference"}],
+                "space_anchor_refs": [{"url": "https://files.example/pano.png", "role": "space_anchor"}],
+            }
+        }
+    )
+
+    assert warnings == []
+    assert any("character_reference missing character_id" in error for error in errors)
+    assert any("video_scene_reference missing scene_id" in error for error in errors)
+    assert any("storyboard_layout_reference missing clip_id" in error for error in errors)
+    assert any("space_anchor missing scene_id" in error for error in errors)
+
+
+def test_run_task_writes_asset_manifest_template():
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task({**_task(), "mode": "build_asset_manifest_template", "output_dir": output_dir})
+        path = result["artifacts"][0]["path"]
+        assert os.path.exists(path)
+        with open(path, "r", encoding="utf-8") as fh:
+            saved = json.load(fh)
+
+    assert result["handoff"]["asset_manifest_template"]["character_references"][0]["character_id"] == "lin_que"
+    assert saved["storyboard_references"][0]["clip_id"] == "clip_001"
+
 def test_prepare_video_generation_uses_asset_manifest_reference_order():
     handoff = build_video_handoff(_task())
     config = VideoProviderConfig("poyo_video", "test", "https://api.example", "", "seedance-2", "9:16", "480p", 1, 5)
@@ -1629,8 +1675,8 @@ def test_preflight_asset_manifest_warns_fragile_local_paths():
                     {"path": "C:\\Users\\qjw\\Downloads\\linque.png", "role": "character_reference", "character_id": "lin_que"},
                     {"url": "https://files.example/niutou.png", "role": "character_reference", "character_id": "niu_tou"},
                 ],
-                "scene_references": [{"url": "https://files.example/hall.png", "role": "video_scene_reference"}],
-                "storyboard_references": [{"url": "https://files.example/board.png", "role": "storyboard_layout_reference"}],
+                "scene_references": [{"url": "https://files.example/hall.png", "role": "video_scene_reference", "scene_id": "huangquan_hall_720"}],
+                "storyboard_references": [{"url": "https://files.example/board.png", "role": "storyboard_layout_reference", "clip_id": "clip_001"}],
             },
             "clip_index": 1,
         },

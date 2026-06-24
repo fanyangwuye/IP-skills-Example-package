@@ -1,41 +1,52 @@
 {
-  "asset_manifest_version": "1.0",
+  "asset_manifest_version": "1.1",
   "project_title": "PROJECT_TITLE_HERE",
   "reference_policy": "all_purpose_reference",
   "character_references": [
     {
       "character_id": "lin_que",
       "name": "林缺",
-      "path": "PATH_TO_LIN_QUE_CHARACTER_REFERENCE.png",
-      "role": "character_reference"
+      "path": "PATH_OR_URL_TO_lin_que_character_reference.png",
+      "role": "character_reference",
+      "use": "identity, face, hair, body temperament, and costume silhouette lock"
     },
     {
       "character_id": "niu_tou",
       "name": "牛头员工",
-      "path": "PATH_TO_NIU_TOU_CHARACTER_REFERENCE.png",
-      "role": "character_reference"
+      "path": "PATH_OR_URL_TO_niu_tou_character_reference.png",
+      "role": "character_reference",
+      "use": "identity, face, body temperament, and costume silhouette lock"
     }
   ],
   "scene_references": [
     {
       "scene_id": "huangquan_hall",
       "name": "黄泉饭店大厅",
-      "path": "PATH_TO_HUANGQUAN_HALL_SCENE_REFERENCE.png",
-      "role": "video_scene_reference"
+      "path": "PATH_OR_URL_TO_huangquan_hall_video_scene_reference.png",
+      "role": "video_scene_reference",
+      "use": "normal perspective scene reference for layout, materials, and light direction"
     }
   ],
   "storyboard_references": [
     {
       "clip_id": "clip_001",
-      "path": "PATH_TO_CLIP_001_STORYBOARD_BOARD.png",
-      "role": "storyboard_layout_reference"
+      "shot_ids": ["shot_001", "shot_002"],
+      "path": "PATH_OR_URL_TO_clip_001_storyboard_board.png",
+      "role": "storyboard_layout_reference",
+      "use": "composition, blocking, action phase, screen direction, and edit order only"
     }
   ],
   "space_anchor_refs": [
     {
       "scene_id": "huangquan_hall",
-      "path": "PATH_TO_HUANGQUAN_HALL_PANORAMA.png",
-      "role": "space_anchor"
+      "path": "PATH_OR_URL_TO_huangquan_hall_panorama_space_anchor.png",
+      "role": "space_anchor",
+      "use": "spatial overview only; not a default direct video generation frame"
     }
+  ],
+  "notes": [
+    "Replace PATH_OR_URL placeholders with approved local paths or public URLs before preflight.",
+    "Every character-bearing clip must have character_id-bound character references.",
+    "Storyboard references lock layout/edit order only; character identity comes from character references."
   ]
 }

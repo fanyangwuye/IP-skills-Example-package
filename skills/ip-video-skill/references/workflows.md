@@ -140,10 +140,10 @@ Provider adapters must preserve:
 
 Use this flow before any paid video generation:
 
-1. Build or generate the image assets first: character design refs and normal perspective scene refs. Keep 720 panoramas as space anchors, then record all approved assets in `asset_manifest_path`.
-2. Build `video_handoff`.
-3. Generate the storyboard board when visual planning is needed; it is a composition blueprint, not an identity reference.
-4. Apply the locked reference policy. If `reference_policy: all_purpose_reference` is set, load approved character, scene, and storyboard refs from `asset_manifest_path` or explicit `reference_image_urls`; verify the request has no `image_urls`.
+1. Build `video_handoff` so the continuity bible, clip ids, shot ids, storyboard map, and reference needs are locked.
+2. Run `build_asset_manifest_template` and replace every `PATH_OR_URL` placeholder with approved local paths or public URLs.
+3. Build or generate any missing image assets: character design refs, normal perspective scene refs, storyboard boards, and 720 panoramas as space anchors. Record only approved assets in `asset_manifest_path`.
+4. Apply the locked reference policy. If `reference_policy: all_purpose_reference` is set, load approved character, scene, and storyboard refs from `asset_manifest_path` or explicit `reference_image_urls`; verify every character ref has `character_id`, every scene ref has `scene_id`, every storyboard ref has `clip_id`, and the request has no `image_urls`.
 5. If a storyboard board was generated, pass `storyboard_image_path` or `storyboard_image_paths`; the provider layer crops first/mid/last panel layout refs automatically.
 6. Prefer one `clip_id` or `clip_index` for normal generation; use `shot_id` or `shot_index` only for troubleshooting.
 7. Run `preflight_video_generation`; do not start paid/live generation while the report status is `fail`.

@@ -1,0 +1,75 @@
+{
+  "mode": "build_asset_manifest_template",
+  "title": "黄泉饭店",
+  "reference_policy": "all_purpose_reference",
+  "output_dir": "./outputs/video",
+  "asset_manifest_template_filename": "asset_manifest_template.json",
+  "blueprint": {
+    "title": "黄泉饭店",
+    "global_style": {
+      "tone": "暗黑经营、真实短剧、诡异复苏"
+    },
+    "segments": [
+      {
+        "index": 1,
+        "start_sec": 0,
+        "end_sec": 5,
+        "visual": "林缺站在黄泉饭店柜台后，菜单账本摊开。"
+      },
+      {
+        "index": 2,
+        "start_sec": 5,
+        "end_sec": 11,
+        "visual": "牛头端着托盘从厨房出来，和林缺隔着柜台对视。"
+      }
+    ]
+  },
+  "ip_asset_pack": {
+    "title": "黄泉饭店",
+    "style_preset": "realistic_short_drama",
+    "characters": [
+      {
+        "character_id": "lin_que",
+        "character_profile": {
+          "identity": {
+            "name": "林缺",
+            "role": "黄泉饭店老板"
+          },
+          "appearance": {
+            "face_shape": "清瘦利落",
+            "eyes": "冷静黑眼睛",
+            "hair": "黑色短发",
+            "body_type": "高瘦"
+          },
+          "styling": {
+            "wardrobe": "深色西装，旧金细节"
+          }
+        }
+      },
+      {
+        "character_id": "niu_tou",
+        "character_profile": {
+          "identity": {
+            "name": "牛头员工",
+            "role": "饭店员工"
+          },
+          "appearance": {
+            "face_shape": "牛头犄角",
+            "body_type": "高大强壮"
+          },
+          "styling": {
+            "wardrobe": "深色服务员制服和皮革围裙"
+          }
+        }
+      }
+    ],
+    "scenes": [
+      {
+        "scene_id": "huangquan_hall",
+        "name": "黄泉饭店大厅",
+        "description": "雨夜饭店大厅，柜台、厨房门、红色招牌反光、湿冷地面",
+        "lighting": "夜晚红色招牌弱光"
+      }
+    ]
+  }
+}
