@@ -155,6 +155,12 @@ def test_prompt_pack_builds_adapter_constraints_and_provider_request():
     assert prompt_pack["response_contract"]["json_only"] is True
     assert "visual" in prompt_pack["response_contract"]["item_required"]
     assert "9:16" in prompt_pack["user_prompt"]
+    assert "Detected Creative Diagnostics" in prompt_pack["user_prompt"]
+    assert "Quality Gate Before Final JSON" in prompt_pack["user_prompt"]
+    assert prompt_pack["creative_diagnostics"]["genre_profile"]["primary"] == "underworld_supernatural"
+    assert prompt_pack["creative_diagnostics"]["causality_contract"]["source_authority"]
+    assert prompt_pack["creative_diagnostics"]["rhythm_contract"]["opening_rule"].startswith("first 3 seconds")
+    assert "no_unsupported_plot_drift" in prompt_pack["quality_targets"]
     assert "no_unapproved_new_plot_facts" in prompt_pack["safety_constraints"]
 
     provider_request = build_provider_request(prompt_pack, provider="openai", model="unit-test-model")
@@ -164,6 +170,32 @@ def test_prompt_pack_builds_adapter_constraints_and_provider_request():
     assert provider_request["response_format"]["schema_name"] == "scene_cards"
 
 
+
+
+def test_prompt_pack_builds_character_voice_contract_from_roles():
+    adapter = VerticalShortDramaAdapter()
+    request = CreativeEngineRequest(
+        kind="script_scenes",
+        source_text="林缺在黄泉饭店柜台后翻开菜单账本。苏澜用探测器确认大厅异常。",
+        creative_brief={"target": "short_drama", "tone": "悬疑诡异"},
+        format_name=adapter.spec().format_name,
+        schema_name="script_scenes",
+        payload={
+            "characters": [
+                {"name": "林缺", "role": "老板"},
+                {"name": "苏澜", "role": "调查者"},
+            ],
+            "story_beats": ["林缺回到饭店", "苏澜发现异常"],
+            "adapter": adapter.creative_engine_payload({"title": "黄泉饭店"}, {}),
+        },
+    )
+    prompt_pack = build_prompt_pack(request)
+    voice_contract = prompt_pack["creative_diagnostics"]["character_voice_contract"]
+    assert voice_contract[0]["name"] == "林缺"
+    assert any("authority" in item for item in voice_contract[0]["voice_rules"])
+    assert voice_contract[1]["name"] == "苏澜"
+    assert any("evidence" in item for item in voice_contract[1]["voice_rules"])
+    assert "do not add unsupported plot facts" in prompt_pack["creative_diagnostics"]["forbidden_drift"]
 def test_run_task_build_creative_prompt_pack_writes_dry_run_provider_request():
     with tempfile.TemporaryDirectory() as output_dir:
         result = run_task(
