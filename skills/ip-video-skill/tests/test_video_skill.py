@@ -1238,6 +1238,55 @@ def test_live_video_blocks_character_clip_with_cutaway_first_frame():
         raise AssertionError("character clip with cutaway first frame should be blocked")
 
 
+
+def test_clip_prompt_adds_high_risk_spatial_templates():
+    task = copy.deepcopy(_task())
+    task["blueprint"]["segments"] = [
+        {
+            "index": 1,
+            "start_sec": 0,
+            "end_sec": 5,
+            "visual": "林缺从门外向饭店入口奔跑，黑雾在身后追击。",
+        },
+        {
+            "index": 2,
+            "start_sec": 5,
+            "end_sec": 10,
+            "visual": "林缺冲过门槛进入大厅，牛头在门内接应，门在身后关闭。",
+        },
+    ]
+    handoff = build_video_handoff(task)
+    prompt = handoff["clip_plan"][0]["clip_prompt"]
+    assert "高风险空间模板" in prompt
+    assert "追逐空间模板" in prompt
+    assert "门槛/入口边界模板" in prompt
+    assert "先显示角色完整越过边界" in prompt
+
+
+def test_live_video_blocks_missing_prompt_packet_sections():
+    handoff = build_video_handoff(_task())
+    clip = copy.deepcopy(handoff["clip_plan"][0])
+    clip["clip_prompt"] = "旧格式提示词，只有普通描述，没有固定架构。"
+    clip["i2v_prompt"] = clip["clip_prompt"]
+    clip["seedance_prompt"] = clip["clip_prompt"]
+    config = VideoProviderConfig("poyo_video", "test", "https://api.example", "", "seedance-2", "9:16", "480p", 1, 5)
+    try:
+        run_video_generation(
+            {
+                "mode": "run_video_generation",
+                "provider": "poyo_video",
+                "clip": clip,
+                "dry_run": False,
+                "image_urls": [{"url": "https://files.example/first.png", "role": "first_frame"}],
+            },
+            config,
+        )
+    except RuntimeError as exc:
+        assert "Prompt Packet V1 is incomplete" in str(exc)
+        assert "Global Context" in str(exc)
+    else:
+        raise AssertionError("live clip video should require Prompt Packet V1 sections")
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_") and callable(fn):

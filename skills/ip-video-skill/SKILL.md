@@ -29,6 +29,11 @@ This phase is local only by default. Do not call live video APIs unless a provid
 Before writing or preparing any clip-level video prompt, read `references/prompt_architecture.md` and emit the fixed Prompt Packet structure: `Global Context`, `Internal Story Facts`, `Reference Bindings`, `Spatial Blocking`, `15s Timeline`, `Continuation Contract`, `Platform-Safe Surface Wording`, and `Execution Constraints`.
 
 This architecture is the stable output surface for project-specific video prompts. Do not collapse it into an ad hoc paragraph. Platform-safe wording may soften risky nouns, but it must not add, remove, replace, or weaken locked characters, props, actions, spaces, storyboard order, or reference bindings.
+
+## High-Risk Spatial Template Gate
+
+For chase, throw-back, door/threshold, and window/glass scenes, clip prompts must automatically add the matching high-risk spatial template from `scripts/spatial_templates.py`. These templates lock movement axis, boundary sides, crossing order, and threat position so the model cannot casually reverse action direction or teleport across a door/window boundary.
+
 ## Continuity First
 
 Always build or load a `continuity_bible` before writing shot prompts. Each shot must carry:
@@ -196,6 +201,7 @@ Paid/live PoYo video model policy is locked: default to `seedance-2`, not `seeda
 - `scripts/continuity.py`: continuity bible builder
 - `scripts/shot_plan.py`: shot/storyboard/prompt builder
 - `scripts/clip_plan.py`: clip grouping, clip prompts, video reference images, space anchors, and previous-frame handoff
+- `scripts/spatial_templates.py`: high-risk chase, throw-back, door/threshold, and window/glass spatial templates
 - `scripts/storyboard_assets.py`: clip-level storyboard design sheet image task builder
 - `scripts/storyboard_panel_refs.py`: local first/mid/last storyboard panel cropper for provider layout references
 - `scripts/martial_arts.py`: martial-arts scene detector and combat prompt layer

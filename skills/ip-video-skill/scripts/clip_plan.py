@@ -2,8 +2,10 @@ from typing import Dict, List, Optional
 
 try:
     from .martial_arts import build_martial_arts_layer, is_martial_arts_scene, martial_arts_text
+    from .spatial_templates import high_risk_spatial_template_text
 except ImportError:
     from martial_arts import build_martial_arts_layer, is_martial_arts_scene, martial_arts_text
+    from spatial_templates import high_risk_spatial_template_text
 
 
 def build_clip_plan(task: Dict, shots: List[Dict], continuity_bible: Dict) -> List[Dict]:
@@ -158,7 +160,7 @@ def _clip_prompt(
         "场景参考锁空间布局、可见地标、材质状态、光源方向和整体色调；"
         "故事板参考只锁构图、景别、机位、动作相位、走位、屏幕方向和剪辑顺序。"
         "如果任务锁定 reference_policy=all_purpose_reference，则只能使用 reference_image_urls，禁止改写为 image_urls、首帧、尾帧、上一段尾帧或关键帧 I2V。\n\n"
-        f"Spatial Blocking：{_spatial_blocking_text(shots)}\n\n"
+        f"Spatial Blocking：{_spatial_blocking_text(shots)}{high_risk_spatial_template_text(shots)}\n\n"
         f"15s Timeline：{_timeline_text(shots)}\n\n"
         "Continuation Contract："
         "跨 clip 衔接不等于每段都复制上一段构图；除非明确使用 hard_first_frame，否则允许用近景、特写、全景、远景、背影、反打、空镜、道具插入或手部局部来承接。"

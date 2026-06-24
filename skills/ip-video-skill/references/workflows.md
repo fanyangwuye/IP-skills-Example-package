@@ -29,6 +29,13 @@ Use this before any prompt writing.
 - For 2+ characters, the `Spatial Blocking` section is mandatory and must state axis, screen direction, eyeline, and trackable blocking.
 - Door, window, threshold, and chase scenes must state safe side, danger side, crossing direction, boundary closure, and where the pursuer remains.
 - The `15s Timeline` is a narrative editing unit, not a license to stretch one action for 15 seconds. If one clip cannot execute the mapped storyboard shots clearly, split the clip instead of rewriting the storyboard.
+## High-Risk Spatial Template Rules
+
+- Chase, throw-back, door/threshold, and window/glass scenes must carry the matching high-risk spatial template from `scripts/spatial_templates.py`.
+- These templates lock movement axis, safe/danger side, crossing order, boundary close timing, and threat position.
+- The template is a constraint layer only. It must not add new story actions, new props, new characters, or replace storyboard blocking.
+- If the template exposes a conflict between the storyboard and the prompt, stop and revise the storyboard/prompt mapping before live generation.
+
 ## Storyboard Execution Rules
 
 - Treat storyboard boards and shot tables as the video execution blueprint after they exist, not as loose visual inspiration.
@@ -90,7 +97,7 @@ Each generated video prompt should include:
 - camera behavior tied to emotion, not decorative motion
 - spatial continuity with axis, screen direction, and eyeline
 - lighting logic, palette, material texture, and anti-AI realism anchors
-- sound design, including ambience, BGM cue, voiceover, and key subtitle
+- sound design limited to ambience and foley; no BGM, songs, voiceover, subtitles, title cards, fake text, or watermarks
 - execution constraints that prevent drift, overacting, text clutter, and unsupported additions
 - retry advice for face drift, costume drift, scene reset, axis errors, or overdone camera motion
 

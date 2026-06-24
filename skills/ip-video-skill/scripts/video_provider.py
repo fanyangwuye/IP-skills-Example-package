@@ -13,6 +13,18 @@ except ImportError:
 
 SUPPORTED_PROVIDERS = {"offline", "dry_run", "dreamina_cli", "jimeng_cli", "poyo_video"}
 
+PROMPT_PACKET_REQUIRED_SECTIONS = [
+    "Prompt Packet V1",
+    "Global Context",
+    "Internal Story Facts",
+    "Reference Bindings",
+    "Spatial Blocking",
+    "15s Timeline",
+    "Continuation Contract",
+    "Platform-Safe Surface Wording",
+    "Execution Constraints",
+]
+
 
 def prepare_video_generation_request(task: Dict, config: VideoProviderConfig) -> Dict:
     provider = task.get("provider") or config.provider
@@ -59,6 +71,7 @@ def run_video_generation(task: Dict, config: VideoProviderConfig) -> Dict:
             "logs": ["prepared video provider request; no external API call executed"],
         }
     _guard_storyboard_execution_map(task, request)
+    _guard_prompt_packet_architecture(task, request)
     _guard_live_reference_strength(task, request)
     _guard_characterless_first_frame(task, request)
     if provider == "poyo_video":
@@ -108,6 +121,23 @@ def _guard_storyboard_execution_map(task: Dict, request: Dict) -> None:
         raise RuntimeError(
             "Live clip video generation is blocked because storyboard_execution_map does not exactly match shot_ids. "
             "Do not delete, merge away, reorder, or alter storyboard shots without an approved storyboard revision."
+        )
+
+
+def _guard_prompt_packet_architecture(task: Dict, request: Dict) -> None:
+    if task.get("allow_missing_prompt_packet"):
+        return
+    if request.get("provider") != "poyo_video":
+        return
+    if request.get("unit_kind") != "clip":
+        return
+    prompt = str(request.get("prompt") or "")
+    missing = [section for section in PROMPT_PACKET_REQUIRED_SECTIONS if section not in prompt]
+    if missing:
+        raise RuntimeError(
+            "Live clip video generation is blocked because Prompt Packet V1 is incomplete. "
+            "Missing sections: " + ", ".join(missing) + ". "
+            "Regenerate the clip prompt through ip-video-skill build_clip_plan before spending credits."
         )
 
 
