@@ -7,7 +7,7 @@ try:
     from .clip_plan import build_clip_plan, build_clip_prompts
     from .config import load_video_provider_config
     from .continuity import build_continuity_bible
-    from .asset_manifest import build_asset_manifest_template, scan_asset_manifest_directory
+    from .asset_manifest import build_asset_manifest_review, build_asset_manifest_template, scan_asset_manifest_directory
     from .shot_plan import build_i2v_prompts, build_shot_plan, build_t2v_prompts
     from .video_provider import prepare_video_generation_request, run_video_generation
     from .preflight_video_episode import preflight_video_generation
@@ -17,7 +17,7 @@ except ImportError:
     from clip_plan import build_clip_plan, build_clip_prompts
     from config import load_video_provider_config
     from continuity import build_continuity_bible
-    from asset_manifest import build_asset_manifest_template, scan_asset_manifest_directory
+    from asset_manifest import build_asset_manifest_review, build_asset_manifest_template, scan_asset_manifest_directory
     from shot_plan import build_i2v_prompts, build_shot_plan, build_t2v_prompts
     from video_provider import prepare_video_generation_request, run_video_generation
     from preflight_video_episode import preflight_video_generation
@@ -65,6 +65,19 @@ def run_task(task: Dict) -> Dict:
         path = os.path.join(output_dir, task.get("asset_manifest_scan_filename", "asset_manifest_scan.json"))
         _write_json(path, manifest)
         return _result(mode, {"asset_manifest": manifest}, path, "asset_manifest_scan")
+
+    if mode == "review_asset_manifest":
+        review_task = dict(task)
+        if not review_task.get("asset_manifest") and not review_task.get("asset_manifest_path") and (
+            review_task.get("asset_dir") or review_task.get("asset_dirs") or review_task.get("asset_roots")
+        ):
+            handoff = review_task.get("video_handoff") or review_task.get("handoff") or build_video_handoff(review_task)
+            bible = review_task.get("continuity_bible") or handoff.get("continuity_bible") or build_continuity_bible(review_task)
+            review_task["asset_manifest"] = scan_asset_manifest_directory(review_task, continuity_bible=bible, video_handoff=handoff)
+        review = build_asset_manifest_review(review_task)
+        path = os.path.join(output_dir, task.get("asset_manifest_review_filename", "asset_manifest_review.json"))
+        _write_json(path, review)
+        return _result(mode, {"asset_manifest_review": review}, path, "asset_manifest_review")
 
     if mode == "build_shot_plan":
         bible = build_continuity_bible(task)
@@ -142,7 +155,7 @@ def run_task(task: Dict) -> Dict:
 
     raise ValueError(
         "mode must be one of: build_continuity_bible, build_video_handoff, build_shot_plan, build_clip_plan, "
-        "build_asset_manifest_template, scan_asset_manifest_directory, build_i2v_prompts, build_t2v_prompts, build_edit_decision_list, "
+        "build_asset_manifest_template, scan_asset_manifest_directory, review_asset_manifest, build_i2v_prompts, build_t2v_prompts, build_edit_decision_list, "
         "preflight_video_generation, prepare_video_generation, run_video_generation, run_video_sequence"
     )
 

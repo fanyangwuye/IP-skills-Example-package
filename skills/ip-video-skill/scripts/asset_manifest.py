@@ -147,6 +147,57 @@ def scan_asset_manifest_directory(task: Dict, continuity_bible: Dict = None, vid
     return manifest
 
 
+def build_asset_manifest_review(task: Dict) -> Dict:
+    manifest = load_asset_manifest(task)
+    if not manifest and (task.get("asset_dir") or task.get("asset_dirs") or task.get("asset_roots")):
+        manifest = scan_asset_manifest_directory(task)
+    if not manifest:
+        raise AssetManifestError("asset_manifest, asset_manifest_path, or asset_dir is required for review_asset_manifest")
+    errors, warnings = validate_asset_manifest({"asset_manifest": manifest})
+    groups = {
+        "character_references": _review_refs(manifest.get("character_references") or [], "character_reference"),
+        "scene_references": _review_refs(manifest.get("scene_references") or [], "video_scene_reference"),
+        "storyboard_references": _review_refs(manifest.get("storyboard_references") or manifest.get("storyboard_layout_references") or [], "storyboard_layout_reference"),
+        "space_anchor_refs": _review_refs(manifest.get("space_anchor_refs") or [], "space_anchor"),
+    }
+    missing = []
+    placeholders = []
+    fragile = []
+    matched = []
+    for refs in groups.values():
+        for ref in refs:
+            status = ref["status"]
+            if status == "missing_path":
+                missing.append(ref)
+            elif status == "placeholder":
+                placeholders.append(ref)
+            elif status == "matched":
+                matched.append(ref)
+            if ref.get("fragile_path"):
+                fragile.append(ref)
+    unassigned = list((manifest.get("scan_report") or {}).get("unassigned_assets") or [])
+    return {
+        "asset_review_version": "1.0",
+        "project_title": manifest.get("project_title") or task.get("title") or task.get("project_title") or "PROJECT_TITLE_HERE",
+        "reference_policy": manifest.get("reference_policy") or task.get("reference_policy") or "all_purpose_reference",
+        "status": "ready_for_preflight" if not errors else "needs_assets",
+        "summary": {
+            "matched_count": len(matched),
+            "missing_count": len(missing),
+            "placeholder_count": len(placeholders),
+            "fragile_path_count": len(fragile),
+            "unassigned_asset_count": len(unassigned),
+            "error_count": len(errors),
+            "warning_count": len(warnings),
+        },
+        "groups": groups,
+        "action_items": _review_action_items(missing, placeholders, fragile, unassigned),
+        "errors": errors,
+        "warnings": warnings,
+        "scan_report": manifest.get("scan_report") or {},
+    }
+
+
 def load_asset_manifest(task: Dict) -> Dict:
     manifest = task.get("asset_manifest")
     if manifest:
@@ -359,6 +410,56 @@ def _missing_reference(ref: Dict) -> Dict:
         "clip_id": ref.get("clip_id"),
         "name": ref.get("name"),
     }
+
+
+def _review_refs(refs: List[Dict], default_role: str) -> List[Dict]:
+    reviewed = []
+    for ref in refs:
+        normalized = _normalize_reference(ref, default_role)
+        role = _role(normalized) or default_role
+        value = str(normalized.get("path") or normalized.get("url") or "")
+        if not value:
+            status = "missing_path"
+        elif _is_placeholder_path(value):
+            status = "placeholder"
+        else:
+            status = "matched"
+        reviewed.append(
+            {
+                "status": status,
+                "role": role,
+                "identifier": _reference_identifier(normalized),
+                "character_id": normalized.get("character_id"),
+                "scene_id": normalized.get("scene_id"),
+                "clip_id": normalized.get("clip_id"),
+                "name": normalized.get("name"),
+                "path": value,
+                "scan_status": normalized.get("scan_status"),
+                "matched_filename": normalized.get("matched_filename"),
+                "match_score": normalized.get("match_score"),
+                "matched_by": normalized.get("matched_by") or [],
+                "fragile_path": value.startswith("C:\\Users\\") or "\\Downloads\\" in value,
+                "required_fields": MANIFEST_REQUIRED_KEYS.get(role, []),
+            }
+        )
+    return reviewed
+
+
+def _reference_identifier(ref: Dict) -> str:
+    return str(ref.get("character_id") or ref.get("scene_id") or ref.get("clip_id") or ref.get("name") or _role(ref) or "unknown")
+
+
+def _review_action_items(missing: List[Dict], placeholders: List[Dict], fragile: List[Dict], unassigned: List[Dict]) -> List[Dict]:
+    items = []
+    for ref in missing:
+        items.append({"priority": "blocker", "action": "add_or_bind_asset_path", "role": ref["role"], "identifier": ref["identifier"]})
+    for ref in placeholders:
+        items.append({"priority": "blocker", "action": "replace_placeholder_path", "role": ref["role"], "identifier": ref["identifier"], "path": ref["path"]})
+    for ref in fragile:
+        items.append({"priority": "review", "action": "move_or_publish_fragile_local_path", "role": ref["role"], "identifier": ref["identifier"], "path": ref["path"]})
+    if unassigned:
+        items.append({"priority": "review", "action": "review_unassigned_assets", "count": len(unassigned)})
+    return items
 
 
 def _is_placeholder_path(value: str) -> bool:

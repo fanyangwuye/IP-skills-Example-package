@@ -142,18 +142,19 @@ Use this flow before any paid video generation:
 
 1. Build `video_handoff` so the continuity bible, clip ids, shot ids, storyboard map, and reference needs are locked.
 2. Run `build_asset_manifest_template`, or run `scan_asset_manifest_directory` when approved assets already exist in local folders. Replace every remaining `PATH_OR_URL` placeholder or missing path with approved local paths or public URLs.
-3. Build or generate any missing image assets: character design refs, normal perspective scene refs, storyboard boards, and 720 panoramas as space anchors. Record only approved assets in `asset_manifest_path`.
-4. Apply the locked reference policy. If `reference_policy: all_purpose_reference` is set, load approved character, scene, and storyboard refs from `asset_manifest_path` or explicit `reference_image_urls`; verify every character ref has `character_id`, every scene ref has `scene_id`, every storyboard ref has `clip_id`, and the request has no `image_urls`.
-5. If a storyboard board was generated, pass `storyboard_image_path` or `storyboard_image_paths`; the provider layer crops first/mid/last panel layout refs automatically.
-6. Prefer one `clip_id` or `clip_index` for normal generation; use `shot_id` or `shot_index` only for troubleshooting.
-7. Run `preflight_video_generation`; do not start paid/live generation while the report status is `fail`.
-8. Run `prepare_video_generation`.
-9. Inspect `provider_request.prompt`, including the fixed Prompt Packet sections, `image_urls`, `reference_images`, `reference_image_urls`, `storyboard_panel_refs`, `video_reference_images`, `space_anchor_refs`, `continuity_state`, and `transport`.
-10. Confirm `@Image` bindings are explicit: in all-purpose reference mode, character refs are identity refs, scene refs are space refs, storyboard refs are layout/edit refs, and no first-frame/keyframe binding appears unless explicitly selected.
-11. Confirm the prompt says storyboard panel refs only lock layout and forbids copying line art, labels, table borders, arrows, and text.
-12. Confirm the prompt says ambient sound/foley only and forbids BGM, songs, subtitles, title cards, fake text, and watermarks.
-13. For martial-arts clips, confirm the prompt includes `武戏调度` and only one readable attack-defense beat.
-14. Generate only one short I2V test clip after the provider adapter is confirmed.
+3. Run `review_asset_manifest`; resolve blocker action items for missing or placeholder character, scene, storyboard, and space-anchor assets before preflight.
+4. Build or generate any missing image assets: character design refs, normal perspective scene refs, storyboard boards, and 720 panoramas as space anchors. Record only approved assets in `asset_manifest_path`.
+5. Apply the locked reference policy. If `reference_policy: all_purpose_reference` is set, load approved character, scene, and storyboard refs from `asset_manifest_path` or explicit `reference_image_urls`; verify every character ref has `character_id`, every scene ref has `scene_id`, every storyboard ref has `clip_id`, and the request has no `image_urls`.
+6. If a storyboard board was generated, pass `storyboard_image_path` or `storyboard_image_paths`; the provider layer crops first/mid/last panel layout refs automatically.
+7. Prefer one `clip_id` or `clip_index` for normal generation; use `shot_id` or `shot_index` only for troubleshooting.
+8. Run `preflight_video_generation`; do not start paid/live generation while the report status is `fail`.
+9. Run `prepare_video_generation`.
+10. Inspect `provider_request.prompt`, including the fixed Prompt Packet sections, `image_urls`, `reference_images`, `reference_image_urls`, `storyboard_panel_refs`, `video_reference_images`, `space_anchor_refs`, `continuity_state`, and `transport`.
+11. Confirm `@Image` bindings are explicit: in all-purpose reference mode, character refs are identity refs, scene refs are space refs, storyboard refs are layout/edit refs, and no first-frame/keyframe binding appears unless explicitly selected.
+12. Confirm the prompt says storyboard panel refs only lock layout and forbids copying line art, labels, table borders, arrows, and text.
+13. Confirm the prompt says ambient sound/foley only and forbids BGM, songs, subtitles, title cards, fake text, and watermarks.
+14. For martial-arts clips, confirm the prompt includes `武戏调度` and only one readable attack-defense beat.
+15. Generate only one short I2V test clip after the provider adapter is confirmed.
 
 Supported provider request shapes:
 

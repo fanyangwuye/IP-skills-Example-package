@@ -1,0 +1,7 @@
+{
+  "mode": "review_asset_manifest",
+  "title": "黄泉饭店",
+  "asset_manifest_path": "PATH_TO_ASSET_MANIFEST_OR_SCAN_RESULT.json",
+  "output_dir": "./outputs/video",
+  "asset_manifest_review_filename": "asset_manifest_review.json"
+}

@@ -17,7 +17,7 @@ from video_provider import prepare_video_generation_request, run_video_generatio
 import video_sequence  # noqa: E402
 from video_handoff import build_video_handoff  # noqa: E402
 from preflight_video_episode import preflight_video_generation  # noqa: E402
-from asset_manifest import build_asset_manifest_template, scan_asset_manifest_directory, validate_asset_manifest  # noqa: E402
+from asset_manifest import build_asset_manifest_review, build_asset_manifest_template, scan_asset_manifest_directory, validate_asset_manifest  # noqa: E402
 from video_skill import run_task  # noqa: E402
 
 
@@ -1660,6 +1660,48 @@ def test_run_task_writes_asset_manifest_scan():
 
     assert result["handoff"]["asset_manifest"]["scan_report"]["missing_count"] == 0
     assert saved["character_references"][0]["scan_status"] == "matched"
+
+
+def test_build_asset_manifest_review_groups_missing_and_unassigned_assets():
+    with tempfile.TemporaryDirectory() as asset_dir:
+        for filename in ["lin_que_character_reference.png", "random_unused.png"]:
+            with open(os.path.join(asset_dir, filename), "wb") as fh:
+                fh.write(b"fake")
+        manifest = scan_asset_manifest_directory({**_task(), "asset_dir": asset_dir}, video_handoff=build_video_handoff(_task()))
+        review = build_asset_manifest_review({"asset_manifest": manifest})
+
+    assert review["status"] == "needs_assets"
+    assert review["summary"]["matched_count"] == 1
+    assert review["summary"]["missing_count"] == 4
+    assert review["summary"]["unassigned_asset_count"] == 1
+    assert any(item["action"] == "add_or_bind_asset_path" and item["identifier"] == "niu_tou" for item in review["action_items"])
+    assert any(item["action"] == "review_unassigned_assets" for item in review["action_items"])
+    assert review["groups"]["character_references"][0]["status"] == "matched"
+    assert review["groups"]["character_references"][1]["status"] == "missing_path"
+
+
+def test_build_asset_manifest_review_flags_placeholders():
+    manifest = build_asset_manifest_template(_task(), video_handoff=build_video_handoff(_task()))
+    review = build_asset_manifest_review({"asset_manifest": manifest})
+
+    assert review["status"] == "needs_assets"
+    assert review["summary"]["placeholder_count"] == 5
+    assert any(item["action"] == "replace_placeholder_path" for item in review["action_items"])
+    assert any("still has placeholder path/url" in error for error in review["errors"])
+
+
+def test_run_task_writes_asset_manifest_review():
+    with tempfile.TemporaryDirectory() as asset_dir, tempfile.TemporaryDirectory() as output_dir:
+        with open(os.path.join(asset_dir, "lin_que_character_reference.png"), "wb") as fh:
+            fh.write(b"fake")
+        result = run_task({**_task(), "mode": "review_asset_manifest", "asset_dir": asset_dir, "output_dir": output_dir})
+        path = result["artifacts"][0]["path"]
+        assert os.path.exists(path)
+        with open(path, "r", encoding="utf-8") as fh:
+            saved = json.load(fh)
+
+    assert result["handoff"]["asset_manifest_review"]["status"] == "needs_assets"
+    assert saved["summary"]["missing_count"] == 4
 
 def test_validate_asset_manifest_requires_role_specific_ids():
     errors, warnings = validate_asset_manifest(
