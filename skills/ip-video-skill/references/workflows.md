@@ -19,9 +19,16 @@ Use this before any prompt writing.
 6. Keep panorama scene images in `space_anchor_refs` for spatial overview; use normal perspective scene images in `video_reference_images` for model generation.
 7. Create `storyboard_image_tasks` when clip-level visual planning images are needed.
 8. After generating a storyboard board image, pass its path as `storyboard_image_path` or `storyboard_image_paths` when preparing or running video generation.
-9. Create `i2v_prompt`, `t2v_prompt`, `seedance_prompt`, and `clip_prompts`.
+9. Create `i2v_prompt`, `t2v_prompt`, `seedance_prompt`, and `clip_prompts` using the fixed Prompt Packet architecture in `prompt_architecture.md`.
 10. Create an EDL for later ffmpeg/provider assembly.
 
+## Prompt Packet Rules
+
+- Clip prompts must use the fixed sections from `prompt_architecture.md`: `Global Context`, `Internal Story Facts`, `Reference Bindings`, `Spatial Blocking`, `15s Timeline`, `Continuation Contract`, `Platform-Safe Surface Wording`, and `Execution Constraints`.
+- Keep internal story facts separate from platform-facing safe wording. Safety rewrites may soften nouns, but must not change locked characters, props, actions, spaces, or storyboard order.
+- For 2+ characters, the `Spatial Blocking` section is mandatory and must state axis, screen direction, eyeline, and trackable blocking.
+- Door, window, threshold, and chase scenes must state safe side, danger side, crossing direction, boundary closure, and where the pursuer remains.
+- The `15s Timeline` is a narrative editing unit, not a license to stretch one action for 15 seconds. If one clip cannot execute the mapped storyboard shots clearly, split the clip instead of rewriting the storyboard.
 ## Storyboard Execution Rules
 
 - Treat storyboard boards and shot tables as the video execution blueprint after they exist, not as loose visual inspiration.
@@ -127,7 +134,7 @@ Use this flow before any paid video generation:
 5. If a storyboard board was generated, pass `storyboard_image_path` or `storyboard_image_paths`; the provider layer crops first/mid/last panel layout refs automatically.
 6. Prefer one `clip_id` or `clip_index` for normal generation; use `shot_id` or `shot_index` only for troubleshooting.
 7. Run `prepare_video_generation`.
-8. Inspect `provider_request.prompt`, `image_urls`, `reference_images`, `reference_image_urls`, `storyboard_panel_refs`, `video_reference_images`, `space_anchor_refs`, `continuity_state`, and `transport`.
+8. Inspect `provider_request.prompt`, including the fixed Prompt Packet sections, `image_urls`, `reference_images`, `reference_image_urls`, `storyboard_panel_refs`, `video_reference_images`, `space_anchor_refs`, `continuity_state`, and `transport`.
 9. Confirm `@Image` bindings are explicit: in all-purpose reference mode, character refs are identity refs, scene refs are space refs, storyboard refs are layout/edit refs, and no first-frame/keyframe binding appears unless explicitly selected.
 10. Confirm the prompt says storyboard panel refs only lock layout and forbids copying line art, labels, table borders, arrows, and text.
 11. Confirm the prompt says ambient sound/foley only and forbids BGM, songs, subtitles, title cards, fake text, and watermarks.

@@ -156,6 +156,16 @@ def test_build_video_handoff_has_required_shot_fields():
     assert handoff["clip_plan"][0]["last_frame_spec"]["source_shot_id"]
     assert handoff["clip_plan"][0]["storyboard_execution_map"][0]["storyboard_shot_id"] == "shot_001"
     assert "故事板执行映射" in handoff["clip_plan"][0]["clip_prompt"]
+    assert "Prompt Packet V1" in handoff["clip_plan"][0]["clip_prompt"]
+    assert "Global Context" in handoff["clip_plan"][0]["clip_prompt"]
+    assert "Internal Story Facts" in handoff["clip_plan"][0]["clip_prompt"]
+    assert "Reference Bindings" in handoff["clip_plan"][0]["clip_prompt"]
+    assert "Spatial Blocking" in handoff["clip_plan"][0]["clip_prompt"]
+    assert "15s Timeline" in handoff["clip_plan"][0]["clip_prompt"]
+    assert "Continuation Contract" in handoff["clip_plan"][0]["clip_prompt"]
+    assert "Platform-Safe Surface Wording" in handoff["clip_plan"][0]["clip_prompt"]
+    assert "Execution Constraints" in handoff["clip_plan"][0]["clip_prompt"]
+    assert any("Prompt Packet V1" in item for item in handoff["clip_plan"][0]["quality_checks"])
     assert "first_frame_spec" in handoff["clip_prompts"][0]
     for shot in handoff["shots"]:
         assert shot["visual_lock"]

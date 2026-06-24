@@ -134,28 +134,81 @@ def _clip_prompt(
     frame_specs: Dict,
     storyboard_execution_map: List[Dict],
 ) -> str:
-    shot_lines = []
-    for order, shot in enumerate(shots, start=1):
-        shot_lines.append(f"{order}. {shot.get('visual', '')}；镜头控制：{shot.get('storyboard_card', {}).get('camera_motion', '')}")
     video_ref_note = "；".join(_ref_label(ref) for ref in video_refs) or "使用已锁定角色图和正常场景参考图"
     space_ref_note = "；".join(_ref_label(ref) for ref in space_refs) or "全景图仅作为空间锚点"
+    characters = _dedupe([char for shot in shots for char in (shot.get("characters") or [])])
+    scene_ids = _dedupe([shot.get("scene_id") for shot in shots if shot.get("scene_id")])
+    shot_ids = [shot.get("shot_id", "") for shot in shots if shot.get("shot_id")]
     return (
-        f"{clip_id} 连续视频片段，时长约 {timing.get('duration_sec')} 秒。"
-        f"起始状态：{continuity_state.get('current_start_state')}。"
-        f"动作段落：{' '.join(shot_lines)}。"
-        f"结束状态：{continuity_state.get('current_end_state')}。"
-        f"视频生成参考：{video_ref_note}。"
-        f"空间锚点：{space_ref_note}；全景图用于校准空间布局、地标和光源方向，默认不要作为直接生成画面。"
+        f"Prompt Packet V1：{clip_id} 连续视频片段，时长约 {timing.get('duration_sec')} 秒；"
+        f"generation_unit=clip；shot_ids={shot_ids}。\n\n"
+        "Global Context："
+        "写实短剧质感，镜头服务叙事和人物状态，不做无意义炫技；"
+        "保持同一角色脸、发型、服饰、道具、场景布局、光影色调和屏幕方向；"
+        f"视频生成参考={video_ref_note}；空间锚点={space_ref_note}；"
+        "全景图用于校准空间布局、地标和光源方向，默认不要作为直接生成画面。\n\n"
+        "Internal Story Facts："
+        f"在场角色={characters or ['无角色/空镜']}；场景={scene_ids or ['未指定场景']}；"
+        f"起始状态={continuity_state.get('current_start_state')}；"
+        f"动作目标={continuity_state.get('main_action_transition')}；"
+        f"结束状态={continuity_state.get('current_end_state')}；"
+        f"下段交接={continuity_state.get('next_handoff')}。\n\n"
+        "Reference Bindings："
+        "角色参考锁身份、脸型、发型、年龄感、体型气质和服装轮廓；"
+        "场景参考锁空间布局、可见地标、材质状态、光源方向和整体色调；"
+        "故事板参考只锁构图、景别、机位、动作相位、走位、屏幕方向和剪辑顺序。"
+        "如果任务锁定 reference_policy=all_purpose_reference，则只能使用 reference_image_urls，禁止改写为 image_urls、首帧、尾帧、上一段尾帧或关键帧 I2V。\n\n"
+        f"Spatial Blocking：{_spatial_blocking_text(shots)}\n\n"
+        f"15s Timeline：{_timeline_text(shots)}\n\n"
+        "Continuation Contract："
+        "跨 clip 衔接不等于每段都复制上一段构图；除非明确使用 hard_first_frame，否则允许用近景、特写、全景、远景、背影、反打、空镜、道具插入或手部局部来承接。"
+        "单帧截取只服务连续性参考，可继承光色、服装、动作余势、屏幕方向、角色状态和情绪残留；不能自动变成角色身份锁、默认首帧或全能参考替代品。"
+        "换景别时必须继承上一段的人物状态、服饰、道具所在手、动作余势、光源方向、曝光、白平衡和色彩，不要把切镜头误生成换场景。\n\n"
+        "Platform-Safe Surface Wording："
+        "外部提交文本可以使用更中性的安全表达，但必须保持视觉等价；"
+        "安全表达只强化参考图和故事板既有内容，不能把锁定角色改成普通人、面罩人、机械体、陌生演员或无关生物，不能新增、删除或替换道具与剧情动作。\n\n"
+        "Execution Constraints："
         f"{_storyboard_execution_text(storyboard_execution_map)}"
         f"{_frame_specs_text(frame_specs)}"
         f"{_optional_sentence('武戏调度', martial_arts_text(martial_arts_layer))}"
-        "保持同一角色脸、发型、服饰、道具、场景布局、光影色调和屏幕方向；片段内部动作连续，不要跳切、不要重置空间。"
-        "跨 clip 衔接不等于每段都复制上一段构图；除非明确使用 hard_first_frame，否则允许用近景、特写、全景、远景、背影、反打、空镜、道具插入或手部局部来承接。"
-        "换景别时必须继承上一段的人物状态、服饰、道具所在手、动作余势、光源方向、曝光、白平衡和色彩，不要把切镜头误生成换场景。"
+        "片段内部动作连续，不要跳切、不要重置空间；"
         "声音只保留现场环境声与拟音，例如风声、雨声、脚步、衣料摩擦、呼吸、门响和道具轻响；禁止背景音乐、歌曲、音乐铺底。"
         "画面禁止字幕、伪文字、水印、片头片尾、标题卡和解释性文字。"
     )
 
+
+def _spatial_blocking_text(shots: List[Dict]) -> str:
+    rows = []
+    for order, shot in enumerate(shots, start=1):
+        card = shot.get("storyboard_card") or {}
+        axis = card.get("axis") or shot.get("axis", {})
+        screen = card.get("screen_direction") or shot.get("screen_direction", {})
+        eyeline = card.get("eyeline") or shot.get("eyeline", {})
+        characters = shot.get("characters") or []
+        rows.append(
+            f"镜头{order}/{shot.get('shot_id', '')}：在场角色={characters or ['无角色/空镜']}；"
+            f"轴线={axis or '单角色/环境轴线'}；屏幕方向={screen or '保持上一镜方向'}；"
+            f"视线={eyeline or '按画面目标保持清楚'}；"
+            "站位必须能从上一镜追踪到本镜，门、窗、入口、出口、前景/后景和危险侧不能跳位"
+        )
+    return "；".join(rows) + "。多角色镜头必须自动执行轴线、屏幕方向、视线匹配和站位连续性；如需换轴，先用中性轴上镜头、运动过渡、空镜或桥接镜头交代。"
+
+
+def _timeline_text(shots: List[Dict]) -> str:
+    rows = []
+    for order, shot in enumerate(shots, start=1):
+        timing = shot.get("timing") or {}
+        card = shot.get("storyboard_card") or {}
+        state = shot.get("continuity_state") or {}
+        rows.append(
+            f"[{timing.get('start_sec')}-{timing.get('end_sec')}s] 镜头{order}={shot.get('shot_id', '')}："
+            f"画面={shot.get('visual', '')}；"
+            f"镜头控制={card.get('camera_motion', '') or '按故事板机位执行'}；"
+            f"起始={state.get('current_start_state', '')}；"
+            f"动作转化={state.get('main_action_transition', '') or shot.get('visual', '')}；"
+            f"结束={state.get('current_end_state', '')}"
+        )
+    return " ".join(rows) + "。每个时间段必须是清楚的叙事动作，不要为了填满时长让角色原地重复奔跑、重复转身或做无因果的装饰动作。"
 
 def _storyboard_execution_map(shots: List[Dict]) -> List[Dict]:
     rows = []
@@ -427,6 +480,7 @@ def _ref_label(ref: Dict) -> str:
 
 def _clip_quality_checks() -> List[str]:
     return [
+        "clip_prompt 是否使用 Prompt Packet V1 固定结构：Global Context / Internal Story Facts / Reference Bindings / Spatial Blocking / 15s Timeline / Continuation Contract / Platform-Safe Surface Wording / Execution Constraints",
         "clip 内所有 shot 是否被合并为连续动作，而不是互相断裂的小镜头",
         "如果存在 previous_clip_end_frame，当前 clip 第一帧是否继承上一 clip 尾帧",
         "正常场景参考图是否进入 video_reference_images",

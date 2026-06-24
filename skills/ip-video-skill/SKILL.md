@@ -24,6 +24,11 @@ Build the offline video structure layer for IP workflows:
 
 This phase is local only by default. Do not call live video APIs unless a provider adapter explicitly implements and tests that provider.
 
+## Mandatory Prompt Architecture Gate
+
+Before writing or preparing any clip-level video prompt, read `references/prompt_architecture.md` and emit the fixed Prompt Packet structure: `Global Context`, `Internal Story Facts`, `Reference Bindings`, `Spatial Blocking`, `15s Timeline`, `Continuation Contract`, `Platform-Safe Surface Wording`, and `Execution Constraints`.
+
+This architecture is the stable output surface for project-specific video prompts. Do not collapse it into an ad hoc paragraph. Platform-safe wording may soften risky nouns, but it must not add, remove, replace, or weaken locked characters, props, actions, spaces, storyboard order, or reference bindings.
 ## Continuity First
 
 Always build or load a `continuity_bible` before writing shot prompts. Each shot must carry:
@@ -201,5 +206,6 @@ Paid/live PoYo video model policy is locked: default to `seedance-2`, not `seeda
 - `scripts/video_skill.py`: agent-facing task entrypoint
 - `scripts/ffmpeg_assembly.py`: phase-3 placeholder for local assembly helpers
 - `references/workflows.md`: provider-agnostic workflow and consistency rules
+- `references/prompt_architecture.md`: fixed Prompt Packet structure, internal-facts vs platform-safe wording split, storyboard/spatial/live-generation gates
 - `assets/example_build_video_handoff_task.json`: offline example
 - `assets/example_prepare_video_generation_task.json`: single-shot provider request example
