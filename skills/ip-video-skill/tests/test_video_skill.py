@@ -141,6 +141,19 @@ def test_continuity_bible_infers_xianxia_cloud_atmosphere():
     assert scene["palette_lock"] == "冷白天光、淡金侧逆光、云雾蓝灰、低饱和仙侠写实色调"
 
 
+
+def test_video_style_preset_flows_into_continuity_and_prompts():
+    task = copy.deepcopy(_task())
+    task["style_preset"] = "realistic_xianxia_short_drama"
+    bible = build_continuity_bible(task)
+    style = bible["global_visual_lock"]
+    assert style["style_preset"] == "realistic_xianxia_short_drama"
+    assert "realistic xianxia short-drama" in style["style_direction"]
+    assert "cool daylight" in style["color_grade"]
+    assert "modern short hair" in style["forbidden_drift"]
+    handoff = build_video_handoff(task)
+    assert "realistic xianxia short-drama" in handoff["shots"][0]["i2v_prompt"]
+    assert "grounded xianxia period styling" in handoff["shots"][0]["seedance_prompt"]
 def test_build_video_handoff_has_required_shot_fields():
     handoff = build_video_handoff(_task())
     assert len(handoff["shots"]) == 2

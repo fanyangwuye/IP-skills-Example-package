@@ -206,8 +206,15 @@ def _lighting_texture(scene: Dict, style: Dict) -> str:
     lighting = scene.get("lighting_lock") or style.get("lighting_policy") or "电影化自然光，保持光源方向连续"
     palette = scene.get("palette_lock") or style.get("color_grade") or "低漂移电影色调"
     atmosphere = scene.get("weather_atmosphere_lock") or "环境氛围与上一镜一致"
+    style_direction = style.get("style_direction", "")
+    positive = "，".join((style.get("style_positive_fragments") or [])[:5])
+    realism = "，".join((style.get("style_realism_constraints") or [])[:5])
+    style_note = ""
+    if style_direction or positive or realism:
+        style_note = f"风格卡约束：{style_direction}；正向质感={positive}；真实感约束={realism}。"
     return (
         f"主光逻辑：{lighting}；色调：{palette}；环境：{atmosphere}。"
+        f"{style_note}"
         "保留自然明暗层次，不要全脸打平。皮肤有毛孔、轻微眼周纹理和自然肤色变化；"
         "眼睛不要玻璃珠高光，五官不要完美对称，脸部保留一侧眼睑略沉、嘴角轻微不对称、下颌与法令区自然层次；"
         "头发有碎发边缘，布料有压痕和褶皱，场景表面有灰尘、水痕、划痕或不规则反光。"

@@ -1,4 +1,6 @@
 import re
+import json
+import os
 from typing import Dict, Iterable, List, Optional
 
 
@@ -184,23 +186,71 @@ def _build_scene_locks(ip_asset_pack: Dict, image_handoff: Dict, blueprint: Dict
 def _build_style_lock(task: Dict, ip_asset_pack: Dict, blueprint: Dict, polished_script: Dict) -> Dict:
     direction = task.get("creative_direction") or ip_asset_pack.get("creative_direction") or blueprint.get("global_style") or {}
     tone = direction.get("tone") or polished_script.get("tone") or task.get("tone") or "cinematic IP adaptation"
+    style_preset = task.get("style_preset") or ip_asset_pack.get("style_preset") or "realistic_short_drama"
+    style_card = _load_video_style_card(task.get("style_card_path"), style_preset)
+    forbidden = [
+        "no face drift",
+        "no hairstyle drift",
+        "no costume color change",
+        "no scene layout reset",
+        "no lighting direction flip",
+        "no cross-axis cut without transition",
+    ]
+    forbidden.extend(style_card.get("forbidden_elements") or [])
+    forbidden.extend(style_card.get("negative_prompt_fragments") or [])
     return {
-        "style_preset": task.get("style_preset") or ip_asset_pack.get("style_preset") or "realistic_short_drama",
+        "style_preset": style_preset,
+        "style_card_source": style_card.get("_source", ""),
+        "style_direction": style_card.get("style_direction", ""),
+        "style_positive_fragments": list(style_card.get("positive_prompt_fragments") or [])[:8],
+        "style_realism_constraints": list(style_card.get("realism_constraints") or [])[:8],
         "tone_lock": tone,
         "lens_language": task.get("lens_language", "短剧镜头语言，动作清楚，表演可读，避免过度炫技"),
-        "color_grade": task.get("color_grade") or _infer_palette(str(tone)),
+        "color_grade": task.get("color_grade") or style_card.get("primary_palette") or _infer_palette(str(tone)),
         "lighting_policy": "保持同一场景内光源方向、冷暖和对比度连续。",
-        "forbidden_drift": [
-            "no face drift",
-            "no hairstyle drift",
-            "no costume color change",
-            "no scene layout reset",
-            "no lighting direction flip",
-            "no cross-axis cut without transition",
-        ],
+        "forbidden_drift": _dedupe(forbidden),
     }
 
 
+def _load_video_style_card(style_card_path: Optional[str], style_preset: str) -> Dict:
+    paths = []
+    if style_preset:
+        paths.append(_image_style_preset_path(style_preset))
+    if style_card_path:
+        paths.append(style_card_path)
+    merged: Dict = {}
+    sources = []
+    for path in paths:
+        if not path or not os.path.exists(path):
+            continue
+        with open(path, "r", encoding="utf-8") as fh:
+            card = json.load(fh)
+        merged = _merge_style_card_dicts(merged, card)
+        sources.append(path)
+    if sources:
+        merged["_source"] = ";".join(sources)
+    return merged
+
+
+def _image_style_preset_path(style_preset: str) -> str:
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    return os.path.join(project_root, "skills", "ip-image-skill", "references", "style_presets", f"{style_preset}.json")
+
+
+def _merge_style_card_dicts(base: Dict, override: Dict) -> Dict:
+    merged = dict(base or {})
+    for key, value in (override or {}).items():
+        if isinstance(value, list):
+            existing = merged.get(key)
+            if not isinstance(existing, list):
+                existing = []
+            merged[key] = existing + [item for item in value if item not in existing]
+        elif isinstance(value, dict):
+            existing = merged.get(key)
+            merged[key] = _merge_style_card_dicts(existing if isinstance(existing, dict) else {}, value)
+        elif value not in (None, ""):
+            merged[key] = value
+    return merged
 def find_character_ids_in_text(text: str, character_locks: Dict) -> List[str]:
     text = str(text or "")
     scored: List[tuple] = []
