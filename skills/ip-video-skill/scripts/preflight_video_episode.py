@@ -142,6 +142,12 @@ def _check_request(task: Dict, request: Dict, unit_label: str) -> Tuple[List[Dic
     elif shot_ids and mapped_ids != shot_ids:
         errors.append(f"{unit_label}: storyboard_execution_map does not exactly match shot_ids")
 
+    storyboard_mode = str(request.get("storyboard_mode") or "production").strip().lower()
+    draft_ok = storyboard_mode != "draft"
+    _add_check(checks, unit_label, "storyboard_mode_production", draft_ok, storyboard_mode)
+    if not draft_ok:
+        errors.append(f"{unit_label}: storyboard_mode=draft is planning-only; approve and rebuild production storyboard mapping before paid generation")
+
     all_purpose = _uses_all_purpose_reference(task, request)
     if all_purpose:
         image_urls = request.get("image_urls") or []

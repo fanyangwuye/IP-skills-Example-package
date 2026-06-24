@@ -111,6 +111,11 @@ def _guard_storyboard_execution_map(task: Dict, request: Dict) -> None:
         return
     if request.get("unit_kind") != "clip":
         return
+    if str(request.get("storyboard_mode") or "").strip().lower() == "draft":
+        raise RuntimeError(
+            "Live clip video generation is blocked because storyboard_mode=draft. "
+            "Draft storyboard mode is planning-only; get user approval, rebuild production storyboard mapping, then generate."
+        )
     shot_ids = [item for item in request.get("shot_ids") or [] if item]
     execution_map = request.get("storyboard_execution_map") or []
     mapped_ids = [item.get("storyboard_shot_id") for item in execution_map if item.get("storyboard_shot_id")]
@@ -240,7 +245,9 @@ def _base_request(task: Dict, unit: Dict, provider: str, prompt_kind: str, confi
         "video_reference_images": unit.get("video_reference_images", []),
         "space_anchor_refs": unit.get("space_anchor_refs", []) + manifest_space_anchor_refs(task),
         "storyboard_panel_refs": unit.get("storyboard_panel_refs", []),
+        "storyboard_mode": unit.get("storyboard_mode", "production"),
         "storyboard_execution_map": unit.get("storyboard_execution_map", []),
+        "storyboard_revision_suggestions": unit.get("storyboard_revision_suggestions", []),
         "previous_clip_end_frame": unit.get("previous_clip_end_frame"),
         "previous_clip_reference_frame": unit.get("previous_clip_reference_frame"),
         "first_frame_spec": frame_specs.get("first_frame_spec", {}),

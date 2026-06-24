@@ -61,7 +61,9 @@ Storyboard is the execution blueprint, not optional inspiration. Once a storyboa
 - If a 15-second clip cannot accurately execute all included storyboard shots, split it into shorter generated units instead of changing the storyboard.
 - Storyboard refs lock shot design, composition, blocking, action phase, screen direction, and edit order; character identity still comes from the locked reference policy.
 - Prompt text may only strengthen existing reference and storyboard details. It must not add, modify, or reduce the content established by the references and storyboard.
-- For paid/live clip generation, stop if `storyboard_execution_map` is missing or does not exactly match the clip `shot_ids`.
+- `storyboard_mode` defaults to `production`: the map is mandatory, strict, and must execute in order.
+- `storyboard_mode=draft` is planning-only: keep the current map unchanged, output split/merge/reorder suggestions as review notes only, and do not apply them without user approval.
+- For paid/live clip generation, stop if `storyboard_execution_map` is missing, does not exactly match the clip `shot_ids`, or the clip is still in `storyboard_mode=draft`.
 
 ## Mandatory Video Continuation Gate
 

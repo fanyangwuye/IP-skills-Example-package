@@ -44,6 +44,9 @@ Use this before any prompt writing.
 - Do not delete, merge away, reorder, or change storyboard shots without an approved storyboard revision.
 - If a 15-second clip cannot accurately execute every mapped storyboard shot, split it into shorter generation units instead of changing the storyboard.
 - Prompt text may only strengthen details that already exist in the reference images and storyboard. It must not add, modify, or reduce locked content.
+- `storyboard_mode=production` is the default for executable video prompts and paid/live generation.
+- `storyboard_mode=draft` may propose split, merge, or reorder notes for review, but the current `storyboard_execution_map` stays unchanged until the user approves and the storyboard is rebuilt.
+- Preflight and live provider generation must block `storyboard_mode=draft`; draft artifacts are for planning, not spending credits.
 
 ## Storyboard Boards And Panel References
 

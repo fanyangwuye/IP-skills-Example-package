@@ -38,7 +38,9 @@ def build_clip_prompts(clips: List[Dict]) -> List[Dict]:
         {
             "clip_id": clip["clip_id"],
             "shot_ids": clip["shot_ids"],
+            "storyboard_mode": clip.get("storyboard_mode", "production"),
             "storyboard_execution_map": clip.get("storyboard_execution_map", []),
+            "storyboard_revision_suggestions": clip.get("storyboard_revision_suggestions", []),
             "prompt": clip["clip_prompt"],
             "negative_prompt": clip["negative_prompt"],
             "reference_binding": clip["reference_binding"],
@@ -74,7 +76,9 @@ def _build_clip(index: int, shots: List[Dict], task: Dict, bible: Dict) -> Dict:
     video_refs = _video_reference_images(task, scene_ids, characters)
     space_refs = _space_anchor_refs(task, scene_ids, bible)
     frame_specs = _frame_specs(shots, bible, timing)
-    storyboard_execution_map = _storyboard_execution_map(shots)
+    storyboard_mode = _storyboard_mode(task)
+    storyboard_execution_map = _storyboard_execution_map(shots, storyboard_mode)
+    storyboard_revision_suggestions = _storyboard_revision_suggestions(shots, timing, storyboard_mode)
     martial_arts_layer = build_martial_arts_layer(
         "；".join(shot.get("visual", "") for shot in shots),
         _clip_storyboard_card(shots),
@@ -91,13 +95,17 @@ def _build_clip(index: int, shots: List[Dict], task: Dict, bible: Dict) -> Dict:
         martial_arts_layer,
         frame_specs,
         storyboard_execution_map,
+        storyboard_mode,
+        storyboard_revision_suggestions,
     )
 
     return {
         "clip_id": clip_id,
         "order": index,
         "shot_ids": [shot.get("shot_id", "") for shot in shots],
+        "storyboard_mode": storyboard_mode,
         "storyboard_execution_map": storyboard_execution_map,
+        "storyboard_revision_suggestions": storyboard_revision_suggestions,
         "timing": timing,
         "visual": "；".join(shot.get("visual", "") for shot in shots if shot.get("visual")),
         "characters": characters,
@@ -151,6 +159,8 @@ def _clip_prompt_bundle(
     martial_arts_layer: Dict,
     frame_specs: Dict,
     storyboard_execution_map: List[Dict],
+    storyboard_mode: str,
+    storyboard_revision_suggestions: List[str],
 ) -> Dict:
     full_packet = _clip_prompt(
         clip_id,
@@ -162,6 +172,8 @@ def _clip_prompt_bundle(
         martial_arts_layer,
         frame_specs,
         storyboard_execution_map,
+        storyboard_mode,
+        storyboard_revision_suggestions,
     )
     return {
         "clip_prompt": full_packet,
@@ -175,6 +187,7 @@ def _clip_prompt_bundle(
             space_refs,
             martial_arts_layer,
             storyboard_execution_map,
+            storyboard_mode,
         ),
         "seedance_prompt": _clip_provider_prompt(
             "seedance",
@@ -186,6 +199,7 @@ def _clip_prompt_bundle(
             space_refs,
             martial_arts_layer,
             storyboard_execution_map,
+            storyboard_mode,
         ),
         "t2v_prompt": _clip_provider_prompt(
             "t2v",
@@ -197,6 +211,7 @@ def _clip_prompt_bundle(
             space_refs,
             martial_arts_layer,
             storyboard_execution_map,
+            storyboard_mode,
         ),
         "prompt_strategy": {
             "architecture": "Prompt Packet V1",
@@ -218,6 +233,7 @@ def _clip_provider_prompt(
     space_refs: List[Dict],
     martial_arts_layer: Dict,
     storyboard_execution_map: List[Dict],
+    storyboard_mode: str,
 ) -> str:
     characters = _dedupe([char for shot in shots for char in (shot.get("characters") or [])])
     scene_ids = _dedupe([shot.get("scene_id") for shot in shots if shot.get("scene_id")])
@@ -228,7 +244,7 @@ def _clip_provider_prompt(
     timeline = _compact_timeline_text(shots)
     refs = _compact_reference_text(video_refs, space_refs)
     martial = _clip_text(martial_arts_text(martial_arts_layer), 180)
-    storyboard = _compact_storyboard_text(storyboard_execution_map)
+    storyboard = _compact_storyboard_text(storyboard_execution_map, storyboard_mode)
 
     if kind == "i2v":
         mode_line = "Image-to-video. Use reference images as the identity, costume, scene, storyboard-composition and motion anchors."
@@ -342,12 +358,18 @@ def _compact_timeline_text(shots: List[Dict]) -> str:
     return _clip_text(" ".join(rows), 760)
 
 
-def _compact_storyboard_text(storyboard_execution_map: List[Dict]) -> str:
+def _compact_storyboard_text(storyboard_execution_map: List[Dict], storyboard_mode: str = "production") -> str:
     if not storyboard_execution_map:
         return "Storyboard map required before live generation."
     rows = []
     for item in storyboard_execution_map[:5]:
         rows.append(f"video shot {item.get('video_shot_order')} = storyboard {item.get('storyboard_shot_id')}")
+    if storyboard_mode == "draft":
+        return (
+            "Storyboard execution map draft review: "
+            + "; ".join(rows)
+            + ". Keep the current map unchanged; only propose split, merge or reorder notes for human approval; do not apply revisions during generation."
+        )
     return "Storyboard execution map: " + "; ".join(rows) + ". Do not delete, merge, reorder or rewrite storyboard shots."
 
 
@@ -388,6 +410,8 @@ def _clip_prompt(
     martial_arts_layer: Dict,
     frame_specs: Dict,
     storyboard_execution_map: List[Dict],
+    storyboard_mode: str,
+    storyboard_revision_suggestions: List[str],
 ) -> str:
     video_ref_note = "；".join(_ref_label(ref) for ref in video_refs) or "使用已锁定角色图和正常场景参考图"
     space_ref_note = "；".join(_ref_label(ref) for ref in space_refs) or "全景图仅作为空间锚点"
@@ -423,7 +447,8 @@ def _clip_prompt(
         "外部提交文本可以使用更中性的安全表达，但必须保持视觉等价；"
         "安全表达只强化参考图和故事板既有内容，不能把锁定角色改成普通人、面罩人、机械体、陌生演员或无关生物，不能新增、删除或替换道具与剧情动作。\n\n"
         "Execution Constraints："
-        f"{_storyboard_execution_text(storyboard_execution_map)}"
+        f"{_storyboard_execution_text(storyboard_execution_map, storyboard_mode)}"
+        f"{_storyboard_revision_suggestions_text(storyboard_revision_suggestions)}"
         f"{_frame_specs_text(frame_specs)}"
         f"{_optional_sentence('武戏调度', martial_arts_text(martial_arts_layer))}"
         "片段内部动作连续，不要跳切、不要重置空间；"
@@ -465,7 +490,18 @@ def _timeline_text(shots: List[Dict]) -> str:
         )
     return " ".join(rows) + "。每个时间段必须是清楚的叙事动作，不要为了填满时长让角色原地重复奔跑、重复转身或做无因果的装饰动作。"
 
-def _storyboard_execution_map(shots: List[Dict]) -> List[Dict]:
+def _storyboard_mode(task: Dict) -> str:
+    value = str(task.get("storyboard_mode") or task.get("storyboard_phase") or "").strip().lower()
+    return "draft" if value in {"draft", "review", "planning", "草稿", "审查", "规划"} else "production"
+
+
+def _storyboard_execution_rule(storyboard_mode: str) -> str:
+    if storyboard_mode == "draft":
+        return "draft_review_allowed; propose_split_merge_reorder_only; do_not_apply_without_user_approval; keep_current_map_until_approved"
+    return "must_execute_in_order; do_not_delete; do_not_merge_away; do_not_reorder; revise_storyboard_first_if_needed"
+
+
+def _storyboard_execution_map(shots: List[Dict], storyboard_mode: str = "production") -> List[Dict]:
     rows = []
     for order, shot in enumerate(shots, start=1):
         card = shot.get("storyboard_card") or {}
@@ -473,18 +509,51 @@ def _storyboard_execution_map(shots: List[Dict]) -> List[Dict]:
             {
                 "video_shot_order": order,
                 "storyboard_shot_id": shot.get("shot_id", ""),
+                "storyboard_mode": storyboard_mode,
                 "start_sec": shot.get("timing", {}).get("start_sec"),
                 "end_sec": shot.get("timing", {}).get("end_sec"),
                 "visual": shot.get("visual", ""),
                 "framing": card.get("framing", ""),
                 "camera_motion": card.get("camera_motion", ""),
-                "execution_rule": "must_execute_in_order; do_not_delete; do_not_merge_away; do_not_reorder; revise_storyboard_first_if_needed",
+                "execution_rule": _storyboard_execution_rule(storyboard_mode),
             }
         )
     return rows
 
 
-def _storyboard_execution_text(storyboard_execution_map: List[Dict]) -> str:
+def _storyboard_revision_suggestions(shots: List[Dict], timing: Dict, storyboard_mode: str) -> List[str]:
+    if storyboard_mode != "draft":
+        return []
+    suggestions = [
+        "草稿模式：当前 storyboard_execution_map 只用于审查，未获用户确认前不得自动拆分、合并、改序或改动作。"
+    ]
+    duration = float(timing.get("duration_sec") or 0)
+    if duration > 15 or len(shots) > 4:
+        suggestions.append(
+            "该 clip 分镜密度偏高，建议人工审查是否拆成更短生成单元；拆分后必须重新生成并确认故事板映射。"
+        )
+    short_shots = []
+    for shot in shots:
+        if _shot_duration(shot) <= 2.0:
+            short_shots.append(shot.get("shot_id", ""))
+    if short_shots:
+        suggestions.append(
+            "以下分镜时长不超过 2 秒，可人工审查是否需要合并或重排节奏，但当前输出不得自动应用："
+            + "、".join(item for item in short_shots if item)
+            + "。"
+        )
+    if len(suggestions) == 1:
+        suggestions.append("未发现必须调整的分镜结构；保持当前顺序，等待用户确认后再进入 production。")
+    return suggestions
+
+
+def _storyboard_revision_suggestions_text(suggestions: List[str]) -> str:
+    if not suggestions:
+        return ""
+    return "故事板草稿审查建议（只供人工确认，不得在本次生成中自动应用）：" + "；".join(suggestions) + "。"
+
+
+def _storyboard_execution_text(storyboard_execution_map: List[Dict], storyboard_mode: str = "production") -> str:
     if not storyboard_execution_map:
         return ""
     rows = []
@@ -493,6 +562,14 @@ def _storyboard_execution_text(storyboard_execution_map: List[Dict]) -> str:
             f"视频镜头{item.get('video_shot_order')} = 故事板分镜 {item.get('storyboard_shot_id')}，"
             f"时间 {item.get('start_sec')}-{item.get('end_sec')} 秒，"
             f"景别={item.get('framing')}，运镜={item.get('camera_motion')}，画面={item.get('visual')}"
+        )
+    if storyboard_mode == "draft":
+        return (
+            "故事板执行映射（草稿审查）："
+            + "；".join(rows)
+            + "。当前映射保持不变；只能提出拆分、合并、改序建议，不得在未获用户确认前自动应用。"
+            "草稿确认并重建故事板后，才能切换为 production 进入付费/正式视频生成。"
+            "提示词只能强化参考图和故事板已有内容细节，不能新增、修改或减少画面内容。"
         )
     return (
         "故事板执行映射（强制）："

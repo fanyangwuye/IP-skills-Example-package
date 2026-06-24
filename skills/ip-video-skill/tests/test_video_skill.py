@@ -169,7 +169,12 @@ def test_build_video_handoff_has_required_shot_fields():
     assert handoff["clip_plan"][0]["first_frame_spec"]["action_phase_lock"]
     assert handoff["clip_plan"][0]["mid_frame_spec"]["source_shot_id"]
     assert handoff["clip_plan"][0]["last_frame_spec"]["source_shot_id"]
+    assert handoff["clip_plan"][0]["storyboard_mode"] == "production"
+    assert handoff["clip_prompts"][0]["storyboard_mode"] == "production"
     assert handoff["clip_plan"][0]["storyboard_execution_map"][0]["storyboard_shot_id"] == "shot_001"
+    assert "must_execute_in_order" in handoff["clip_plan"][0]["storyboard_execution_map"][0]["execution_rule"]
+    assert "do_not_merge_away" in handoff["clip_plan"][0]["storyboard_execution_map"][0]["execution_rule"]
+    assert handoff["clip_plan"][0]["storyboard_revision_suggestions"] == []
     assert "故事板执行映射" in handoff["clip_plan"][0]["clip_prompt"]
     assert "Prompt Packet V1" in handoff["clip_plan"][0]["clip_prompt"]
     assert "Global Context" in handoff["clip_plan"][0]["clip_prompt"]
@@ -226,6 +231,40 @@ def test_clip_provider_prompts_are_model_specific_and_compact():
         assert len(prompt) <= budgets[kind]
     assert clip["prompt_strategy"]["architecture"] == "Prompt Packet V1"
     assert "compact surface packets" in clip["prompt_strategy"]["provider_prompts"]
+
+
+def test_storyboard_draft_mode_marks_review_only_without_changing_map():
+    task = copy.deepcopy(_task())
+    task["storyboard_mode"] = "draft"
+    handoff = build_video_handoff(task)
+    clip = handoff["clip_plan"][0]
+    execution_map = clip["storyboard_execution_map"]
+    required_sections = [
+        "Prompt Packet V1",
+        "Global Context",
+        "Internal Story Facts",
+        "Reference Bindings",
+        "Spatial Blocking",
+        "15s Timeline",
+        "Continuation Contract",
+        "Platform-Safe Surface Wording",
+        "Execution Constraints",
+    ]
+
+    assert clip["storyboard_mode"] == "draft"
+    assert handoff["clip_prompts"][0]["storyboard_mode"] == "draft"
+    assert [item["storyboard_shot_id"] for item in execution_map] == clip["shot_ids"]
+    assert all(item["storyboard_mode"] == "draft" for item in execution_map)
+    assert "draft_review_allowed" in execution_map[0]["execution_rule"]
+    assert "do_not_apply_without_user_approval" in execution_map[0]["execution_rule"]
+    assert "must_execute_in_order" not in execution_map[0]["execution_rule"]
+    assert clip["storyboard_revision_suggestions"]
+    assert "不得自动" in clip["storyboard_revision_suggestions"][0]
+    assert "故事板执行映射（草稿审查）" in clip["clip_prompt"]
+    assert "Storyboard execution map draft review" in clip["i2v_prompt"]
+    for prompt in [clip["i2v_prompt"], clip["seedance_prompt"], clip["t2v_prompt"]]:
+        for section in required_sections:
+            assert section in prompt
 
 
 def test_clip_provider_prompt_budget_preserves_required_sections_for_long_clip():
@@ -506,6 +545,7 @@ def test_prepare_video_generation_request_offline():
     assert request["transport"]["type"] == "dry_run"
     assert request["reference_binding"]["scene_lock"]
     assert request["first_frame_spec"]["alignment_checks"]
+    assert request["storyboard_mode"] == "production"
     assert request["storyboard_execution_map"][0]["storyboard_shot_id"] == "shot_001"
     assert "故事板执行映射" in request["prompt"]
 
@@ -1290,6 +1330,47 @@ def test_live_video_blocks_missing_storyboard_execution_map():
         assert "storyboard_execution_map is missing" in str(exc)
     else:
         raise AssertionError("live clip video should require storyboard_execution_map")
+
+def test_live_video_blocks_draft_storyboard_mode():
+    task = copy.deepcopy(_task())
+    task["storyboard_mode"] = "draft"
+    handoff = build_video_handoff(task)
+    config = VideoProviderConfig("poyo_video", "test", "https://api.example", "", "seedance-2", "9:16", "480p", 1, 5)
+    try:
+        run_video_generation(
+            {
+                "mode": "run_video_generation",
+                "provider": "poyo_video",
+                "video_handoff": handoff,
+                "clip_index": 1,
+                "dry_run": False,
+                "image_urls": [{"url": "https://files.example/first.png", "role": "first_frame"}],
+            },
+            config,
+        )
+    except RuntimeError as exc:
+        assert "storyboard_mode=draft" in str(exc)
+    else:
+        raise AssertionError("draft storyboard mode should be blocked before live generation")
+
+
+def test_preflight_blocks_draft_storyboard_mode():
+    task = copy.deepcopy(_task())
+    task["storyboard_mode"] = "draft"
+    handoff = build_video_handoff(task)
+    config = VideoProviderConfig("poyo_video", "test", "https://api.example", "", "seedance-2", "9:16", "480p", 1, 5)
+    report = preflight_video_generation(
+        {
+            "mode": "preflight_video_generation",
+            "provider": "poyo_video",
+            "video_handoff": handoff,
+            "clip_index": 1,
+            "image_urls": [{"url": "https://files.example/first.png", "role": "first_frame"}],
+        },
+        config,
+    )
+    assert report["status"] == "fail"
+    assert any("storyboard_mode=draft" in error for error in report["errors"])
 
 def test_live_video_blocks_reference_only_generation_by_default():
     handoff = build_video_handoff(_task())
