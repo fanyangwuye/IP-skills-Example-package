@@ -105,7 +105,7 @@ def _run_build_adaptation_scene_cards(task: Dict, output_dir: str) -> Dict:
         "creative_direction": state.get("creative_direction", {}),
         "format_adapter": adapter.spec().format_name,
         "scene_cards": scene_cards,
-        "quality_report": evaluate_scene_cards_quality(scene_cards, adapter.spec()),
+        "quality_report": evaluate_scene_cards_quality(scene_cards, adapter.spec(), context={"source_text": state.get("source_text", task.get("source_text", "")), "characters": state.get("characters", task.get("characters", []))}),
     }
     out_path = os.path.join(output_dir, task.get("scene_cards_filename", "adaptation_scene_cards.json"))
     _write_json(out_path, payload)
@@ -897,13 +897,15 @@ def _build_script_draft(scene_cards: List[Dict], state: Dict, task: Dict) -> Dic
         "quality_report": evaluate_script_quality({
             "scenes": scenes,
             "aspect_ratio": task.get("aspect_ratio") or spec.default_aspect_ratio,
+            "source_text": state.get("source_text", task.get("source_text", "")),
+            "characters": characters,
             "handoff": {
                 "can_build_blueprint": True,
                 "image_requirements": spec.handoff_requirements.get("image", []),
                 "video_requirements": spec.handoff_requirements.get("video", []),
                 "music_requirements": spec.handoff_requirements.get("music", []),
             },
-        }, spec),
+        }, spec, context={"source_text": state.get("source_text", task.get("source_text", "")), "characters": characters}),
         "handoff": {
             "scene_cards": scene_cards,
             "can_build_blueprint": True,
@@ -1025,7 +1027,7 @@ def _polish_script_draft(script: Dict, task: Dict) -> Dict:
     polished["aspect_ratio"] = polished.get("aspect_ratio") or spec.default_aspect_ratio
     polished["rhythm_rules"] = polished.get("rhythm_rules") or spec.rhythm_rules
     polished["quality_checks"] = polished.get("quality_checks") or spec.quality_checks
-    polished["quality_report"] = evaluate_script_quality(polished, spec, polished=True)
+    polished["quality_report"] = evaluate_script_quality(polished, spec, polished=True, context={"source_text": polished.get("source_text", task.get("source_text", "")), "characters": polished.get("characters", [])})
     polished["polish"] = {
         "style": style,
         "intensity": intensity,

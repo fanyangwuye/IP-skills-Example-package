@@ -84,6 +84,51 @@ def test_quality_evaluator_reports_scaffold_warnings_and_blockers():
     assert script_report["status"] == "fail"
     assert any(item["code"] == "script_scenes_empty" for item in script_report["issues"])
 
+
+
+def test_quality_evaluator_reports_creative_quality_warnings():
+    adapter_spec = VerticalShortDramaAdapter().spec()
+    scene_report = evaluate_scene_cards_quality(
+        [
+            {
+                "visual": "黄泉饭店大厅，林缺突然看见一枚炸弹和陌生怪兽。",
+                "voiceover": "异常出现。",
+                "duration_sec": 8,
+                "asset_goal": {"type": "adapted scene key frame"},
+            }
+        ],
+        adapter_spec,
+        context={
+            "source_text": "林缺回到黄泉饭店，牛头员工端着托盘出现。",
+            "characters": [{"name": "林缺"}, {"name": "牛头"}],
+        },
+    )
+    assert scene_report["quality_report_version"] == "1.1"
+    assert "creative_checks" in scene_report
+    assert "炸弹" in scene_report["creative_checks"]["unsupported_details"]
+    assert any("unsupported" in item or "not found" in item for item in scene_report["warnings"])
+
+    script_report = evaluate_script_quality(
+        {
+            "source_text": "林缺回到黄泉饭店，牛头员工端着托盘出现。",
+            "characters": [{"name": "林缺"}, {"name": "牛头"}],
+            "scenes": [
+                {
+                    "visual": "林缺站在柜台后。",
+                    "voiceover": "他回到饭店。",
+                    "dialogue": [{"speaker": "陌生人", "line": "这里不对劲。"}],
+                    "start_sec": 0,
+                    "end_sec": 8,
+                }
+            ],
+            "handoff": {"can_build_blueprint": True},
+        },
+        adapter_spec,
+    )
+    checks = script_report["creative_checks"]
+    assert checks["dialogue_voice"]["generic_line_count"] == 1
+    assert any("speaker not in locked" in item for item in script_report["warnings"])
+    assert checks["hook_density"]["total"] == 1
 def test_offline_creative_engine_requires_fallback_without_live_call():
     engine = OfflineCreativeEngine()
     result = engine.generate(
