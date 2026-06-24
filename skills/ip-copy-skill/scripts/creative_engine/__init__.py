@@ -4,6 +4,7 @@ from .mock_engine import MockCreativeEngine
 from .offline_engine import OfflineCreativeEngine
 from .prompt_packs import build_prompt_pack
 from .provider_adapter import build_provider_boundary, build_provider_request, summarize_provider_request
+from .provider_response import PROVIDER_RESPONSE_PARSE_VERSION, parse_provider_response
 from .review import REVIEW_VERSION, build_post_response_review_plan, review_creative_output
 
 __all__ = [
@@ -17,6 +18,8 @@ __all__ = [
     "build_prompt_pack",
     "build_provider_boundary",
     "build_provider_request",
+    "PROVIDER_RESPONSE_PARSE_VERSION",
+    "parse_provider_response",
     "summarize_provider_request",
     "REVIEW_VERSION",
     "build_post_response_review_plan",

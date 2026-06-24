@@ -6,7 +6,7 @@ from datetime import date
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from blueprint_validate import validate_blueprint  # noqa: E402
 from copy_skill import run_task  # noqa: E402
-from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_post_response_review_plan, build_prompt_pack, build_provider_boundary, build_provider_request, review_creative_output  # noqa: E402
+from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_post_response_review_plan, build_prompt_pack, build_provider_boundary, build_provider_request, parse_provider_response, review_creative_output  # noqa: E402
 from format_adapters import FeatureFilmAdapter, InteractiveFilmGameAdapter, LongSeriesAdapter, MurderMysteryAdapter, OverseasShortDramaAdapter, VerticalShortDramaAdapter  # noqa: E402
 from license_gate import check_license, gate  # noqa: E402
 from quality_evaluator import evaluate_scene_cards_quality, evaluate_script_quality  # noqa: E402
@@ -373,6 +373,44 @@ def test_mock_creative_engine_validates_scene_card_schema():
     assert any("voiceover" in error for error in bad_result.errors)
 
 
+
+
+def test_parse_provider_response_handles_wrappers_and_review():
+    request = CreativeEngineRequest(
+        kind="scene_cards",
+        schema_name="scene_cards",
+        source_text="林缺回到黄泉饭店。牛头员工端着托盘出现。",
+        payload={"characters": [{"name": "林缺"}, {"name": "牛头员工"}]},
+    )
+    direct = parse_provider_response(
+        request,
+        '[{"visual":"黄泉饭店大厅，林缺站在柜台后。","voiceover":"饭店重新开门。","duration_sec":8,"asset_goal":{"type":"adapted scene key frame"}}]',
+    )
+    assert direct["provider_response_parse_version"] == "copy-provider-response-parse-v1"
+    assert direct["status"] == "pass"
+    assert direct["ready_for_creative_engine_result"] is True
+    assert direct["source_path"] == "raw_string"
+
+    wrapped = parse_provider_response(
+        request,
+        {
+            "choices": [
+                {
+                    "message": {
+                        "content": "```json\n[{\"visual\":\"黄泉饭店大厅，林缺发现陌生手帕。\",\"voiceover\":\"异常出现。\",\"duration_sec\":8,\"asset_goal\":{\"type\":\"adapted scene key frame\"}}]\n```"
+                    }
+                }
+            ]
+        },
+    )
+    assert wrapped["source_path"] == "choices[0].message.content"
+    assert wrapped["status"] == "warn"
+    assert "手帕" in wrapped["review_report"]["checks"]["unsupported_details"]
+
+    bad = parse_provider_response(request, "not json")
+    assert bad["status"] == "parse_error"
+    assert bad["ready_for_creative_engine_result"] is False
+    assert any("json_decode_error" in item for item in bad["errors"])
 
 def test_creative_engine_review_reports_schema_and_drift_warnings():
     request = CreativeEngineRequest(
