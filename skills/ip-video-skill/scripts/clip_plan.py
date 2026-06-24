@@ -5,10 +5,12 @@ PROVIDER_PROMPT_BUDGETS = {"seedance": 1600, "i2v": 1800, "t2v": 1400}
 try:
     from .martial_arts import build_martial_arts_layer, is_martial_arts_scene, martial_arts_text
     from .spatial_templates import high_risk_spatial_template_text
+    from .shot_director import director_plan_text
     from .storyboard_quality import evaluate_storyboard_quality
 except ImportError:
     from martial_arts import build_martial_arts_layer, is_martial_arts_scene, martial_arts_text
     from spatial_templates import high_risk_spatial_template_text
+    from shot_director import director_plan_text
     from storyboard_quality import evaluate_storyboard_quality
 
 
@@ -358,9 +360,11 @@ def _compact_timeline_text(shots: List[Dict]) -> str:
         timing = shot.get("timing") or {}
         card = shot.get("storyboard_card") or {}
         state = shot.get("continuity_state") or {}
+        director = card.get("director_plan") or shot.get("director_plan") or {}
         rows.append(
             f"[{timing.get('start_sec')}-{timing.get('end_sec')}s] shot{order}={shot.get('shot_id', '')}: "
-            f"{_clip_text(shot.get('visual', ''), 120)}; camera={_clip_text(card.get('camera_motion', '') or 'follow storyboard camera', 60)}; "
+            f"{_clip_text(shot.get('visual', ''), 120)}; beat={_clip_text(director.get('beat_type', ''), 40)}; "
+            f"director={_clip_text(director_plan_text(director), 120)}; camera={_clip_text(card.get('camera_motion', '') or 'follow storyboard camera', 60)}; "
             f"start={_clip_text(state.get('current_start_state', ''), 70)}; end={_clip_text(state.get('current_end_state', ''), 70)}"
         )
     return _clip_text(" ".join(rows), 760)
@@ -488,9 +492,11 @@ def _timeline_text(shots: List[Dict]) -> str:
         timing = shot.get("timing") or {}
         card = shot.get("storyboard_card") or {}
         state = shot.get("continuity_state") or {}
+        director = card.get("director_plan") or shot.get("director_plan") or {}
         rows.append(
             f"[{timing.get('start_sec')}-{timing.get('end_sec')}s] 镜头{order}={shot.get('shot_id', '')}："
             f"画面={shot.get('visual', '')}；"
+            f"导演设计={director_plan_text(director)}；"
             f"镜头控制={card.get('camera_motion', '') or '按故事板机位执行'}；"
             f"起始={state.get('current_start_state', '')}；"
             f"动作转化={state.get('main_action_transition', '') or shot.get('visual', '')}；"

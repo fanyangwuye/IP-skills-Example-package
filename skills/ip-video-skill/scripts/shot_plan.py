@@ -3,6 +3,7 @@ from typing import Dict, List
 try:
     from .continuity import choose_scene_id, find_character_ids_in_text
     from .martial_arts import is_martial_arts_scene
+    from .shot_director import build_shot_director_plan
     from .prompt_quality import (
         build_negative_prompt,
         build_negative_prompt_profile,
@@ -15,6 +16,7 @@ try:
 except ImportError:
     from continuity import choose_scene_id, find_character_ids_in_text
     from martial_arts import is_martial_arts_scene
+    from shot_director import build_shot_director_plan
     from prompt_quality import (
         build_negative_prompt,
         build_negative_prompt_profile,
@@ -95,16 +97,18 @@ def _build_shot(index: int, segment: Dict, bible: Dict, previous_end_state: str)
     }
     visual_lock = _visual_lock(character_ids, scene_id, bible)
     reference_binding = _reference_binding(character_ids, scene_id, bible)
+    director_plan = build_shot_director_plan(index, segment, visual, character_ids, scene_id, timing, continuity_state)
     storyboard_card = {
         "shot_id": segment.get("shot_id") or f"shot_{index:03d}",
-        "story_function": segment.get("beat_function") or segment.get("purpose") or segment.get("asset_goal", {}).get("purpose", "推进剧情"),
+        "story_function": director_plan.get("narrative_function") or segment.get("beat_function") or segment.get("purpose") or segment.get("asset_goal", {}).get("purpose", "推进剧情"),
         "characters_present": character_ids,
         "axis": axis,
         "screen_direction": screen_direction,
-        "framing": _framing(index, len(character_ids), visual),
-        "camera_motion": _camera_motion(index, visual),
+        "framing": (director_plan.get("framing") or {}).get("value") or _framing(index, len(character_ids), visual),
+        "camera_motion": (director_plan.get("camera_motion") or {}).get("value") or _camera_motion(index, visual),
         "eyeline": eyeline,
-        "performance_action": f"{previous_end_state} -> {_main_action(visual)} -> {end_state}",
+        "director_plan": director_plan,
+        "performance_action": (director_plan.get("action_chain") or {}).get("summary") or f"{previous_end_state} -> {_main_action(visual)} -> {end_state}",
         "sound_subtitle": {
             "voiceover": segment.get("voiceover", ""),
             "dialogue": segment.get("dialogue", []),
@@ -133,6 +137,7 @@ def _build_shot(index: int, segment: Dict, bible: Dict, previous_end_state: str)
         "eyeline": eyeline,
         "blocking_distance": _blocking_distance(character_ids),
         "storyboard_card": storyboard_card,
+        "director_plan": director_plan,
         "prompt_profile": prompt_profile,
         "i2v_prompt": compose_i2v_prompt(visual, prompt_profile, reference_binding),
         "t2v_prompt": compose_t2v_prompt(visual, prompt_profile, visual_lock),

@@ -16,7 +16,7 @@ Build the offline video structure layer for IP workflows:
 - `review_asset_manifest`: create a human-readable readiness report for matched, missing, placeholder, fragile, and unassigned assets before preflight.
 - `episode_readiness`: build one generation gate report that summarizes video handoff, storyboard quality, Prompt Packet V1, all-purpose references, asset review, model policy, continuation strategy, and preflight status.
 - `prompt_architecture_audit`: run an offline Prompt Packet V1 audit across clip_prompt, i2v_prompt, seedance_prompt, and t2v_prompt without calling any video provider.
-- `build_shot_plan`: create continuity-aware storyboard cards.
+- `build_shot_plan`: create continuity-aware storyboard cards with a structured `director_plan` for beat type, action chain, emotional turn, framing reason, camera reason, editing intent, and continuity risks.
 - `build_clip_plan`: group shots into 5-15 second continuity clips so generation is not split into too many tiny fragments.
 - `storyboard_image_tasks`: create image-generation tasks for clip-level storyboard boards, shot-table storyboards, and martial-arts action breakdown boards that share first/mid/last frame specs with video generation.
 - `martial_arts_layer`: enhance martial-arts/action clips with readable combat beats, distance, footwork, weight shift, impact feedback, and safe visual constraints.
@@ -212,6 +212,7 @@ Paid/live PoYo video model policy is locked: default to `seedance-2`, not `seeda
 
 - `scripts/continuity.py`: continuity bible builder
 - `scripts/shot_plan.py`: shot/storyboard/prompt builder
+- `scripts/shot_director.py`: structured shot director layer for beat type, action chain, emotional turn, framing/camera reasons, editing intent, and continuity-risk flags
 - `scripts/clip_plan.py`: clip grouping, clip prompts, video reference images, space anchors, and previous-frame handoff
 - `scripts/spatial_templates.py`: high-risk chase, throw-back, door/threshold, and window/glass spatial templates
 - `scripts/storyboard_assets.py`: clip-level storyboard design sheet image task builder

@@ -333,6 +333,76 @@ def test_scene_matching_uses_weighted_specific_tokens_not_generic_time_tokens():
     assert choose_scene_id("夜色里，宗门大殿的石阶被云雾压住。", scene_locks) == "sect_hall"
 
 
+
+def test_shot_director_plan_drives_prompt_profile_and_prompts():
+    task = copy.deepcopy(_task())
+    task["blueprint"]["segments"] = [
+        {
+            "index": 1,
+            "start_sec": 0,
+            "end_sec": 5,
+            "visual": "林缺检查菜单账本时发现柜台下方探测器异常闪烁，他停下动作抬眼看向厨房门。",
+        }
+    ]
+    handoff = build_video_handoff(task)
+    shot = handoff["shots"][0]
+    director_plan = shot["director_plan"]
+
+    assert director_plan["director_plan_version"] == "1.0"
+    assert director_plan["beat_type"] == "insert_detail"
+    assert "道具" in director_plan["framing"]["value"]
+    assert "动作链" in shot["prompt_profile"]["director_intent"]
+    assert "导演设计" in shot["i2v_prompt"]
+    assert "导演设计" in shot["seedance_prompt"]
+    assert "director_plan" in shot["prompt_profile"]["execution_constraints"]
+
+
+def test_shot_director_plan_preserves_segment_override():
+    task = copy.deepcopy(_task())
+    task["blueprint"]["segments"] = [
+        {
+            "index": 1,
+            "start_sec": 0,
+            "end_sec": 4,
+            "visual": "林缺停在黄泉饭店门内，听见门外脚步声后回头。",
+            "director_plan": {
+                "beat_type": "threshold_suspense",
+                "narrative_function": "门内外压力建立",
+                "framing": {"value": "OTS/CU 门内侧过肩近景", "reason": "锁定门内外边界和回头视线"},
+                "camera_motion": {"value": "static hold then tiny push", "reason": "先稳住边界再压向眼神"},
+                "emotional_turn": {"start": "警觉", "turn": "听见门外脚步", "end": "压住恐惧"},
+            },
+        }
+    ]
+    handoff = build_video_handoff(task)
+    shot = handoff["shots"][0]
+    plan = shot["director_plan"]
+
+    assert plan["source"] == "segment_override"
+    assert plan["beat_type"] == "threshold_suspense"
+    assert shot["storyboard_card"]["framing"] == "OTS/CU 门内侧过肩近景"
+    assert "门内外压力建立" in shot["i2v_prompt"]
+    assert "锁定门内外边界" in shot["prompt_profile"]["camera_control"]
+
+
+def test_shot_director_flags_long_action_for_split_review():
+    task = copy.deepcopy(_task())
+    task["blueprint"]["segments"] = [
+        {
+            "index": 1,
+            "start_sec": 0,
+            "end_sec": 15,
+            "visual": "林缺在黄泉饭店走廊里持续奔跑，沿同一方向躲避追击，整段没有反应镜头和结果落点。",
+        }
+    ]
+    handoff = build_video_handoff(task)
+    shot = handoff["shots"][0]
+    plan = shot["director_plan"]
+
+    assert plan["beat_type"] == "action_pressure"
+    assert "long_action_needs_cutaway_or_reaction" in plan["quality_flags"]
+    assert "long_action_may_need_split_or_reaction_cut" in plan["continuity_risks"]
+    assert any("long_action_may_need_split_or_reaction_cut" in item for item in shot["retry_advice"])
 def test_action_opening_uses_content_driven_framing_camera_and_end_state():
     handoff = build_video_handoff(_martial_task())
     shot = handoff["shots"][0]
@@ -2053,6 +2123,7 @@ def test_prompt_architecture_audit_passes_current_prompt_packets():
         assert {item["prompt_kind"] for item in clip_report["prompt_reports"]} == {"full_packet", "i2v", "seedance", "t2v"}
     assert any(item["name"] == "provider_prompt_differentiation" and item["status"] == "pass" for item in report["checks"])
     assert any(item["name"] == "prompt_packet_sections" and item["status"] == "pass" for item in report["checks"])
+    assert any(item["name"] == "director_plan_visible" and item["status"] == "pass" for item in report["checks"])
 
 
 def test_prompt_architecture_audit_blocks_old_or_flat_prompts():

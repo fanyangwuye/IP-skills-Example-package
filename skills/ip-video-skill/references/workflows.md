@@ -14,13 +14,15 @@ Use this before any prompt writing.
 1. Prefer `blueprint.segments` for timing and scene order.
 2. Fall back to `polished_script.scenes`, `script_draft.scenes`, then `scene_cards`.
 3. Create one shot per segment for storyboard, subtitles, and edit checking.
-4. Carry `previous_end_state -> current_start_state -> current_end_state` through every shot.
-5. Group shots into `clip_plan` entries, usually 5-15 seconds each, so video generation is not split into too many tiny fragments.
-6. Keep panorama scene images in `space_anchor_refs` for spatial overview; use normal perspective scene images in `video_reference_images` for model generation.
-7. Create `storyboard_image_tasks` when clip-level visual planning images are needed.
-8. After generating a storyboard board image, pass its path as `storyboard_image_path` or `storyboard_image_paths` when preparing or running video generation.
-9. Create `i2v_prompt`, `t2v_prompt`, `seedance_prompt`, and `clip_prompts` using the fixed Prompt Packet architecture in `prompt_architecture.md`.
-10. Create an EDL for later ffmpeg/provider assembly.
+4. Build `director_plan` for each shot before prompt writing: beat type, narrative function, emotional turn, action chain, framing reason, camera reason, editing intent, continuity risks, and quality flags.
+5. If upstream LLM or a human provides `segment.director_plan` or `segment.shot_design`, preserve it and use it as the shot-design source; otherwise use deterministic fallback rules.
+6. Carry `previous_end_state -> current_start_state -> current_end_state` through every shot.
+7. Group shots into `clip_plan` entries, usually 5-15 seconds each, so video generation is not split into too many tiny fragments.
+8. Keep panorama scene images in `space_anchor_refs` for spatial overview; use normal perspective scene images in `video_reference_images` for model generation.
+9. Create `storyboard_image_tasks` when clip-level visual planning images are needed.
+10. After generating a storyboard board image, pass its path as `storyboard_image_path` or `storyboard_image_paths` when preparing or running video generation.
+11. Create `i2v_prompt`, `t2v_prompt`, `seedance_prompt`, and `clip_prompts` using the fixed Prompt Packet architecture in `prompt_architecture.md`.
+12. Create an EDL for later ffmpeg/provider assembly.
 
 ## Prompt Packet Rules
 
@@ -36,6 +38,25 @@ Use this before any prompt writing.
 - The template is a constraint layer only. It must not add new story actions, new props, new characters, or replace storyboard blocking.
 - If the template exposes a conflict between the storyboard and the prompt, stop and revise the storyboard/prompt mapping before live generation.
 
+
+## Shot Director Layer
+
+Every shot should carry `director_plan` before prompt writing. This is the stable place for creative shot decisions, so the workflow does not fall back to position-only or vague keyword-only camera choices.
+
+`director_plan` includes:
+
+- `beat_type`: for example `establishing_hook`, `discovery`, `confrontation`, `action_pressure`, `threshold_transition`, `reversal`, `insert_detail`, or a project-specific override
+- `narrative_function`: what the shot does in the story
+- `emotional_turn`: start / turn / end emotion plus performance note
+- `action_chain`: start, trigger, development, result, and no-fill rule
+- `framing`: selected framing plus reason
+- `camera_motion`: selected camera behavior plus reason
+- `editing_intent`: cut reason, minimum readable beats, and split hint
+- `continuity_risks` and `quality_flags`: risks such as chase direction, threshold boundary, throw direction, or long action needing a reaction/cutaway
+
+Upstream LLM or human planning may provide `segment.director_plan` or `segment.shot_design`. The skill must preserve those fields and use them for `storyboard_card.framing`, `storyboard_card.camera_motion`, shot prompts, and clip-level `15s Timeline`. If no plan is provided, the deterministic fallback may infer one, but it must remain visible in the output for review.
+
+For long action, chase, door/threshold, throw-back, or multi-character relation shots, review `director_plan.continuity_risks` before paid/live generation. If the plan says the shot needs a split, reaction, bridge, or cutaway, revise the storyboard first instead of stretching a single action across 15 seconds.
 ## Storyboard Execution Rules
 
 - Treat storyboard boards and shot tables as the video execution blueprint after they exist, not as loose visual inspiration.
@@ -97,6 +118,7 @@ Use this before any prompt writing.
 Each generated video prompt should include:
 
 - timed shot duration
+- structured `director_plan` with beat type, action chain, emotional turn, framing reason, camera reason, editing intent, and continuity risks
 - narrative intent
 - action flow from previous state to end state
 - restrained performance and 1-2 micro-actions

@@ -2,13 +2,17 @@ from typing import Dict, List
 
 try:
     from .martial_arts import build_martial_arts_layer, is_martial_arts_scene, martial_arts_text
+    from .shot_director import director_plan_text
 except ImportError:
     from martial_arts import build_martial_arts_layer, is_martial_arts_scene, martial_arts_text
+    from shot_director import director_plan_text
 
 
 def build_prompt_profile(index: int, visual: str, storyboard_card: Dict, continuity_state: Dict, visual_lock: Dict) -> Dict:
     duration = _duration_text(storyboard_card)
-    emotion = _emotion_from_visual(visual)
+    director_plan = storyboard_card.get("director_plan") or {}
+    emotional_turn = director_plan.get("emotional_turn") or {}
+    emotion = "、".join(item for item in [emotional_turn.get("start"), emotional_turn.get("turn"), emotional_turn.get("end")] if item) or _emotion_from_visual(visual)
     scene = visual_lock.get("scene") or {}
     style = visual_lock.get("style") or {}
     characters = visual_lock.get("characters") or {}
@@ -21,10 +25,12 @@ def build_prompt_profile(index: int, visual: str, storyboard_card: Dict, continu
         "shot_id": storyboard_card.get("shot_id", ""),
         "duration": duration,
         "narrative_intent": storyboard_card.get("story_function", "推进剧情"),
-        "action_flow": _action_flow(visual, continuity_state),
+        "director_plan": director_plan,
+        "director_intent": director_plan_text(director_plan),
+        "action_flow": _action_flow(visual, continuity_state, director_plan),
         "martial_arts_layer": martial_arts_layer,
-        "performance_control": _performance_control(emotion, characters),
-        "camera_control": _camera_control(storyboard_card, emotion),
+        "performance_control": _performance_control(emotion, characters, director_plan),
+        "camera_control": _camera_control(storyboard_card, emotion, director_plan),
         "spatial_continuity": _spatial_continuity(storyboard_card, continuity_state),
         "lighting_texture": _lighting_texture(scene, style),
         "sound_design": _sound_design(storyboard_card),
@@ -33,13 +39,13 @@ def build_prompt_profile(index: int, visual: str, storyboard_card: Dict, continu
         "retry_advice": _retry_advice(storyboard_card),
     }
 
-
 def compose_i2v_prompt(visual: str, profile: Dict, reference_binding: Dict) -> str:
     return "\n".join(
         [
             f"[镜头 | {profile['duration']}]",
             "图生视频。严格使用参考图锁定角色脸、发型、服饰、道具、场景布局、光源方向和整体色调；参考图只贡献其指定属性，不互相污染。",
             f"叙事目标：{profile['narrative_intent']}。",
+            _optional_line("导演设计", profile.get("director_intent", "")),
             f"画面内容：{visual}",
             f"动作流程：{profile['action_flow']}",
             _optional_line("武戏调度", martial_arts_text(profile.get("martial_arts_layer") or {})),
@@ -62,6 +68,7 @@ def compose_t2v_prompt(visual: str, profile: Dict, visual_lock: Dict) -> str:
             "文生视频仅用于快速构图和动作预览；如果需要角色脸、服装和质感稳定，必须改用角色参考图和正常场景参考图做图生视频。",
             "按连续性圣经生成同一角色和同一场景，不能把新镜头当作独立重启。",
             f"叙事目标：{profile['narrative_intent']}。",
+            _optional_line("导演设计", profile.get("director_intent", "")),
             f"画面内容：{visual}",
             f"动作流程：{profile['action_flow']}",
             _optional_line("武戏调度", martial_arts_text(profile.get("martial_arts_layer") or {})),
@@ -82,6 +89,7 @@ def compose_seedance_prompt(visual: str, profile: Dict, reference_binding: Dict)
     return "\n".join(
         [
             f"[镜头 | {profile['duration']}]",
+            _optional_line("导演设计", profile.get("director_intent", "")),
             f"画面内容：{visual}",
             _optional_line("武戏调度", martial_arts_text(profile.get("martial_arts_layer") or {})),
             f"表演控制：{profile['performance_control']}",
@@ -205,7 +213,10 @@ def _duration_text(storyboard_card: Dict) -> str:
     return "按上游 timing 时长执行"
 
 
-def _action_flow(visual: str, continuity_state: Dict) -> str:
+def _action_flow(visual: str, continuity_state: Dict, director_plan: Dict = None) -> str:
+    action_chain = ((director_plan or {}).get("action_chain") or {})
+    if action_chain.get("summary"):
+        return action_chain["summary"]
     return (
         f"从「{continuity_state['current_start_state']}」开始；"
         f"中段只执行一个主动作「{continuity_state['main_action_transition'] or visual}」；"
@@ -213,24 +224,28 @@ def _action_flow(visual: str, continuity_state: Dict) -> str:
     )
 
 
-def _performance_control(emotion: str, characters: Dict) -> str:
+def _performance_control(emotion: str, characters: Dict, director_plan: Dict = None) -> str:
     names = "、".join(lock.get("name", char_id) for char_id, lock in characters.items()) or "镜头主体"
+    emotional_turn = ((director_plan or {}).get("emotional_turn") or {})
+    performance_note = emotional_turn.get("performance_note") or "只安排1-2个微动作，例如视线短暂停住、眼睑收紧、手指微收、下颌轻压、呼吸变浅。"
+    beat_type = (director_plan or {}).get("beat_type", "")
     return (
-        f"{names}保持克制真实表演，当前情绪为{emotion}。"
-        "只安排1-2个微动作，例如视线短暂停住、眼睑收紧、手指微收、下颌轻压、呼吸变浅。"
+        f"{names}保持克制真实表演，当前情绪为{emotion}，镜头节拍={beat_type}。"
+        f"{performance_note}"
         "情绪主要放在眼神、嘴角、呼吸和停顿里，不做夸张舞台化表情。"
         "动作不要瞬间到位，先有迟疑、判断或呼吸，再执行。"
     )
 
-
-def _camera_control(storyboard_card: Dict, emotion: str) -> str:
+def _camera_control(storyboard_card: Dict, emotion: str, director_plan: Dict = None) -> str:
     framing = storyboard_card.get("framing", "MS 主体清楚")
     motion = storyboard_card.get("camera_motion", "stable observation")
+    framing_reason = (((director_plan or {}).get("framing") or {}).get("reason") or "景别服务本镜故事功能")
+    camera_reason = (((director_plan or {}).get("camera_motion") or {}).get("reason") or "镜头运动服务情绪和动作结果")
     return (
         f"{framing}；{motion}。镜头运动服务于{emotion}，不要装饰性乱动。"
+        f"景别理由：{framing_reason}；运镜理由：{camera_reason}。"
         "先让观众看清主体和空间关系，再在情绪落点短暂停留0.3-0.5秒。"
     )
-
 
 def _spatial_continuity(storyboard_card: Dict, continuity_state: Dict) -> str:
     return (
@@ -285,8 +300,10 @@ def _realism_anchors(characters: Dict, scene: Dict) -> str:
 
 def _execution_constraints(storyboard_card: Dict) -> str:
     multichar = len(storyboard_card.get("characters_present") or []) >= 2
+    director_plan = storyboard_card.get("director_plan") or {}
     constraints = [
         "每镜只保留一个主动作和一个情绪落点",
+        "必须执行 director_plan 中的节拍、动作链、景别理由、运镜理由和剪辑意图",
         "不要把世界观解释写成画面文字",
         "禁止画面字幕、伪文字、水印、片头片尾和标题卡",
         "禁止背景音乐和歌曲；视频模型只处理现场环境声与拟音",
@@ -295,10 +312,12 @@ def _execution_constraints(storyboard_card: Dict) -> str:
     ]
     if multichar:
         constraints.append("双人关系优先清楚，不用复杂运镜破坏轴线")
+    for flag in director_plan.get("quality_flags") or []:
+        constraints.append(f"director_plan quality flag: {flag}")
     return "；".join(constraints)
 
-
 def _retry_advice(storyboard_card: Dict) -> List[str]:
+    director_plan = storyboard_card.get("director_plan") or {}
     advice = [
         "如果动作太乱，缩短为一个主动作并改用稳定中景。",
         "如果表情过度，强调克制微表情和呼吸变化。",
@@ -308,8 +327,9 @@ def _retry_advice(storyboard_card: Dict) -> List[str]:
         advice.append("如果手持太晃，改成可控低幅跟拍，命中点或情绪点短暂停留。")
     if storyboard_card.get("action_scene_type") == "martial_arts":
         advice.append("如果武戏动作糊成一团，改成起势、一次攻防、收势三拍，并用中景稳定拍清距离。")
+    for risk in director_plan.get("continuity_risks") or []:
+        advice.append(f"如果出现 {risk}，按 director_plan 的景别、运镜理由和动作链重写本镜，不要临时添加新动作。")
     return advice
-
 
 def _emotion_from_visual(visual: str) -> str:
     text = str(visual or "")

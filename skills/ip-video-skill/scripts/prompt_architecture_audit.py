@@ -218,6 +218,10 @@ def _audit_prompt_field(clip_id: str, field: str, kind: Optional[str], prompt: s
     if not safe_layer_ok:
         errors.append(f"{label}: internal facts and platform-safe surface wording layers must both be present")
 
+    director_ok = _contains_any(prompt, ["导演设计", "director=", "director_plan"])
+    _add_prompt_check(checks, label, "director_plan_visible", director_ok, {})
+    if not director_ok:
+        warnings.append(f"{label}: director_plan or director shot-design markers should be visible in the prompt timeline")
     timeline_ok = _timeline_covers_storyboard(prompt, clip)
     _add_prompt_check(checks, label, "timeline_mentions_storyboard_shots", timeline_ok, {"shot_ids": clip.get("shot_ids", [])})
     if not timeline_ok:
