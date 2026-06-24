@@ -5,11 +5,13 @@ try:
     from .asset_manifest import manifest_reference_image_urls, manifest_space_anchor_refs
     from .config import VideoProviderConfig
     from .poyo_video_client import PoYoVideoClient
+    from .reference_integrity import character_reference_binding_report
     from .storyboard_panel_refs import PANEL_REF_ROLES, build_storyboard_panel_refs
 except ImportError:
     from asset_manifest import manifest_reference_image_urls, manifest_space_anchor_refs
     from config import VideoProviderConfig
     from poyo_video_client import PoYoVideoClient
+    from reference_integrity import character_reference_binding_report
     from storyboard_panel_refs import PANEL_REF_ROLES, build_storyboard_panel_refs
 
 
@@ -74,6 +76,7 @@ def run_video_generation(task: Dict, config: VideoProviderConfig) -> Dict:
         }
     _guard_storyboard_execution_map(task, request)
     _guard_prompt_packet_architecture(task, request)
+    _guard_character_reference_bindings(task, request)
     _guard_live_reference_strength(task, request)
     _guard_characterless_first_frame(task, request)
     if provider == "poyo_video":
@@ -145,6 +148,21 @@ def _guard_prompt_packet_architecture(task: Dict, request: Dict) -> None:
             "Live clip video generation is blocked because Prompt Packet V1 is incomplete. "
             "Missing sections: " + ", ".join(missing) + ". "
             "Regenerate the clip prompt through ip-video-skill build_clip_plan before spending credits."
+        )
+
+
+def _guard_character_reference_bindings(task: Dict, request: Dict) -> None:
+    if task.get("allow_incomplete_character_reference_binding"):
+        return
+    if request.get("provider") != "poyo_video":
+        return
+    if request.get("unit_kind") != "clip":
+        return
+    report = character_reference_binding_report(request)
+    if report.get("status") == "fail":
+        raise RuntimeError(
+            "Live clip video generation is blocked because character reference binding is incomplete. "
+            + "; ".join(report.get("messages") or [])
         )
 
 

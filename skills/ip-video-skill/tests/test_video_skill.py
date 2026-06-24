@@ -1451,7 +1451,8 @@ def test_live_video_blocks_reference_only_generation_by_default():
                 "clip_index": 1,
                 "dry_run": False,
                 "reference_image_urls": [
-                    {"url": "https://files.example/character.jpg", "role": "character_design_sheet"},
+                    {"url": "https://files.example/linque.jpg", "role": "character_design_sheet", "character_id": "lin_que"},
+                    {"url": "https://files.example/niutou.jpg", "role": "character_design_sheet", "character_id": "niu_tou"},
                     {"url": "https://files.example/scene.jpg", "role": "video_scene_reference"},
                 ],
             },
@@ -1624,7 +1625,10 @@ def test_preflight_asset_manifest_warns_fragile_local_paths():
             "video_handoff": handoff,
             "reference_policy": "all_purpose_reference",
             "asset_manifest": {
-                "character_references": [{"path": "C:\\Users\\qjw\\Downloads\\linque.png", "role": "character_reference"}],
+                "character_references": [
+                    {"path": "C:\\Users\\qjw\\Downloads\\linque.png", "role": "character_reference", "character_id": "lin_que"},
+                    {"url": "https://files.example/niutou.png", "role": "character_reference", "character_id": "niu_tou"},
+                ],
                 "scene_references": [{"url": "https://files.example/hall.png", "role": "video_scene_reference"}],
                 "storyboard_references": [{"url": "https://files.example/board.png", "role": "storyboard_layout_reference"}],
             },
@@ -1634,6 +1638,31 @@ def test_preflight_asset_manifest_warns_fragile_local_paths():
     )
     assert report["status"] == "pass"
     assert any("fragile local user/download path" in warning for warning in report["warnings"])
+
+def test_preflight_blocks_ambiguous_multi_character_reference_binding():
+    handoff = build_video_handoff(_task())
+    config = VideoProviderConfig("poyo_video", "test", "https://api.example", "", "seedance-2", "9:16", "480p", 1, 5)
+    report = preflight_video_generation(
+        {
+            "mode": "preflight_video_generation",
+            "provider": "poyo_video",
+            "video_handoff": handoff,
+            "reference_policy": "all_purpose_reference",
+            "reference_image_urls": [
+                {"url": "https://files.example/one-character.jpg", "role": "character_reference"},
+                {"url": "https://files.example/hall.jpg", "role": "video_scene_reference"},
+                {"url": "https://files.example/storyboard.jpg", "role": "storyboard_layout_reference"},
+            ],
+            "max_clips": 1,
+        },
+        config,
+    )
+    assert report["status"] == "fail"
+    assert any("character reference binding incomplete" in error for error in report["errors"])
+    check = next(item for item in report["checks"] if item["name"] == "character_reference_bindings")
+    assert check["status"] == "fail"
+    assert check["detail"]["required_character_ids"] == ["lin_que", "niu_tou"]
+    assert check["detail"]["ambiguous_character_reference_count"] == 1
 
 def test_preflight_video_generation_passes_all_purpose_clip():
     handoff = build_video_handoff(_task())
@@ -1645,7 +1674,8 @@ def test_preflight_video_generation_passes_all_purpose_clip():
             "video_handoff": handoff,
             "reference_policy": "all_purpose_reference",
             "reference_image_urls": [
-                {"url": "https://files.example/linque.jpg", "role": "character_reference"},
+                {"url": "https://files.example/linque.jpg", "role": "character_reference", "character_id": "lin_que"},
+                {"url": "https://files.example/niutou.jpg", "role": "character_reference", "character_id": "niu_tou"},
                 {"url": "https://files.example/hall.jpg", "role": "video_scene_reference"},
                 {"url": "https://files.example/storyboard.jpg", "role": "storyboard_layout_reference"},
             ],
@@ -1754,7 +1784,8 @@ def test_live_video_all_purpose_reference_passes_with_fake_client():
                 "video_handoff": handoff,
                 "reference_policy": "all_purpose_reference",
                 "reference_image_urls": [
-                    {"url": "https://files.example/linque.jpg", "role": "character_reference"},
+                    {"url": "https://files.example/linque.jpg", "role": "character_reference", "character_id": "lin_que"},
+                    {"url": "https://files.example/niutou.jpg", "role": "character_reference", "character_id": "niu_tou"},
                     {"url": "https://files.example/hall.jpg", "role": "video_scene_reference"},
                     {"url": "https://files.example/storyboard.jpg", "role": "storyboard_layout_reference"},
                 ],
@@ -1772,6 +1803,7 @@ def test_live_video_all_purpose_reference_passes_with_fake_client():
     request = captured["request"]
     assert request["image_urls"] == []
     assert [ref["role"] for ref in request["reference_image_urls"]] == [
+        "character_reference",
         "character_reference",
         "video_scene_reference",
         "storyboard_layout_reference",

@@ -85,6 +85,7 @@ For any paid/live clip that contains named or locked characters, obey the projec
 
 - If `reference_policy: all_purpose_reference` is set, the provider request must use `reference_image_urls` only. Do not add `image_urls`, do not use first-frame or last-frame inputs, do not map `previous_clip_end_frame` into the first-frame slot, and do not regenerate a keyframe just to satisfy an older I2V habit.
 - In all-purpose reference mode, character references lock identity, scene references lock space, and storyboard references lock shot design, composition, blocking, action phase, screen direction, and edit order. The prompt must explicitly bind every `@Image` role.
+- Every character-bearing clip must have complete character reference bindings before paid/live generation. For multi-character clips, each character reference must carry `character_id` (or equivalent `character`/`char_id`/`name`) so refs cannot collapse into one ambiguous face.
 - Storyboard boards and panel crops remain layout references only. Do not copy line-art style, table borders, labels, arrows, captions, handwritten marks, or sketch texture into final video.
 - Use `image_urls[0]` first-frame/keyframe only when the project explicitly selects first-frame/keyframe I2V. Never substitute first/last frames for all-purpose reference.
 - If face, hairstyle, costume, screen direction, or story action drifts, stop live generation and fix the reference binding or shot prompt before spending another video call.
@@ -212,6 +213,7 @@ Paid/live PoYo video model policy is locked: default to `seedance-2`, not `seeda
 - `scripts/martial_arts.py`: martial-arts scene detector and combat prompt layer
 - `scripts/prompt_quality.py`: prompt quality layers for performance, camera, light, sound, realism, constraints, and retry advice
 - `scripts/asset_manifest.py`: asset manifest loader for character, scene, storyboard, and space-anchor reference binding
+- `scripts/reference_integrity.py`: character reference binding completeness checks for preflight and live generation
 - `scripts/preflight_video_episode.py`: local preflight checks for Prompt Packet V1, storyboard mapping, all-purpose references, paid model policy, spatial templates, duration, and text/audio constraints
 - `scripts/video_provider.py`: provider request builder and dry-run execution boundary
 - `scripts/poyo_video_client.py`: PoYo Seedance 2 submit, status polling, upload, and download client

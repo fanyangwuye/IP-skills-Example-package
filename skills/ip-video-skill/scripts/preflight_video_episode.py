@@ -5,11 +5,13 @@ from typing import Dict, List, Optional, Tuple
 try:
     from .asset_manifest import validate_asset_manifest
     from .config import VideoProviderConfig, load_video_provider_config
+    from .reference_integrity import character_reference_binding_report
     from .spatial_templates import high_risk_spatial_template_text
     from .video_provider import PROMPT_PACKET_REQUIRED_SECTIONS, prepare_video_generation_request
 except ImportError:
     from asset_manifest import validate_asset_manifest
     from config import VideoProviderConfig, load_video_provider_config
+    from reference_integrity import character_reference_binding_report
     from spatial_templates import high_risk_spatial_template_text
     from video_provider import PROMPT_PACKET_REQUIRED_SECTIONS, prepare_video_generation_request
 
@@ -160,6 +162,14 @@ def _check_request(task: Dict, request: Dict, unit_label: str) -> Tuple[List[Dic
         warnings.append(f"{unit_label}: storyboard_quality warning requires human review: {issue_codes}")
     elif quality_status == "unknown":
         warnings.append(f"{unit_label}: storyboard_quality report is missing; rebuild handoff with current ip-video-skill before paid generation")
+
+    reference_report = character_reference_binding_report(request)
+    reference_ok = reference_report.get("status") != "fail"
+    _add_check(checks, unit_label, "character_reference_bindings", reference_ok, reference_report)
+    if reference_report.get("status") == "fail":
+        errors.append(f"{unit_label}: character reference binding incomplete: {'; '.join(reference_report.get('messages') or [])}")
+    elif reference_report.get("status") == "warn":
+        warnings.append(f"{unit_label}: character reference binding warning: {'; '.join(reference_report.get('messages') or [])}")
 
     all_purpose = _uses_all_purpose_reference(task, request)
     if all_purpose:
