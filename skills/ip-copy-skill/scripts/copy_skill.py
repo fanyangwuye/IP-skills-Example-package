@@ -8,13 +8,13 @@ from typing import Dict, List, Optional
 try:
     from .blueprint_validate import validate_blueprint
     from .creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_prompt_pack, build_provider_request, summarize_provider_request
-    from .format_adapters import VerticalShortDramaAdapter
+    from .format_adapters import OverseasShortDramaAdapter, VerticalShortDramaAdapter
     from .license_gate import check_license, gate
     from .quality_evaluator import evaluate_scene_cards_quality, evaluate_script_quality
 except ImportError:
     from blueprint_validate import validate_blueprint
     from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_prompt_pack, build_provider_request, summarize_provider_request
-    from format_adapters import VerticalShortDramaAdapter
+    from format_adapters import OverseasShortDramaAdapter, VerticalShortDramaAdapter
     from license_gate import check_license, gate
     from quality_evaluator import evaluate_scene_cards_quality, evaluate_script_quality
 
@@ -853,6 +853,8 @@ def _screenplay_section_summary(lines: List[str]) -> str:
 def _format_adapter_from_task(task: Dict, direction: Dict = None):
     direction = direction or {}
     name = str(task.get("format_adapter") or task.get("target_format") or direction.get("format_adapter") or direction.get("target") or "vertical_short_drama").strip().lower()
+    if name in {"overseas_short_drama", "overseas", "international_short_drama", "english_short_drama", "海外短剧", "海外短剧剧本"}:
+        return OverseasShortDramaAdapter()
     if name in {"vertical_short_drama", "short_drama", "short_drama_script", "竖屏短剧", "短剧"}:
         return VerticalShortDramaAdapter()
     return VerticalShortDramaAdapter()
@@ -904,6 +906,7 @@ def _build_script_draft(scene_cards: List[Dict], state: Dict, task: Dict) -> Dic
                 "image_requirements": spec.handoff_requirements.get("image", []),
                 "video_requirements": spec.handoff_requirements.get("video", []),
                 "music_requirements": spec.handoff_requirements.get("music", []),
+                "copy_requirements": spec.handoff_requirements.get("copy", []),
             },
         }, spec, context={"source_text": state.get("source_text", task.get("source_text", "")), "characters": characters}),
         "handoff": {
@@ -913,6 +916,7 @@ def _build_script_draft(scene_cards: List[Dict], state: Dict, task: Dict) -> Dic
             "image_requirements": spec.handoff_requirements.get("image", []),
             "video_requirements": spec.handoff_requirements.get("video", []),
             "music_requirements": spec.handoff_requirements.get("music", []),
+            "copy_requirements": spec.handoff_requirements.get("copy", []),
         },
     }
 
@@ -1044,6 +1048,7 @@ def _polish_script_draft(script: Dict, task: Dict) -> Dict:
     polished["handoff"]["can_build_blueprint"] = True
     polished["handoff"]["polished_for_script"] = True
     polished["handoff"]["format_adapter"] = spec.format_name
+    polished["handoff"]["copy_requirements"] = spec.handoff_requirements.get("copy", [])
     return polished
 
 

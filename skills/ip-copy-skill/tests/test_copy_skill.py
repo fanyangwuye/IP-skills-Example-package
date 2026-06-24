@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from blueprint_validate import validate_blueprint  # noqa: E402
 from copy_skill import run_task  # noqa: E402
 from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_prompt_pack, build_provider_request  # noqa: E402
-from format_adapters import VerticalShortDramaAdapter  # noqa: E402
+from format_adapters import OverseasShortDramaAdapter, VerticalShortDramaAdapter  # noqa: E402
 from license_gate import check_license, gate  # noqa: E402
 from quality_evaluator import evaluate_scene_cards_quality, evaluate_script_quality  # noqa: E402
 
@@ -53,6 +53,38 @@ def test_vertical_short_drama_adapter_validates_scene_cards():
     assert any("asset_goal" in error for error in errors)
 
 
+
+
+def test_overseas_short_drama_adapter_spec_locks_localization_rules():
+    adapter = OverseasShortDramaAdapter()
+    spec = adapter.spec()
+    assert spec.format_name == "overseas_short_drama"
+    assert spec.structure_levels == ["project", "season", "episode", "scene", "beat"]
+    assert spec.default_aspect_ratio == "9:16"
+    assert spec.default_episode_duration_sec == 360
+    assert "dialogue_translation_ready" in spec.quality_checks
+    assert "culture_safe_surface_wording" in spec.handoff_requirements["copy"]
+    assert "every_20_to_30_seconds_add_new_emotional_pressure_or_plot_information" in spec.rhythm_rules
+
+
+def test_overseas_short_drama_prompt_pack_uses_adapter_constraints():
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                "mode": "build_creative_prompt_pack",
+                "target_format": "overseas_short_drama",
+                "prompt_kind": "script_scenes",
+                "title": "黄泉饭店",
+                "source_text": "林缺回到黄泉饭店。苏澜发现大厅异常。",
+                "creative_brief": {"target": "overseas_short_drama", "tone": "suspense romance"},
+                "output_dir": output_dir,
+            }
+        )
+        prompt_pack = result["handoff"]["prompt_pack"]
+        assert prompt_pack["format_name"] == "overseas_short_drama"
+        assert "dialogue_translation_ready" in prompt_pack["user_prompt"]
+        assert "culture_safe_surface_wording" in prompt_pack["user_prompt"]
+        assert result["handoff"]["provider_request"]["network_call_allowed"] is False
 def test_vertical_short_drama_adapter_builds_creative_engine_payload():
     adapter = VerticalShortDramaAdapter()
     payload = adapter.creative_engine_payload(
@@ -648,6 +680,33 @@ def test_build_script_draft_from_scene_cards():
         assert script["quality_report"]["status"] in {"pass", "warn"}
         assert os.path.exists(os.path.join(output_dir, "script_draft.json"))
 
+
+
+def test_build_script_draft_can_use_overseas_short_drama_adapter():
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                "mode": "build_script_draft",
+                "target_format": "overseas_short_drama",
+                "title": "黄泉饭店",
+                "scene_cards": [
+                    {
+                        "visual": "黄泉饭店大厅，林缺翻开菜单账本。",
+                        "voiceover": "He returns to the hotel and finds the rules have changed.",
+                        "duration_sec": 12,
+                        "asset_goal": {"scene": "黄泉饭店大厅", "type": "adapted scene key frame"},
+                    }
+                ],
+                "characters": [{"name": "林缺"}],
+                "total_duration_sec": 12,
+                "output_dir": output_dir,
+            }
+        )
+        script = result["handoff"]["script_draft"]
+        assert script["format_adapter"] == "overseas_short_drama"
+        assert script["aspect_ratio"] == "9:16"
+        assert "dialogue_translation_ready" in script["quality_checks"]
+        assert "culture_safe_surface_wording" in script["handoff"]["copy_requirements"]
 def test_build_script_draft_can_use_mock_creative_engine_script_scenes():
     with tempfile.TemporaryDirectory() as output_dir:
         result = run_task(

@@ -20,8 +20,10 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 - Route scene-card, script-draft, and polish flows through the guarded CreativeEngine interface when configured
 - Attach `generation_source` and `quality_report` fields so downstream agents know whether an output is fallback scaffold, mock engine output, or future live output
 - Apply the `vertical_short_drama` FormatAdapter V1 for 9:16 short-drama structure, rhythm rules, and downstream handoff requirements
+- Apply the `overseas_short_drama` FormatAdapter V1 for overseas short-drama structure, localization rules, translation-ready dialogue, and culture-safe handoff requirements
 - Build CreativeEngine prompt packs and provider request dry-run JSON for review without making live calls
-- Include creative diagnostics in prompt packs: genre profile, character voice contract, causality contract, rhythm contract, forbidden drift, and quality gate`r`n- Include deterministic creative-quality checks in `quality_report`: unsupported details, character consistency, dialogue voice, causality, hook density, and emotion curve
+- Include creative diagnostics in prompt packs: genre profile, character voice contract, causality contract, rhythm contract, forbidden drift, and quality gate
+- Include deterministic creative-quality checks in `quality_report`: unsupported details, character consistency, dialogue voice, causality, hook density, and emotion curve
 
 ## Tool Boundaries
 
@@ -72,7 +74,7 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 ### Flow B2: Adaptation Scene Cards
 
 1. Accept an `adaptation_state`
-2. Select a FormatAdapter, defaulting to `vertical_short_drama`
+2. Select a FormatAdapter, defaulting to `vertical_short_drama`; `overseas_short_drama` is available when requested through `target_format` or `format_adapter`
 3. Try the configured CreativeEngine path first; default offline mode returns `fallback_required` without spending quota
 4. Use deterministic scene cards only as clearly marked fallback scaffold with `generation_source=fallback_scaffold`
 5. Each card includes visual, voiceover, subtitle, music cue, duration, and image `asset_goal`
@@ -82,7 +84,7 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 
 1. Accept `scene_cards` or an `adaptation_state`
 2. If scene cards are missing, build them from the adaptation state
-3. Apply the `vertical_short_drama` adapter metadata: `format_adapter`, `aspect_ratio=9:16`, rhythm rules, quality checks, and downstream handoff requirements
+3. Apply the selected adapter metadata: `format_adapter`, aspect ratio, rhythm rules, quality checks, and downstream handoff requirements
 4. Try CreativeEngine `script_scenes`; invalid explicit engine output is rejected instead of silently falling back
 5. Return a structured `script_draft` with scenes, action, voiceover, dialogue, subtitles, music cues, timing, asset goals, `generation_source`, and `quality_report` with creative checks
 6. Treat fallback output as scaffold, not final prose
@@ -122,7 +124,7 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 - `scripts/blueprint_validate.py`: deterministic blueprint validation
 - `scripts/copy_skill.py`: task entrypoint, interactive adaptation state, scene card builder, script draft builder, viral explainer builder, script polish helper, blueprint builder, handoff builder, and IP asset pack builder
 - `scripts/creative_engine/`: CreativeEngine base types, offline engine, mock engine, live guard placeholder, and schema checks
-- `scripts/format_adapters/`: FormatAdapter base and `vertical_short_drama` V1 adapter
+- `scripts/format_adapters/`: FormatAdapter base, `vertical_short_drama` V1 adapter, and `overseas_short_drama` V1 adapter
 - `scripts/quality_evaluator/`: structure, scaffold, and deterministic creative-quality checks for scene cards and scripts
 
 ## References
