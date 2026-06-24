@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from blueprint_validate import validate_blueprint  # noqa: E402
 from copy_skill import run_task  # noqa: E402
 from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_prompt_pack, build_provider_request  # noqa: E402
-from format_adapters import FeatureFilmAdapter, OverseasShortDramaAdapter, VerticalShortDramaAdapter  # noqa: E402
+from format_adapters import FeatureFilmAdapter, LongSeriesAdapter, OverseasShortDramaAdapter, VerticalShortDramaAdapter  # noqa: E402
 from license_gate import check_license, gate  # noqa: E402
 from quality_evaluator import evaluate_scene_cards_quality, evaluate_script_quality  # noqa: E402
 
@@ -84,6 +84,39 @@ def test_overseas_short_drama_prompt_pack_uses_adapter_constraints():
         assert prompt_pack["format_name"] == "overseas_short_drama"
         assert "dialogue_translation_ready" in prompt_pack["user_prompt"]
         assert "culture_safe_surface_wording" in prompt_pack["user_prompt"]
+        assert result["handoff"]["provider_request"]["network_call_allowed"] is False
+
+
+def test_long_series_adapter_spec_locks_episode_arc_rules():
+    adapter = LongSeriesAdapter()
+    spec = adapter.spec()
+    assert spec.format_name == "long_series"
+    assert spec.structure_levels == ["project", "act", "episode", "scene", "beat"]
+    assert spec.default_aspect_ratio == "16:9"
+    assert spec.default_episode_duration_sec == 2700
+    assert "episode_engine_clear" in spec.quality_checks
+    assert "a_story_b_story_tracks" in spec.handoff_requirements["copy"]
+    assert "each_act_break_raises_stakes_reverses_information_or_changes_relationship_power" in spec.rhythm_rules
+
+
+def test_long_series_prompt_pack_uses_adapter_constraints():
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                "mode": "build_creative_prompt_pack",
+                "target_format": "long_series",
+                "prompt_kind": "script_scenes",
+                "title": "黄泉饭店",
+                "source_text": "林缺回到黄泉饭店。苏澜发现大厅异常。牛头员工端托盘出现。",
+                "creative_brief": {"target": "long_series", "tone": "suspense ensemble drama"},
+                "output_dir": output_dir,
+            }
+        )
+        prompt_pack = result["handoff"]["prompt_pack"]
+        assert prompt_pack["format_name"] == "long_series"
+        assert "episode_engine_clear" in prompt_pack["user_prompt"]
+        assert "a_story_b_story_tracks_clear" in prompt_pack["user_prompt"]
+        assert "16:9" in prompt_pack["user_prompt"]
         assert result["handoff"]["provider_request"]["network_call_allowed"] is False
 
 def test_feature_film_adapter_spec_locks_three_act_rules():
@@ -740,6 +773,33 @@ def test_build_script_draft_can_use_overseas_short_drama_adapter():
         assert script["aspect_ratio"] == "9:16"
         assert "dialogue_translation_ready" in script["quality_checks"]
         assert "culture_safe_surface_wording" in script["handoff"]["copy_requirements"]
+
+
+def test_build_script_draft_can_use_long_series_adapter():
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                "mode": "build_script_draft",
+                "target_format": "long_series",
+                "title": "黄泉饭店",
+                "scene_cards": [
+                    {
+                        "visual": "黄泉饭店大厅，林缺翻开账本，苏澜在旁记录异常，饭店本集主线和调查副线同时启动。",
+                        "voiceover": "这一集的问题不是饭店开门，而是谁在背后改了规则。",
+                        "duration_sec": 180,
+                        "asset_goal": {"scene": "黄泉饭店大厅", "type": "long series key scene frame"},
+                    }
+                ],
+                "characters": [{"name": "林缺"}, {"name": "苏澜"}],
+                "total_duration_sec": 180,
+                "output_dir": output_dir,
+            }
+        )
+        script = result["handoff"]["script_draft"]
+        assert script["format_adapter"] == "long_series"
+        assert script["aspect_ratio"] == "16:9"
+        assert "a_story_b_story_tracks_clear" in script["quality_checks"]
+        assert "episode_logline" in script["handoff"]["copy_requirements"]
 
 def test_build_script_draft_can_use_feature_film_adapter():
     with tempfile.TemporaryDirectory() as output_dir:

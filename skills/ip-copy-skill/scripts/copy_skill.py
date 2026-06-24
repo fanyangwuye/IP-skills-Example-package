@@ -8,13 +8,13 @@ from typing import Dict, List, Optional
 try:
     from .blueprint_validate import validate_blueprint
     from .creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_prompt_pack, build_provider_request, summarize_provider_request
-    from .format_adapters import FeatureFilmAdapter, OverseasShortDramaAdapter, VerticalShortDramaAdapter
+    from .format_adapters import FeatureFilmAdapter, LongSeriesAdapter, OverseasShortDramaAdapter, VerticalShortDramaAdapter
     from .license_gate import check_license, gate
     from .quality_evaluator import evaluate_scene_cards_quality, evaluate_script_quality
 except ImportError:
     from blueprint_validate import validate_blueprint
     from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_prompt_pack, build_provider_request, summarize_provider_request
-    from format_adapters import FeatureFilmAdapter, OverseasShortDramaAdapter, VerticalShortDramaAdapter
+    from format_adapters import FeatureFilmAdapter, LongSeriesAdapter, OverseasShortDramaAdapter, VerticalShortDramaAdapter
     from license_gate import check_license, gate
     from quality_evaluator import evaluate_scene_cards_quality, evaluate_script_quality
 
@@ -853,6 +853,8 @@ def _screenplay_section_summary(lines: List[str]) -> str:
 def _format_adapter_from_task(task: Dict, direction: Dict = None):
     direction = direction or {}
     name = str(task.get("format_adapter") or task.get("target_format") or direction.get("format_adapter") or direction.get("target") or "vertical_short_drama").strip().lower()
+    if name in {"long_series", "series", "tv_series", "drama_series", "long_drama", "tv_drama", "长剧", "长剧剧本", "剧集", "电视剧", "连续剧"}:
+        return LongSeriesAdapter()
     if name in {"feature_film", "film", "movie", "feature", "cinema", "电影", "电影剧本", "大电影"}:
         return FeatureFilmAdapter()
     if name in {"overseas_short_drama", "overseas", "international_short_drama", "english_short_drama", "海外短剧", "海外短剧剧本"}:
