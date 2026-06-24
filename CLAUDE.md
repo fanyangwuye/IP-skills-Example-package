@@ -2,7 +2,7 @@
 
 Use this repository as an agent-facing IP creation skills package.
 
-Before executing an IP workflow, first read `docs/新窗口必读交接.md`, then read the relevant skill files:
+Before executing an IP workflow, read the relevant skill files:
 
 - `skills/ip-copy-skill/SKILL.md`
 - `skills/ip-image-skill/SKILL.md`
@@ -35,7 +35,7 @@ Rules:
 - Prompt text may only strengthen details already present in references and storyboard; it must not add, modify, or reduce locked content.
 - Paid/live PoYo video must default to `seedance-2`, not `seedance-2-fast`. Use `seedance-2-fast` only if the user explicitly asks for fast mode and the task sets `allow_fast_model=true`.
 - Keep video model audio limited to ambient sound and foley. Do not generate background music, songs, subtitles, title cards, fake text, or watermarks.
-- Do not place new project assets, generated videos, task JSON, or review frames under `C:\\Users` by default. Prefer `IP_SKILLS_OUTPUT_ROOT` on a non-C drive, such as `E:\\Plans for 2026\\ip-skills\\outputs`; ask before moving existing assets.
+- Do not place new project assets, generated videos, task JSON, or review frames under `C:\Users` by default. Prefer `IP_SKILLS_OUTPUT_ROOT` on a non-C drive, such as `E:\Plans for 2026\ip-skills\outputs`; ask before moving existing assets.
 - Never commit `.env`, `outputs/`, `logs/`, generated videos, generated images, or API keys.
 - Use `python scripts/setup_doctor.py` for environment checks.
 - Use `docs/agent_config.md` for Codex, Claude Code, OpenClaw, and generic agent setup.

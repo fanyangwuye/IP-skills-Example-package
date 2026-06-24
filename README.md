@@ -28,7 +28,7 @@ This repository is all-rights-reserved by default. Public visibility does not gr
 - `skills/ip-video-skill/`: continuity-locked video handoff, shot/clip planning, prompt quality layers, provider request preparation, and EDL
 - `scripts/`: cross-skill helper scripts
 - `tests/`: repository-level integration tests
-- `docs/`: workflow notes
+- `docs/`: public setup and provider notes
 - `outputs/`: local generated artifacts, ignored by Git
 - `logs/`: local logs, ignored by Git
 
