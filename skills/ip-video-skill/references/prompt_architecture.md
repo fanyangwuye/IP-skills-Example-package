@@ -49,6 +49,7 @@ Every clip-level video prompt must be organized in this order:
 8. `Platform-Safe Surface Wording`
    - external prompt wording may soften risky nouns, but it must not change locked content
    - safe wording strengthens reference details; it does not add, remove, or replace characters, props, actions, or spaces
+   - English-oriented provider prompts (`i2v` and `t2v`) must use neutral English visible anchors in this section instead of embedding raw Chinese visual/action text; original project terms stay in `Internal Story Facts`
 9. `Execution Constraints`
    - storyboard order cannot be deleted, merged away, reordered, or rewritten
    - prompt text may only strengthen existing references and storyboard details
@@ -114,6 +115,9 @@ Door, window, threshold, or chase scenes must explicitly state:
 - when the boundary closes or blocks the threat
 - where the pursuer remains after the cut
 
+## Provider Prompt Budget Policy
+
+Provider-specific prompts must stay inside their character budgets while preserving the fixed Prompt Packet sections. When compaction is required, keep `15s Timeline`, `Spatial Blocking`, `Reference Bindings`, `Platform-Safe Surface Wording`, and `Execution Constraints` ahead of generic context. Do not trim `Prompt Packet V1` metadata enough to lose `prompt_kind`, clip id, duration, generation unit, or shot ids.
 ## Live Generation Gate
 
 Before live generation:

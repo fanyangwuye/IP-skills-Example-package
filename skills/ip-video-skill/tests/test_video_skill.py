@@ -117,6 +117,16 @@ def _martial_task():
     return task
 
 
+def _prompt_section(prompt, section, next_section):
+    start = prompt.index(section)
+    end = prompt.index(next_section, start) if next_section else len(prompt)
+    return prompt[start:end]
+
+
+def _has_cjk_text(text):
+    return any("\u4e00" <= char <= "\u9fff" for char in str(text or ""))
+
+
 def test_build_continuity_bible_outputs_locks():
     bible = build_continuity_bible(_task())
     assert bible["source_title"] == "黄泉饭店"
@@ -235,6 +245,11 @@ def test_clip_provider_prompts_are_model_specific_and_compact():
             assert section in prompt
         assert len(prompt) < len(clip["clip_prompt"])
         assert len(prompt) <= budgets[kind]
+    for prompt in [clip["i2v_prompt"], clip["t2v_prompt"]]:
+        surface = _prompt_section(prompt, "Platform-Safe Surface Wording", "Execution Constraints")
+        assert not _has_cjk_text(surface)
+        assert "service counter" in surface
+        assert "kitchen" in surface
     assert clip["prompt_strategy"]["architecture"] == "Prompt Packet V1"
     assert "compact surface packets" in clip["prompt_strategy"]["provider_prompts"]
 
@@ -310,6 +325,11 @@ def test_clip_provider_prompt_budget_preserves_required_sections_for_long_clip()
         assert len(prompt) <= clip["prompt_strategy"]["provider_prompt_budgets"][kind]
         for section in required_sections:
             assert section in prompt
+        timeline = _prompt_section(prompt, "15s Timeline", "Continuation Contract")
+        spatial = _prompt_section(prompt, "Spatial Blocking", "15s Timeline")
+        continuation = _prompt_section(prompt, "Continuation Contract", "Platform-Safe Surface Wording")
+        assert len(timeline) > len(continuation)
+        assert len(spatial) > len(continuation)
 def test_character_matching_uses_role_alias_and_props_before_fallback():
     bible = build_continuity_bible(_task())
     locks = bible["character_locks"]
@@ -2123,6 +2143,7 @@ def test_prompt_architecture_audit_passes_current_prompt_packets():
         assert {item["prompt_kind"] for item in clip_report["prompt_reports"]} == {"full_packet", "i2v", "seedance", "t2v"}
     assert any(item["name"] == "provider_prompt_differentiation" and item["status"] == "pass" for item in report["checks"])
     assert any(item["name"] == "prompt_packet_sections" and item["status"] == "pass" for item in report["checks"])
+    assert any(item["name"] == "english_surface_wording_no_raw_cjk" and item["status"] == "pass" for item in report["checks"])
     assert any(item["name"] == "director_plan_visible" and item["status"] == "pass" for item in report["checks"])
 
 

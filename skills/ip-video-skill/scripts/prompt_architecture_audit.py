@@ -218,6 +218,13 @@ def _audit_prompt_field(clip_id: str, field: str, kind: Optional[str], prompt: s
     if not safe_layer_ok:
         errors.append(f"{label}: internal facts and platform-safe surface wording layers must both be present")
 
+    if kind in {"i2v", "t2v"} and safe_layer_ok:
+        surface_text = _section_text(prompt, "Platform-Safe Surface Wording", "Execution Constraints")
+        surface_english_ok = not _has_cjk(surface_text)
+        _add_prompt_check(checks, label, "english_surface_wording_no_raw_cjk", surface_english_ok, {"surface_length": len(surface_text)})
+        if not surface_english_ok:
+            errors.append(f"{label}: Platform-Safe Surface Wording for English-oriented providers must not embed raw Chinese visual/action text")
+
     director_ok = _contains_any(prompt, ["导演设计", "director=", "director_plan"])
     _add_prompt_check(checks, label, "director_plan_visible", director_ok, {})
     if not director_ok:
@@ -246,6 +253,18 @@ def _prompt_report(field: str, kind: Optional[str], prompt: str, status: str) ->
         "length": len(prompt),
         "budget": PROVIDER_PROMPT_BUDGETS.get(kind) if kind else None,
     }
+
+
+def _section_text(prompt: str, section: str, next_section: str = "") -> str:
+    start = prompt.find(section)
+    if start < 0:
+        return ""
+    end = prompt.find(next_section, start + len(section)) if next_section else -1
+    return prompt[start:] if end < 0 else prompt[start:end]
+
+
+def _has_cjk(text: str) -> bool:
+    return any("\u4e00" <= char <= "\u9fff" for char in str(text or ""))
 
 
 def _sections_in_order(prompt: str, sections: List[str]) -> bool:

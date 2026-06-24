@@ -1,6 +1,81 @@
 from typing import Dict, List, Optional
 
 PROVIDER_PROMPT_BUDGETS = {"seedance": 1600, "i2v": 1800, "t2v": 1400}
+PROVIDER_SECTION_WEIGHTS = {
+    "Prompt Packet V1": 1,
+    "Global Context": 2,
+    "Internal Story Facts": 2,
+    "Reference Bindings": 3,
+    "Spatial Blocking": 4,
+    "15s Timeline": 5,
+    "Continuation Contract": 1,
+    "Platform-Safe Surface Wording": 3,
+    "Execution Constraints": 3,
+}
+EN_SURFACE_TERMS = [
+    ("黄泉饭店", "the locked underworld restaurant"),
+    ("饭店", "restaurant"),
+    ("酒店", "hotel"),
+    ("餐厅", "dining hall"),
+    ("大厅", "main hall"),
+    ("柜台", "service counter"),
+    ("厨房门", "kitchen doorway"),
+    ("厨房", "kitchen"),
+    ("门口", "entrance"),
+    ("落地窗", "floor-to-ceiling window"),
+    ("窗", "window"),
+    ("门", "door"),
+    ("走廊", "corridor"),
+    ("雨夜", "rainy night"),
+    ("红色招牌", "red sign reflection"),
+    ("湿冷地面", "wet cold floor"),
+    ("雨", "rain"),
+    ("夜", "night"),
+    ("菜单账本", "menu ledger"),
+    ("账本", "ledger"),
+    ("菜单", "menu"),
+    ("托盘", "serving tray"),
+    ("菜刀", "kitchen cleaver"),
+    ("牛排", "steak"),
+    ("刀叉", "knife and fork"),
+    ("探测器", "detector device"),
+    ("手绢", "handkerchief"),
+    ("爆裂雷", "thrown blocking device"),
+    ("炸弹", "thrown blocking device"),
+    ("烟尘", "dust and smoke"),
+    ("怪物", "large pursuing threat"),
+    ("追击", "pursuit pressure"),
+    ("格挡", "parry"),
+    ("拔剑", "draw a sword"),
+    ("横刀", "hold a blade across the body"),
+    ("对视", "locked eyeline"),
+    ("抬眼", "raises gaze"),
+    ("回头", "turns back"),
+    ("关门", "closes the door"),
+    ("进入", "enters"),
+    ("端着", "carries"),
+    ("站在", "stands at"),
+    ("走出", "steps out"),
+    ("放下", "sets down"),
+    ("咀嚼", "chews"),
+    ("追", "pursue"),
+    ("跑", "run"),
+    ("冲", "rush"),
+    ("逃", "escape"),
+    ("挡", "block"),
+    ("剑", "sword"),
+    ("刀", "blade"),
+    ("吃", "eats"),
+    ("冷静", "controlled"),
+    ("警觉", "alert"),
+    ("紧张", "tense"),
+    ("悬疑", "suspenseful"),
+    ("林缺", "the locked male lead"),
+    ("牛头", "the locked non-human restaurant attendant"),
+    ("侍者", "attendant"),
+    ("员工", "staff attendant"),
+    ("老板", "restaurant owner"),
+]
 
 try:
     from .martial_arts import build_martial_arts_layer, is_martial_arts_scene, martial_arts_text
@@ -291,7 +366,7 @@ def _budget_provider_prompt(kind: str, parts: List[str]) -> str:
         return prompt
 
     compressed = []
-    for index, part in enumerate(cleaned):
+    for part in cleaned:
         if part.startswith("Prompt Packet V1"):
             compressed.append(part)
         elif part.startswith("Global Context"):
@@ -299,15 +374,15 @@ def _budget_provider_prompt(kind: str, parts: List[str]) -> str:
         elif part.startswith("Internal Story Facts"):
             compressed.append(_clip_text(part, 260))
         elif part.startswith("Reference Bindings"):
-            compressed.append(_clip_text(part, 260))
+            compressed.append(_clip_text(part, 320))
         elif part.startswith("Spatial Blocking"):
-            compressed.append(_clip_text(part, 260))
-        elif part.startswith("15s Timeline"):
             compressed.append(_clip_text(part, 360))
+        elif part.startswith("15s Timeline"):
+            compressed.append(_clip_text(part, 520))
         elif part.startswith("Continuation Contract"):
-            compressed.append("Continuation Contract: Keep continuity state, light, costume, prop hand, screen direction and clip boundary mode traceable; do not reset composition unless approved.")
+            compressed.append("Continuation Contract: Keep boundary mode, continuity state, light, costume, prop hand and screen direction traceable; do not reset composition unless approved.")
         elif part.startswith("Platform-Safe Surface Wording"):
-            compressed.append(_clip_text(part, 260))
+            compressed.append(_clip_text(part, 300))
         elif part.startswith("Execution Constraints"):
             compressed.append(_clip_text(part, 320))
         else:
@@ -327,12 +402,32 @@ def _budget_provider_prompt(kind: str, parts: List[str]) -> str:
         "Platform-Safe Surface Wording",
         "Execution Constraints",
     ]
+    section_map = {prefix: next((part for part in compressed if part.startswith(prefix)), prefix + ":") for prefix in required_prefixes}
+    overhead = len("\n".join(required_prefixes)) + 40
+    weighted_budget = max(budget - overhead, len(required_prefixes) * 40)
+    total_weight = sum(PROVIDER_SECTION_WEIGHTS.get(prefix, 1) for prefix in required_prefixes)
     final_parts = []
-    per_section = max(int((budget - 80) / len(required_prefixes)), 80)
     for prefix in required_prefixes:
-        match = next((part for part in compressed if part.startswith(prefix)), prefix + ":")
-        final_parts.append(_clip_text(match, per_section))
-    return "\n".join(final_parts)
+        weight = PROVIDER_SECTION_WEIGHTS.get(prefix, 1)
+        section_limit = max(int(weighted_budget * weight / total_weight), 80)
+        if prefix == "Prompt Packet V1":
+            section_limit = max(section_limit, len(section_map[prefix]))
+        elif prefix == "15s Timeline":
+            section_limit = max(section_limit, 260)
+        elif prefix == "Spatial Blocking":
+            section_limit = max(section_limit, 210)
+        elif prefix == "Reference Bindings":
+            section_limit = max(section_limit, 180)
+        elif prefix == "Platform-Safe Surface Wording":
+            section_limit = max(section_limit, 220)
+        elif prefix == "Continuation Contract":
+            section_limit = min(section_limit, 130)
+        final_parts.append(_clip_text(section_map[prefix], section_limit))
+    final_prompt = "\n".join(final_parts)
+    if len(final_prompt) <= budget:
+        return final_prompt
+    return _trim_weighted_sections(final_parts, budget)
+
 def _compact_reference_text(video_refs: List[Dict], space_refs: List[Dict]) -> str:
     video = ", ".join(_ref_label(ref) for ref in video_refs[:4]) or "locked character/normal scene references"
     space = ", ".join(_ref_label(ref) for ref in space_refs[:3]) or "panorama anchors for layout only"
@@ -386,14 +481,81 @@ def _compact_storyboard_text(storyboard_execution_map: List[Dict], storyboard_mo
 
 
 def _english_surface_line(visual: str, action: str) -> str:
+    adapted = _english_surface_summary(visual + "; " + action)
     return _clip_text(
-        "Create a visually equivalent cinematic clip from the locked references: "
-        + visual
-        + ". Main action: "
-        + action
-        + ". Keep named IP facts internal; use neutral visible descriptions while preserving the exact characters, props, space and action.",
+        "Create a visually equivalent cinematic clip from the locked references. Visible anchors: "
+        + adapted
+        + ". Keep named IP facts inside Internal Story Facts; surface wording uses neutral visible descriptions while preserving the exact locked characters, props, space and action.",
         420,
     )
+
+
+def _english_surface_summary(text: str) -> str:
+    source = str(text or "")
+    anchors = []
+    for term, phrase in EN_SURFACE_TERMS:
+        if term in source and phrase not in anchors:
+            anchors.append(phrase)
+    ascii_tokens = []
+    for token in source.replace(";", " ").replace(",", " ").replace(".", " ").split():
+        clean = "".join(char for char in token if ord(char) < 128)
+        if len(clean) >= 3 and clean not in ascii_tokens:
+            ascii_tokens.append(clean)
+    anchors.extend(ascii_tokens[:8])
+    if not anchors:
+        anchors = ["locked storyboard action", "locked reference characters", "locked scene layout"]
+    summary = ", ".join(anchors[:18])
+    if _has_cjk(summary):
+        summary = _strip_cjk(summary)
+    return summary or "locked storyboard action, locked reference characters, locked scene layout"
+
+
+def _has_cjk(text: str) -> bool:
+    return any("\u4e00" <= char <= "\u9fff" for char in str(text or ""))
+
+
+def _strip_cjk(text: str) -> str:
+    cleaned = "".join(" " if "\u4e00" <= char <= "\u9fff" else char for char in str(text or ""))
+    while "  " in cleaned:
+        cleaned = cleaned.replace("  ", " ")
+    return cleaned.strip(" ,;.")
+
+
+def _trim_weighted_sections(parts: List[str], budget: int) -> str:
+    ordered = list(parts)
+    shrink_order = [
+        "Continuation Contract",
+        "Global Context",
+        "Internal Story Facts",
+        "Execution Constraints",
+        "Reference Bindings",
+        "Spatial Blocking",
+        "Platform-Safe Surface Wording",
+        "15s Timeline",
+    ]
+    minimums = {
+        "Prompt Packet V1": 140,
+        "15s Timeline": 220,
+        "Spatial Blocking": 180,
+        "Reference Bindings": 150,
+        "Platform-Safe Surface Wording": 180,
+        "Execution Constraints": 150,
+    }
+    for prefix in shrink_order:
+        prompt = "\n".join(ordered)
+        if len(prompt) <= budget:
+            return prompt
+        for index, part in enumerate(ordered):
+            if not part.startswith(prefix):
+                continue
+            floor = minimums.get(prefix, 90)
+            overflow = len(prompt) - budget
+            ordered[index] = _clip_text(part, max(len(part) - overflow - 12, floor))
+            break
+    prompt = "\n".join(ordered)
+    if len(prompt) <= budget:
+        return prompt
+    return _clip_text(prompt, budget)
 
 
 def _chinese_surface_line(visual: str, action: str) -> str:

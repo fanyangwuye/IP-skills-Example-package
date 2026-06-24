@@ -27,7 +27,9 @@ Use this before any prompt writing.
 ## Prompt Packet Rules
 
 - Clip prompts must use the fixed sections from `prompt_architecture.md`: `Global Context`, `Internal Story Facts`, `Reference Bindings`, `Spatial Blocking`, `15s Timeline`, `Continuation Contract`, `Platform-Safe Surface Wording`, and `Execution Constraints`.
+- If provider prompt compaction is required, preserve `Prompt Packet V1` metadata and prioritize `15s Timeline`, `Spatial Blocking`, `Reference Bindings`, `Platform-Safe Surface Wording`, and `Execution Constraints` over generic context.
 - Keep internal story facts separate from platform-facing safe wording. Safety rewrites may soften nouns, but must not change locked characters, props, actions, spaces, or storyboard order.
+- For English-oriented provider prompts, keep original Chinese project terms in `Internal Story Facts`; `Platform-Safe Surface Wording` must use neutral English visible anchors and must not paste raw Chinese visual/action text into the external surface layer.
 - For 2+ characters, the `Spatial Blocking` section is mandatory and must state axis, screen direction, eyeline, and trackable blocking.
 - Door, window, threshold, and chase scenes must state safe side, danger side, crossing direction, boundary closure, and where the pursuer remains.
 - The `15s Timeline` is a narrative editing unit, not a license to stretch one action for 15 seconds. If one clip cannot execute the mapped storyboard shots clearly, split the clip instead of rewriting the storyboard.
