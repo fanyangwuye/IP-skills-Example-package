@@ -258,7 +258,7 @@ def build_prompt_pack(request) -> Dict[str, Any]:
     schema_name = request.schema_name or request.kind
     contract = SCHEMA_CONTRACTS.get(schema_name, {"root_type": "object", "item_required": [], "notes": []})
     diagnostics = _creative_diagnostics(request, adapter_payload)
-    genre_example_pack = load_genre_example_pack(diagnostics["genre_profile"]["primary"])
+    genre_example_pack = _select_genre_example_pack(request, diagnostics)
     format_template = _format_prompt_template(request.format_name)
     output_shape = _output_shape_for_kind(request.kind, request.format_name)
     return {
@@ -296,6 +296,51 @@ def build_prompt_pack(request) -> Dict[str, Any]:
         },
     }
 
+
+def _select_genre_example_pack(request, diagnostics: Dict[str, Any]) -> Dict[str, Any]:
+    primary = diagnostics["genre_profile"]["primary"]
+    primary_pack = load_genre_example_pack(primary)
+    if primary != "general_short_drama":
+        return primary_pack
+
+    payload = request.payload or {}
+    adapter_payload = payload.get("adapter") or {}
+    creative_brief = request.creative_brief or {}
+    seen = set()
+    candidates = []
+    for raw_value in [
+        request.format_name,
+        creative_brief.get("target_format"),
+        creative_brief.get("target"),
+        creative_brief.get("format"),
+        payload.get("format_adapter"),
+        adapter_payload.get("format_name"),
+    ]:
+        normalized = _normalize_genre_example_key(raw_value)
+        if normalized and normalized not in seen:
+            candidates.append(normalized)
+            seen.add(normalized)
+
+    for candidate in candidates:
+        pack = load_genre_example_pack(candidate)
+        if not pack["fallback_used"] or pack["pack_id"] == candidate:
+            return pack
+    return primary_pack
+
+
+def _normalize_genre_example_key(value: Any) -> str:
+    if value is None:
+        return ""
+    key = str(value).strip().lower()
+    alias_map = {
+        "short_drama": "general_short_drama",
+        "vertical_short_drama": "general_short_drama",
+        "interactive_game": "interactive_film_game",
+        "interactive_film": "interactive_film_game",
+        "jubensha": "murder_mystery",
+        "scripted_murder": "murder_mystery",
+    }
+    return alias_map.get(key, key)
 
 def _system_prompt(kind: str, format_name: str) -> str:
     return "\n".join(

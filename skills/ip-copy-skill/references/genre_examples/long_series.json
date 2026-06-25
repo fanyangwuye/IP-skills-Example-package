@@ -1,0 +1,62 @@
+{
+  "pack_id": "long_series",
+  "version": "copy-genre-example-pack-v1",
+  "display_name": "Long Series",
+  "applies_to": ["long_series"],
+  "purpose": "Craft examples for multi-act episodic drama with A/B stories, ensemble pressure, act breaks, and character arc progression.",
+  "source_priority_rules": [
+    "Episode engine, subplot tracks, season arc facts, and ensemble roles must come from source or locked payload.",
+    "Do not invent subplots or character agendas just to satisfy multi-line structure.",
+    "Act breaks should turn the story, not merely stop it."
+  ],
+  "genre_boundary": [
+    "Track A story, B story, act-break pressure, and who gains or loses leverage in each act.",
+    "Scenes should expose strategy, concealment, relationship pressure, or new information.",
+    "Episode-level hooks must remain compatible with longer character arcs."
+  ],
+  "scene_card_examples": [
+    {
+      "visual": "A story pressure and B story pressure share one locked location, but each character is acting on different information.",
+      "voiceover": "The scene works because everyone is in the same room for a different reason.",
+      "duration_sec": 20,
+      "emotional_turn": "shared objective -> agenda split",
+      "asset_goal": {"type": "long series ensemble frame", "purpose": "multi-character leverage, A/B story overlap, act pressure"}
+    },
+    {
+      "visual": "An act-break beat reveals a source-grounded fact that forces the next act to reframe the plan.",
+      "voiceover": "The hook is not a pause; it is a turn that changes the next act's objective.",
+      "duration_sec": 15,
+      "emotional_turn": "plan -> reframe",
+      "asset_goal": {"type": "act break hook frame", "purpose": "fact reveal and leverage change"}
+    }
+  ],
+  "script_scene_examples": [
+    {
+      "visual": "A character protects a long-arc secret in the middle of an episode-level conflict, complicating the A story instead of stopping it.",
+      "voiceover": "The episode moves forward, but the season wound stays active.",
+      "dialogue": [
+        {"speaker": "ensemble lead", "line": "If I answer that now, this story stops being today's problem."}
+      ],
+      "action_result": "The episode conflict escalates while the long-arc secret remains in play."
+    }
+  ],
+  "dialogue_style_examples": [
+    "Long-series dialogue should carry strategy, secrecy, leverage, or relationship change.",
+    "Avoid one-line resolution when the episode and season arcs both still need momentum."
+  ],
+  "negative_examples": [
+    {
+      "bad": "A subplot exists only to fill screen time and never changes stakes.",
+      "why_bad": "That weakens act structure and wastes long-form runtime."
+    }
+  ],
+  "forbidden_drift": [
+    "Do not invent subplots, family reveals, conspiracies, or alliances without source support.",
+    "Do not end an act without a leverage shift, information turn, or relationship change.",
+    "Do not resolve season-level pressure inside one scene unless source explicitly does."
+  ],
+  "handoff_notes": {
+    "image": ["Lock ensemble blocking, A/B story overlap cues, and act-break reveal objects."],
+    "video": ["Keep multi-character spatial logic readable so act-break hooks and callback scenes match later episodes."]
+  }
+}

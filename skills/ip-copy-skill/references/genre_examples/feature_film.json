@@ -1,0 +1,55 @@
+{
+  "pack_id": "feature_film",
+  "version": "copy-genre-example-pack-v1",
+  "display_name": "Feature Film",
+  "applies_to": ["feature_film"],
+  "purpose": "Craft examples for three-act film structure, sequence turns, visual motifs, character wound, cost, and payoff-driven dramatic writing.",
+  "source_priority_rules": [
+    "Theme question, character wound, key motifs, sequences, and payoff objects must come from source or locked payload.",
+    "Do not add prestige-film symbolism or backstory not supported by source.",
+    "Use film scale through sequence logic and visual consequence, not empty slow pacing."
+  ],
+  "genre_boundary": [
+    "Track act logic, sequence turns, escalating cost, and visual payoff setup.",
+    "Prefer visual storytelling and subtext over explanatory narration when the source allows it.",
+    "Every major reversal should change goal, cost, or self-understanding."
+  ],
+  "scene_card_examples": [
+    {
+      "visual": "A sequence-end image pays off an earlier source-grounded object or motif and changes how the protagonist reads the central problem.",
+      "voiceover": "The image does not just end the scene; it changes the meaning of what came before it.",
+      "duration_sec": 18,
+      "emotional_turn": "partial understanding -> larger cost",
+      "asset_goal": {"type": "feature film sequence frame", "purpose": "motif payoff, sequence turn, character isolation or decision"}
+    }
+  ],
+  "script_scene_examples": [
+    {
+      "visual": "The protagonist makes a visible choice that protects one value and sacrifices another.",
+      "voiceover": "The choice matters because the cost is visible, not because the dialogue explains it.",
+      "dialogue": [
+        {"speaker": "protagonist", "line": "If I keep this, I lose the rest."}
+      ],
+      "action_result": "A sequence turn is locked by cost, not just mood."
+    }
+  ],
+  "dialogue_style_examples": [
+    "Film dialogue should reveal choice, wound, value, or cost with restraint.",
+    "Avoid short-drama hook stacking when the beat should carry sequence weight."
+  ],
+  "negative_examples": [
+    {
+      "bad": "A scene explains its own symbolism out loud.",
+      "why_bad": "That weakens visual storytelling and undercuts film rhythm."
+    }
+  ],
+  "forbidden_drift": [
+    "Do not add unsupported theme statements, prestige symbols, or childhood trauma.",
+    "Do not treat every beat like a vertical short-drama cliffhanger.",
+    "Do not create payoff images with no setup in source or locked payload."
+  ],
+  "handoff_notes": {
+    "image": ["Lock motif objects, wide-frame composition intent, and sequence-ending imagery."],
+    "video": ["Design actions and transitions around sequence logic, not isolated short-form spikes."]
+  }
+}

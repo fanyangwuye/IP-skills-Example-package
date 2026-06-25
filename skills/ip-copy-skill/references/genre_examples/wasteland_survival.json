@@ -1,0 +1,62 @@
+{
+  "pack_id": "wasteland_survival",
+  "version": "copy-genre-example-pack-v1",
+  "display_name": "Wasteland Survival",
+  "applies_to": ["wasteland_survival"],
+  "purpose": "Craft examples for ruined settlements, shelters, scavenging, resource pressure, convoy danger, and survival-rule stories.",
+  "source_priority_rules": [
+    "Shelters, factions, vehicles, weapons, mutations, devices, and resource limits must come from source or locked payload.",
+    "Survival pressure should come from scarcity, exposure, route risk, environmental collapse, or a compromised safe zone.",
+    "Do not add apocalypse lore, military background, radiation mechanics, or monsters unless the source supports them."
+  ],
+  "genre_boundary": [
+    "Track shelter safety, route safety, resource count, and who controls the current space.",
+    "Visible action should show cost: fuel, food, medicine, air, shelter access, or time.",
+    "Not every beat is gunfire; survival stories also turn on ration rules, access control, and failed repairs."
+  ],
+  "scene_card_examples": [
+    {
+      "visual": "At the locked shelter threshold, the lead checks a source-grounded resource meter or access lock and realizes the safe zone is no longer safe.",
+      "voiceover": "The problem is not outside the wall anymore; it is the rule inside it that just failed.",
+      "duration_sec": 12,
+      "emotional_turn": "relief -> survival pressure",
+      "asset_goal": {"type": "wasteland shelter key frame", "purpose": "resource display, threshold, lead posture, survival threat"}
+    },
+    {
+      "visual": "A supply run beat keeps the route, the carried resource, and the blocked return path in one source-grounded frame.",
+      "voiceover": "They did not lose the cargo first; they lost the way back.",
+      "duration_sec": 10,
+      "emotional_turn": "mission focus -> route panic",
+      "asset_goal": {"type": "wasteland route frame", "purpose": "terrain risk, carried resource, return-path problem"}
+    }
+  ],
+  "script_scene_examples": [
+    {
+      "visual": "The lead cancels a direct fight because the source-grounded resource cost would be worse than retreat.",
+      "voiceover": "In the wasteland, surviving the hour can matter more than winning the moment.",
+      "dialogue": [
+        {"speaker": "lead survivor", "line": "If we spend it here, we do not make it back."}
+      ],
+      "action_result": "The scene shifts from confrontation to route or resource decision."
+    }
+  ],
+  "dialogue_style_examples": [
+    "Survival dialogue should name concrete shortages, distances, access, weather, fuel, time, or shelter rules.",
+    "Avoid generic hero threats when the real pressure is logistics or exposure."
+  ],
+  "negative_examples": [
+    {
+      "bad": "A random elite convoy or mutant creature appears to make the scene exciting.",
+      "why_bad": "Unsupported threat escalation breaks source control and continuity planning."
+    }
+  ],
+  "forbidden_drift": [
+    "Do not add new factions, mutations, weapons, vehicles, or bunker systems unless source-grounded.",
+    "Do not turn a resource problem into a combat problem without causal setup.",
+    "Do not restore a safe route or safe room in the same beat that proved it was compromised unless source does."
+  ],
+  "handoff_notes": {
+    "image": ["Lock shelter materials, route terrain, carried resources, and damaged infrastructure as continuity anchors."],
+    "video": ["Use doors, meters, masks, carts, rations, and horizon lines as bridge inserts only when source-grounded."]
+  }
+}

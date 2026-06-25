@@ -1440,6 +1440,11 @@ def test_genre_example_packs_validate_and_fallback():
     assert "urban_suspense.json" in pack_files
     assert "romance_drama.json" in pack_files
     assert "interactive_film_game.json" in pack_files
+    assert "wasteland_survival.json" in pack_files
+    assert "murder_mystery.json" in pack_files
+    assert "overseas_short_drama.json" in pack_files
+    assert "feature_film.json" in pack_files
+    assert "long_series.json" in pack_files
     for filename in pack_files:
         with open(os.path.join(examples_dir, filename), "r", encoding="utf-8") as handle:
             pack = json.load(handle)
@@ -1455,6 +1460,24 @@ def test_genre_example_packs_validate_and_fallback():
     assert fallback_pack["pack_id"] == "general_short_drama"
     assert fallback_pack["requested_genre"] == "unknown_genre"
     assert fallback_pack["fallback_used"] is True
+
+
+def test_prompt_pack_uses_format_specific_genre_example_pack_when_source_is_generic():
+    request = CreativeEngineRequest(
+        kind="script_scenes",
+        source_text="一个普通的房间里只有一张桌子和一盏灯。",
+        creative_brief={"target": "murder_mystery", "tone": "fair play case"},
+        format_name=MurderMysteryAdapter().spec().format_name,
+        schema_name="script_scenes",
+        payload={"adapter": MurderMysteryAdapter().creative_engine_payload({"title": "案件本"}, {})},
+    )
+    prompt_pack = build_prompt_pack(request)
+    genre_pack = prompt_pack["genre_example_pack"]
+    assert genre_pack["pack_id"] == "murder_mystery"
+    assert genre_pack["fallback_used"] is False
+    assert prompt_pack["metadata"]["genre_example_pack_id"] == "murder_mystery"
+    assert "public case logic" in prompt_pack["user_prompt"]
+
 
 
 def test_prompt_pack_injects_genre_example_pack():

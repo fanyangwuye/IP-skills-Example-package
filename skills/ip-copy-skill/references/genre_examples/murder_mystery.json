@@ -1,0 +1,62 @@
+{
+  "pack_id": "murder_mystery",
+  "version": "copy-genre-example-pack-v1",
+  "display_name": "Murder Mystery / Case Game",
+  "applies_to": ["murder_mystery"],
+  "purpose": "Craft examples for fair-play case structure, clue chains, hidden POV packets, alibi pressure, and host-facing mystery content.",
+  "source_priority_rules": [
+    "Victim, suspects, clues, timelines, rooms, host script phases, and solution logic must come from source or locked payload.",
+    "Do not add a clue just because the structure needs one; if the source lacks it, mark the gap.",
+    "Public-facing copy and private truth packets must stay separated."
+  ],
+  "genre_boundary": [
+    "Track motive, method, timeline, alibi, clue ownership, and what each role is allowed to know.",
+    "Use suspense through contradiction, partial evidence, withheld truth, or fair red herring logic.",
+    "Host-facing scenes must never leak the final answer before the intended phase."
+  ],
+  "scene_card_examples": [
+    {
+      "visual": "The host reveals a source-grounded clue that challenges the current timeline without naming the culprit.",
+      "voiceover": "The new clue does not solve the case; it breaks the strongest alibi in the room.",
+      "duration_sec": 12,
+      "emotional_turn": "confidence -> doubt",
+      "asset_goal": {"type": "case clue frame", "purpose": "host posture, public clue object, suspect reactions"}
+    },
+    {
+      "visual": "A private POV packet beat shows a character recognizing a clue detail that means more to them than to the room.",
+      "voiceover": "The clue is public now, but its real meaning is not.",
+      "duration_sec": 10,
+      "emotional_turn": "public calm -> private alarm",
+      "asset_goal": {"type": "private knowledge frame", "purpose": "POV reaction and clue detail"}
+    }
+  ],
+  "script_scene_examples": [
+    {
+      "visual": "The host pushes the room back to timeline logic instead of allowing random accusation drift.",
+      "voiceover": "A good case turns on what can be proven, not who speaks loudest.",
+      "dialogue": [
+        {"speaker": "host", "line": "If the timeline stands, the accusation does not."}
+      ],
+      "action_result": "The scene narrows the case to a verifiable contradiction."
+    }
+  ],
+  "dialogue_style_examples": [
+    "Case dialogue should reference clue logic, time, movement, motive, or knowledge state.",
+    "Private packet lines should reveal pressure without exposing final truth too early."
+  ],
+  "negative_examples": [
+    {
+      "bad": "A suspect confesses a hidden motive before the phase that should reveal it.",
+      "why_bad": "That collapses case pacing and breaks public/private separation."
+    }
+  ],
+  "forbidden_drift": [
+    "Do not add unsupported clues, motives, murder methods, secret rooms, or timeline jumps.",
+    "Do not let host copy spoil private truth.",
+    "Do not let a red herring remain random; it must be reversible into logic if it exists in source."
+  ],
+  "handoff_notes": {
+    "image": ["Lock clue objects, seating/room layout, host position, and suspect sightlines."],
+    "video": ["Keep public clue reveals and private reaction beats separable for phase editing."]
+  }
+}

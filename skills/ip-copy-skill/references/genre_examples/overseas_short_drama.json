@@ -1,0 +1,55 @@
+{
+  "pack_id": "overseas_short_drama",
+  "version": "copy-genre-example-pack-v1",
+  "display_name": "Overseas Short Drama",
+  "applies_to": ["overseas_short_drama"],
+  "purpose": "Craft examples for export-friendly short drama with culturally clear stakes, translation-ready dialogue, and relationship/status pressure.",
+  "source_priority_rules": [
+    "Keep plot facts, roles, places, and rules source-grounded; this pack only sharpens readability and localization.",
+    "Prefer universally readable behavior and consequence over local idiom or meme phrasing.",
+    "Do not simplify by deleting source-grounded causality or role hierarchy."
+  ],
+  "genre_boundary": [
+    "Make relationship or status pressure clear within one visible beat.",
+    "Use short, translation-ready lines with clean intent and minimal local shorthand.",
+    "Visual reversals should still track cause and effect, not just emotional shock."
+  ],
+  "scene_card_examples": [
+    {
+      "visual": "A status gap or relationship imbalance is visible before anyone explains it, and the next action makes the cost clear across languages.",
+      "voiceover": "The audience should understand the power difference before they hear the argument.",
+      "duration_sec": 10,
+      "emotional_turn": "surface calm -> status pressure",
+      "asset_goal": {"type": "overseas short drama key frame", "purpose": "status contrast, readable blocking, export-safe context"}
+    }
+  ],
+  "script_scene_examples": [
+    {
+      "visual": "One character chooses public politeness while privately escalating the conflict through a concrete action.",
+      "voiceover": "The line stays simple; the action carries the threat.",
+      "dialogue": [
+        {"speaker": "lead", "line": "If you want the truth, stay and watch."}
+      ],
+      "action_result": "The scene ends on a clear hook that survives translation."
+    }
+  ],
+  "dialogue_style_examples": [
+    "Prefer short intent-forward lines that survive direct translation.",
+    "Avoid culture-specific sayings when a clear action or threat can do the same job."
+  ],
+  "negative_examples": [
+    {
+      "bad": "The scene relies on a local internet joke to carry the payoff.",
+      "why_bad": "That weakens overseas readability and translation quality."
+    }
+  ],
+  "forbidden_drift": [
+    "Do not replace source pressure with generic romance or generic suspense.",
+    "Do not overload lines with local idioms that block translation.",
+    "Do not erase relationship/status clarity in pursuit of brevity."
+  ],
+  "handoff_notes": {
+    "image": ["Lock readable status contrast, gesture clarity, and export-safe wardrobe/context cues."],
+    "video": ["Favor action, blocking, and reaction clarity that stays legible after dubbing or subtitle translation."]
+  }
+}
