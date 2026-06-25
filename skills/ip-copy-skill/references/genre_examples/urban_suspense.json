@@ -1,0 +1,67 @@
+{
+  "pack_id": "urban_suspense",
+  "version": "copy-genre-example-pack-v1",
+  "display_name": "Urban Suspense",
+  "applies_to": ["urban_suspense"],
+  "purpose": "Craft examples for modern mystery, abnormal readings, rule spaces, hotel/restaurant cases, investigators, and evidence-driven suspense.",
+  "source_priority_rules": [
+    "Evidence, devices, reports, locations, and suspect roles must come from source or locked payload.",
+    "Suspense should arise from contradiction, abnormal measurement, blocked exit, identity mismatch, or time pressure.",
+    "Do not add weapons, crimes, police authority, or surveillance tech unless source supports them."
+  ],
+  "genre_boundary": [
+    "Track evidence chain, who knows what, who can see what, and what changed on screen.",
+    "Make the abnormal visible through readings, behavior, space, sound, or object state.",
+    "End beats with a new question, contradiction, or choice rather than generic fear."
+  ],
+  "scene_card_examples": [
+    {
+      "visual": "The investigator checks a locked device or source-grounded clue; the reading contradicts the visible safe space.",
+      "voiceover": "The data says danger, but the room is pretending nothing happened.",
+      "duration_sec": 10,
+      "emotional_turn": "professional focus -> alarmed verification",
+      "asset_goal": {"type": "urban suspense evidence frame", "purpose": "device, reading, investigator reaction, location anchor"}
+    },
+    {
+      "visual": "A medium shot keeps the protagonist, exit, and evidence object in one frame so the audience sees the spatial problem.",
+      "voiceover": "The way out is visible; the problem is that the evidence says it is not open.",
+      "duration_sec": 12,
+      "emotional_turn": "escape plan -> contradiction",
+      "asset_goal": {"type": "spatial contradiction frame", "purpose": "exit, character blocking, clue object"}
+    }
+  ],
+  "script_scene_examples": [
+    {
+      "visual": "The investigator repeats a measurement, then turns the device toward the locked location rather than accusing a person too early.",
+      "voiceover": "The first suspect is not a person; it is the room itself.",
+      "dialogue": [
+        {"speaker": "investigator", "line": "Same reading. The problem is inside this room."}
+      ],
+      "action_result": "The evidence redirects attention from character suspicion to spatial anomaly."
+    }
+  ],
+  "dialogue_style_examples": [
+    "Investigators should speak in evidence, readings, time, location, or contradiction.",
+    "Protagonists should ask actionable questions, not narrate fear.",
+    "Do not reveal answers before the evidence chain earns them."
+  ],
+  "negative_examples": [
+    {
+      "bad": "A detective instantly explains the whole mystery.",
+      "why_bad": "It removes suspense and skips evidence progression."
+    },
+    {
+      "bad": "A new hidden camera solves the scene without source setup.",
+      "why_bad": "Unsupported technology creates a false solution."
+    }
+  ],
+  "forbidden_drift": [
+    "Do not add unsupported law-enforcement roles, weapons, CCTV, secret rooms, or crimes.",
+    "Do not let characters know information they did not observe or receive.",
+    "Do not solve a contradiction in the same beat that introduces it unless source does."
+  ],
+  "handoff_notes": {
+    "image": ["Lock device screen, evidence object, exit, and room layout."],
+    "video": ["Use insert shots of readings, doors, reflections, and hands as continuity bridges when source-grounded."]
+  }
+}

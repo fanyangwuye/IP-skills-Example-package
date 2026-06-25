@@ -1,0 +1,68 @@
+{
+  "pack_id": "underworld_supernatural",
+  "version": "copy-genre-example-pack-v1",
+  "display_name": "Underworld Supernatural / Strange Business",
+  "applies_to": ["underworld_supernatural"],
+  "purpose": "Craft examples for underworld, ghost-service, strange inn, supernatural business, and rule-bound liminal-space stories.",
+  "source_priority_rules": [
+    "The source decides what the underworld rules are; this pack must not invent judge systems, punishments, creatures, or rituals.",
+    "Service roles, menus, ledgers, counters, doors, trays, lamps, and thresholds are useful only when source or locked payload supports them.",
+    "Use supernatural pressure through visible rule change, service ritual, customer arrival, spatial contradiction, or accounting consequence."
+  ],
+  "genre_boundary": [
+    "Focus on rules, transactions, taboos, debts, service posture, and threshold spaces.",
+    "Do not turn every beat into combat; pressure can come from etiquette, account records, guest identity, or a changed room.",
+    "Keep the strange business logic causal: order -> rule -> price -> consequence."
+  ],
+  "scene_card_examples": [
+    {
+      "visual": "At the locked business counter, the protagonist sees a source-grounded ledger or menu change by itself while the service character waits without moving.",
+      "voiceover": "The first rule is not spoken by a person; it appears in the business record.",
+      "duration_sec": 10,
+      "emotional_turn": "routine control -> rule pressure",
+      "asset_goal": {"type": "underworld business key frame", "purpose": "counter, rule object, protagonist reaction, service character posture"}
+    },
+    {
+      "visual": "A threshold shot shows the safe interior and the unsafe outside existing in the same frame, with characters holding their exact locked positions.",
+      "voiceover": "The door is not an exit anymore; it is a boundary with a price.",
+      "duration_sec": 12,
+      "emotional_turn": "escape impulse -> trapped realization",
+      "asset_goal": {"type": "threshold continuity frame", "purpose": "spatial rule and character blocking"}
+    }
+  ],
+  "script_scene_examples": [
+    {
+      "visual": "The protagonist checks a source-grounded object at the counter; the service character confirms only what the source allows.",
+      "voiceover": "He realizes the shop is operating before the first customer even appears.",
+      "dialogue": [
+        {"speaker": "protagonist", "line": "Who changed this entry?"},
+        {"speaker": "service character", "line": "It changed when the guest was counted."}
+      ],
+      "action_result": "The rule object proves a guest or debt is already active."
+    }
+  ],
+  "dialogue_style_examples": [
+    "The protagonist speaks in short operational questions or commands when trying to regain control.",
+    "Service characters should sound precise, restrained, and rule-bound, not emotionally explanatory.",
+    "Investigator roles should name evidence and readings, not explain the entire mythology."
+  ],
+  "negative_examples": [
+    {
+      "bad": "A random handkerchief appears as a clue in the underworld lobby.",
+      "why_bad": "Unsupported props create false clue logic and confuse image/video continuity."
+    },
+    {
+      "bad": "Characters run toward a monster without a stated goal.",
+      "why_bad": "It turns rule pressure into causeless action and breaks story logic."
+    }
+  ],
+  "forbidden_drift": [
+    "Do not add new underworld officials, monsters, punishments, contracts, or ritual tools unless source-grounded.",
+    "Do not change a service worker into a combat role unless the source supports it.",
+    "Do not move a threat across a door, counter, or threshold without a visible transition or rule reason."
+  ],
+  "handoff_notes": {
+    "image": ["Lock counter, ledger/menu, service posture, threshold, and lighting as continuity anchors."],
+    "video": ["Use doors, trays, ledgers, bells, table settings, and empty hall shots as bridge cutaways only when source-grounded."]
+  }
+}

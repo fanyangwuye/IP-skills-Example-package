@@ -1,0 +1,55 @@
+{
+  "pack_id": "general_short_drama",
+  "version": "copy-genre-example-pack-v1",
+  "display_name": "General Short Drama",
+  "applies_to": ["general_short_drama"],
+  "purpose": "Generic craft examples for source-grounded short-drama adaptation when no specific genre pack matches.",
+  "source_priority_rules": [
+    "Source text and locked payload outrank this example pack.",
+    "Use examples only for craft shape, rhythm, and field specificity.",
+    "If the source lacks a fact, mark uncertainty or ask rather than inventing."
+  ],
+  "genre_boundary": [
+    "Use visible action, pressure, decision, and handoff.",
+    "Keep character goals readable without adding unsupported lore.",
+    "Every object in a scene should come from source, locked payload, or adapter requirements."
+  ],
+  "scene_card_examples": [
+    {
+      "visual": "Locked location, locked protagonist pauses at a threshold as a source-grounded sign of danger changes on screen.",
+      "voiceover": "The first visible change tells the audience the old rule no longer works.",
+      "duration_sec": 10,
+      "emotional_turn": "certainty -> pressure",
+      "asset_goal": {"type": "adapted scene key frame", "purpose": "show locked location, protagonist posture, and the changed rule"}
+    }
+  ],
+  "script_scene_examples": [
+    {
+      "visual": "The protagonist acts on a known clue, then stops because the result contradicts the previous rule.",
+      "voiceover": "The problem is not the clue itself, but what it proves has changed.",
+      "dialogue": [
+        {"speaker": "locked protagonist", "line": "This was not like this before."}
+      ],
+      "action_result": "A clear new question or obstacle is created for the next beat."
+    }
+  ],
+  "dialogue_style_examples": [
+    "Short lines should expose pressure, choice, evidence, or relationship change.",
+    "Avoid slogan-like catchphrases unless the source already establishes that voice."
+  ],
+  "negative_examples": [
+    {
+      "bad": "Add a random weapon, stranger, or monster because the scene needs excitement.",
+      "why_bad": "It adds unsupported facts and breaks downstream reference consistency."
+    }
+  ],
+  "forbidden_drift": [
+    "Do not add new named characters.",
+    "Do not create props that are absent from source or locked payload.",
+    "Do not reverse entry, exit, chase direction, object ownership, or relationship status without source support."
+  ],
+  "handoff_notes": {
+    "image": ["Preserve locked character identity, wardrobe, and location anchors."],
+    "video": ["Write actions that can be storyboarded into clear start, middle, and end states."]
+  }
+}

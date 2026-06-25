@@ -1,0 +1,63 @@
+{
+  "pack_id": "interactive_film_game",
+  "version": "copy-genre-example-pack-v1",
+  "display_name": "Interactive Film Game",
+  "applies_to": ["interactive_film_game"],
+  "purpose": "Craft examples for branching interactive film, playable choices, consequence maps, state flags, convergence, and multiple endings.",
+  "source_priority_rules": [
+    "Choices must emerge from source-grounded goals, risks, locations, clues, relationships, or inventory.",
+    "A branch may add consequence structure, but not unsupported lore, props, characters, or powers.",
+    "Every convergence must remember at least one prior player choice through state, relationship, evidence, or cost."
+  ],
+  "genre_boundary": [
+    "Write nodes as player goal -> visible choice -> consequence -> state change.",
+    "Avoid cosmetic choices; each choice should change information, position, relationship, resource, or risk.",
+    "Separate player-facing text from hidden state logic."
+  ],
+  "scene_card_examples": [
+    {
+      "visual": "The player-character stands between two source-grounded options in the locked location; each option is visible and has a different risk.",
+      "voiceover": "The next step is not a cutscene; it is a choice with a cost.",
+      "duration_sec": 12,
+      "emotional_turn": "observation -> agency pressure",
+      "asset_goal": {"type": "interactive choice frame", "purpose": "show two actionable options and spatial consequences"}
+    }
+  ],
+  "script_scene_examples": [
+    {
+      "node_id": "n01",
+      "visual": "The player-character can inspect a source-grounded clue or follow a source-grounded character.",
+      "player_goal": "Find out why the locked location changed.",
+      "choices": [
+        {"choice_id": "c01a", "text": "Inspect the clue", "consequence": "gain evidence_state=clue_seen"},
+        {"choice_id": "c01b", "text": "Follow the character", "consequence": "gain position_state=back_room_path"}
+      ],
+      "state_change": ["clue_seen or back_room_path"],
+      "action_result": "The next node must reflect which state was gained."
+    }
+  ],
+  "dialogue_style_examples": [
+    "Player-facing choices should be short and concrete.",
+    "NPC lines should reveal pressure or consequence, not explain all branch logic.",
+    "Hidden state notes should be structured fields, not mixed into public dialogue."
+  ],
+  "negative_examples": [
+    {
+      "bad": "Choice A and Choice B use different words but both go to the same node with no memory.",
+      "why_bad": "That is a fake choice and breaks interactive trust."
+    },
+    {
+      "bad": "A branch introduces a new magic item to solve the problem.",
+      "why_bad": "Unsupported branch rewards create plot drift."
+    }
+  ],
+  "forbidden_drift": [
+    "Do not create fake choices with identical outcome and no state memory.",
+    "Do not add unsupported inventory, routes, companions, endings, or hidden truths.",
+    "Do not erase prior choices at convergence points."
+  ],
+  "handoff_notes": {
+    "image": ["Lock choice-facing spatial layout and visible option anchors."],
+    "video": ["Use clear node start/end states so branch clips can reconnect without spatial contradiction."]
+  }
+}

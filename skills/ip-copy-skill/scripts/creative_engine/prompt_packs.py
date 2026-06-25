@@ -1,6 +1,8 @@
 import json
 from typing import Any, Dict, List
 
+from .genre_examples import load_genre_example_pack
+
 
 PROMPT_PACK_VERSION = "copy-creative-prompt-pack-v1"
 
@@ -256,6 +258,7 @@ def build_prompt_pack(request) -> Dict[str, Any]:
     schema_name = request.schema_name or request.kind
     contract = SCHEMA_CONTRACTS.get(schema_name, {"root_type": "object", "item_required": [], "notes": []})
     diagnostics = _creative_diagnostics(request, adapter_payload)
+    genre_example_pack = load_genre_example_pack(diagnostics["genre_profile"]["primary"])
     format_template = _format_prompt_template(request.format_name)
     output_shape = _output_shape_for_kind(request.kind, request.format_name)
     return {
@@ -265,7 +268,7 @@ def build_prompt_pack(request) -> Dict[str, Any]:
         "schema_name": schema_name,
         "task_goal": KIND_TASKS.get(request.kind, "Generate structured adaptation output."),
         "system_prompt": _system_prompt(request.kind, request.format_name),
-        "user_prompt": _user_prompt(request, adapter_payload, contract, diagnostics),
+        "user_prompt": _user_prompt(request, adapter_payload, contract, diagnostics, genre_example_pack),
         "response_contract": {
             "json_only": True,
             "schema_name": schema_name,
@@ -274,6 +277,7 @@ def build_prompt_pack(request) -> Dict[str, Any]:
             "notes": contract["notes"],
         },
         "creative_diagnostics": diagnostics,
+        "genre_example_pack": genre_example_pack,
         "format_prompt_template": format_template,
         "few_shot_output_shape": output_shape,
         "task_instructions": TASK_INSTRUCTIONS.get(request.kind, ["Generate structured adaptation output under the response contract."]),
@@ -285,6 +289,10 @@ def build_prompt_pack(request) -> Dict[str, Any]:
             "payload_keys": sorted(payload.keys()),
             "allow_live_requested": bool(request.allow_live),
             "format_prompt_template_version": FORMAT_PROMPT_TEMPLATE_VERSION,
+            "genre_example_pack_id": genre_example_pack["pack_id"],
+            "genre_example_pack_version": genre_example_pack["version"],
+            "genre_example_pack_source": genre_example_pack["source_path"],
+            "genre_example_pack_fallback_used": genre_example_pack["fallback_used"],
         },
     }
 
@@ -302,11 +310,12 @@ def _system_prompt(kind: str, format_name: str) -> str:
     )
 
 
-def _user_prompt(request, adapter_payload: Dict[str, Any], contract: Dict[str, Any], diagnostics: Dict[str, Any]) -> str:
+def _user_prompt(request, adapter_payload: Dict[str, Any], contract: Dict[str, Any], diagnostics: Dict[str, Any], genre_example_pack: Dict[str, Any]) -> str:
     sections: List[str] = []
     sections.append(_section("Source Material", request.source_text or ""))
     sections.append(_section("Creative Brief", _json(request.creative_brief or {})))
     sections.append(_section("Detected Creative Diagnostics", _json(diagnostics)))
+    sections.append(_section("Genre Example Pack", _json(genre_example_pack)))
     sections.append(_section("Format Constraints", _format_constraints(adapter_payload)))
     sections.append(_section("Format-Specific Writing Template", _json(_format_prompt_template(request.format_name))))
     sections.append(_section("Few-Shot Output Shape", _json(_output_shape_for_kind(request.kind, request.format_name))))

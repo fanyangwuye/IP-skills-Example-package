@@ -26,7 +26,7 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 - Apply the `murder_mystery` FormatAdapter V1 for tabletop case structure, separated character POV packets, fair clue distribution, truth-chain logic, and host-script handoff requirements
 - Apply the `interactive_film_game` FormatAdapter V1 for branching node graphs, player choices, state flags, convergence points, endings, and replay handoff requirements
 - Build CreativeEngine prompt packs, provider request dry-run JSON, and provider boundary metadata for review without making live calls
-- Include creative diagnostics in prompt packs: genre profile, character voice contract, causality contract, rhythm contract, forbidden drift, quality gate, format-specific writing templates, and few-shot output shapes
+- Include creative diagnostics in prompt packs: genre profile, genre example pack, character voice contract, causality contract, rhythm contract, forbidden drift, quality gate, format-specific writing templates, and few-shot output shapes
 - Include deterministic creative-quality checks in `quality_report`: unsupported details, character consistency, dialogue voice, causality, hook density, emotion curve, and format-specific checks for branch/case structures
 - Attach `copy-creative-engine-review-v1` review reports to CreativeEngine mock outputs and future live-provider responses before downstream normalization`r`n- Parse provider response envelopes locally with `copy-provider-response-parse-v1` before any future live response is accepted
 
@@ -64,7 +64,7 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 ### Flow B0: Creative Prompt Pack Dry Run
 
 1. Accept `source_text`, `creative_brief`, `prompt_kind`, optional `scene_cards` / `script_draft`, and provider/model labels.
-2. Build a `copy-creative-prompt-pack-v1` prompt pack with source material, format constraints, creative diagnostics, format-specific writing template, few-shot output shape, response contract, safety constraints, task instructions, and quality targets.
+2. Build a `copy-creative-prompt-pack-v1` prompt pack with source material, format constraints, creative diagnostics, selected genre example pack, format-specific writing template, few-shot output shape, response contract, safety constraints, task instructions, and quality targets.
 3. Build a `copy-live-provider-request-v1` provider request wrapper with `network_call_allowed=false` and `copy-provider-boundary-v1` metadata for provider/model/key/budget/live-guard review.
 4. Write `creative_prompt_pack.json` and return `live_call_made=false`.
 5. Use this mode for review, testing, and handoff before any explicit live provider integration.
@@ -128,13 +128,14 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 - `scripts/license_gate.py`: deterministic license validation
 - `scripts/blueprint_validate.py`: deterministic blueprint validation
 - `scripts/copy_skill.py`: task entrypoint, interactive adaptation state, scene card builder, script draft builder, viral explainer builder, script polish helper, blueprint builder, handoff builder, and IP asset pack builder
-- `scripts/creative_engine/`: CreativeEngine base types, offline engine, mock engine, live guard placeholder, schema checks, prompt packs, provider boundary metadata, provider response parsing, and deterministic output review
+- `scripts/creative_engine/`: CreativeEngine base types, offline engine, mock engine, live guard placeholder, schema checks, prompt packs, genre example loading, provider boundary metadata, provider response parsing, and deterministic output review
 - `scripts/format_adapters/`: FormatAdapter base, `vertical_short_drama` V1 adapter, `overseas_short_drama` V1 adapter, `feature_film` V1 adapter, `long_series` V1 adapter, `murder_mystery` V1 adapter, and `interactive_film_game` V1 adapter
 - `scripts/quality_evaluator/`: structure, scaffold, deterministic creative-quality checks, and format-specific branch/case checks for scene cards and scripts
 
 ## References
 
 - `references/licenses/`: local license records
+- `references/genre_examples/`: local craft example packs for source-grounded genre control in prompt packs
 - `references/adaptation_brief_template.json`: structured brief template
 
 ## Invocation
@@ -152,5 +153,5 @@ If only `source_text` is provided, extract multiple important named roles, title
 
 This version provides controlled adaptation planning, CreativeEngine routing, vertical short-drama structure, overseas short-drama structure, feature-film structure, long-series structure, murder-mystery structure, interactive film/game structure, scaffold fallback, and quality reports.
 It still does not claim final polished prose or full model-native rewriting.
-Offline mode never calls a provider and now returns a reviewable prompt pack under `raw_response`. Mock mode is for tests. The live LLM engine is guarded; after double approval it currently builds a dry-run provider request with `network_call_allowed=false` plus provider boundary blockers, and still does not make provider calls. Prompt packs now include format-specific writing templates and few-shot output shapes as stronger control artifacts, not proof that final creative prose has been generated. CreativeEngine mock outputs now carry deterministic review reports, live dry-run requests carry a post-response review plan, and local provider-response parsing can unwrap JSON strings, code fences, and common provider envelopes before review; this is not a substitute for a real model or human creative review.
+Offline mode never calls a provider and now returns a reviewable prompt pack under `raw_response`. Mock mode is for tests. The live LLM engine is guarded; after double approval it currently builds a dry-run provider request with `network_call_allowed=false` plus provider boundary blockers, and still does not make provider calls. Prompt packs now include selected genre example packs, format-specific writing templates, and few-shot output shapes as stronger control artifacts, not proof that final creative prose has been generated. CreativeEngine mock outputs now carry deterministic review reports, live dry-run requests carry a post-response review plan, and local provider-response parsing can unwrap JSON strings, code fences, and common provider envelopes before review; this is not a substitute for a real model or human creative review.
 For production writing, an agent should use this state, adapter metadata, and scene/script structure as the control layer, then call an explicitly approved writing model for richer dialogue and prose where needed.

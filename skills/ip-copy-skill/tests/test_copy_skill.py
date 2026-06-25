@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import tempfile
@@ -6,7 +7,7 @@ from datetime import date
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from blueprint_validate import validate_blueprint  # noqa: E402
 from copy_skill import run_task  # noqa: E402
-from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_post_response_review_plan, build_prompt_pack, build_provider_boundary, build_provider_request, parse_provider_response, review_creative_output  # noqa: E402
+from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_post_response_review_plan, build_prompt_pack, build_provider_boundary, build_provider_request, load_genre_example_pack, parse_provider_response, review_creative_output, validate_genre_example_pack  # noqa: E402
 from format_adapters import FeatureFilmAdapter, InteractiveFilmGameAdapter, LongSeriesAdapter, MurderMysteryAdapter, OverseasShortDramaAdapter, VerticalShortDramaAdapter  # noqa: E402
 from license_gate import check_license, gate  # noqa: E402
 from quality_evaluator import evaluate_scene_cards_quality, evaluate_script_quality  # noqa: E402
@@ -1426,6 +1427,53 @@ def test_build_viral_explainer_script_from_script_draft():
         assert len(episode["narration_lines"]) >= 2
         assert episode["platform_notes"]["boundary"] == "不新增角色、不改动原剧情因果、不把解说稿写成分镜场景卡"
         assert any("场景卡" in item for item in script["quality_checks"])
+
+
+
+
+def test_genre_example_packs_validate_and_fallback():
+    examples_dir = os.path.join(os.path.dirname(__file__), "..", "references", "genre_examples")
+    pack_files = sorted(name for name in os.listdir(examples_dir) if name.endswith(".json"))
+    assert "general_short_drama.json" in pack_files
+    assert "underworld_supernatural.json" in pack_files
+    assert "xianxia_fantasy.json" in pack_files
+    assert "urban_suspense.json" in pack_files
+    assert "romance_drama.json" in pack_files
+    assert "interactive_film_game.json" in pack_files
+    for filename in pack_files:
+        with open(os.path.join(examples_dir, filename), "r", encoding="utf-8") as handle:
+            pack = json.load(handle)
+        assert validate_genre_example_pack(pack) == []
+
+    underworld_pack = load_genre_example_pack("underworld_supernatural")
+    assert underworld_pack["pack_id"] == "underworld_supernatural"
+    assert underworld_pack["fallback_used"] is False
+    assert "references/genre_examples/underworld_supernatural.json" == underworld_pack["source_path"]
+    assert "Craft examples" in underworld_pack["example_policy"]
+
+    fallback_pack = load_genre_example_pack("unknown_genre")
+    assert fallback_pack["pack_id"] == "general_short_drama"
+    assert fallback_pack["requested_genre"] == "unknown_genre"
+    assert fallback_pack["fallback_used"] is True
+
+
+def test_prompt_pack_injects_genre_example_pack():
+    request = CreativeEngineRequest(
+        kind="scene_cards",
+        source_text="林缺雨夜回到黄泉饭店，牛头员工端着托盘出现，菜单账本自己翻页。",
+        creative_brief={"target": "short_drama", "tone": "悬疑诡异"},
+        format_name=VerticalShortDramaAdapter().spec().format_name,
+        schema_name="scene_cards",
+        payload={"adapter": VerticalShortDramaAdapter().creative_engine_payload({"title": "黄泉饭店"}, {})},
+    )
+    prompt_pack = build_prompt_pack(request)
+    genre_pack = prompt_pack["genre_example_pack"]
+    assert genre_pack["pack_id"] == "underworld_supernatural"
+    assert prompt_pack["metadata"]["genre_example_pack_id"] == "underworld_supernatural"
+    assert prompt_pack["metadata"]["genre_example_pack_fallback_used"] is False
+    assert "Genre Example Pack" in prompt_pack["user_prompt"]
+    assert "random handkerchief" in prompt_pack["user_prompt"]
+    assert "source_text and locked payload remain authoritative" in prompt_pack["user_prompt"]
 
 
 def test_prompt_pack_includes_format_templates_and_few_shot_shapes():

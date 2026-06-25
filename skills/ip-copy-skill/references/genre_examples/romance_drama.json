@@ -1,0 +1,67 @@
+{
+  "pack_id": "romance_drama",
+  "version": "copy-genre-example-pack-v1",
+  "display_name": "Romance Drama",
+  "applies_to": ["romance_drama"],
+  "purpose": "Craft examples for romance, reunion, misunderstanding, status pressure, contract marriage, emotional reversal, and relationship-driven short drama.",
+  "source_priority_rules": [
+    "Relationship status, history, promises, betrayal, contract terms, and family pressure must come from source or locked payload.",
+    "Emotional turns should be expressed through behavior, choice, restraint, or public/private status change.",
+    "Do not add love triangles, pregnancy, marriage contracts, illness, or betrayal unless source supports them."
+  ],
+  "genre_boundary": [
+    "Track who knows the emotional truth and who performs a public role.",
+    "Use status, timing, misunderstanding, sacrifice, or withheld information as pressure.",
+    "Keep dialogue concise and playable; subtext should not erase clear scene stakes."
+  ],
+  "scene_card_examples": [
+    {
+      "visual": "In the locked location, one character notices a source-grounded object or gesture that proves the other character has been hiding pressure.",
+      "voiceover": "The detail does not confess love; it proves what was never said out loud.",
+      "duration_sec": 12,
+      "emotional_turn": "misread distance -> private recognition",
+      "asset_goal": {"type": "romance reversal frame", "purpose": "two-character blocking, object/gesture, emotional distance"}
+    },
+    {
+      "visual": "A public setting forces one character to choose between protecting status and protecting the other person.",
+      "voiceover": "The choice matters because everyone is watching.",
+      "duration_sec": 10,
+      "emotional_turn": "self-protection -> exposed care",
+      "asset_goal": {"type": "status pressure frame", "purpose": "public/private relationship contrast"}
+    }
+  ],
+  "script_scene_examples": [
+    {
+      "visual": "One character starts to leave, then stops because a source-grounded line, object, or injury changes the meaning of the conflict.",
+      "voiceover": "The misunderstanding does not end; it becomes harder to ignore.",
+      "dialogue": [
+        {"speaker": "lead", "line": "You knew, and you still came."}
+      ],
+      "action_result": "The relationship pressure shifts from accusation to unresolved care."
+    }
+  ],
+  "dialogue_style_examples": [
+    "Romance dialogue should carry status, hurt, restraint, or choice.",
+    "Use subtext, but make the action result clear.",
+    "Do not make every line a confession; let behavior reveal pressure."
+  ],
+  "negative_examples": [
+    {
+      "bad": "Add a new ex-lover to create jealousy.",
+      "why_bad": "Unsupported relationship additions damage source fidelity."
+    },
+    {
+      "bad": "Resolve a deep misunderstanding with one generic apology.",
+      "why_bad": "It collapses emotional causality and weakens episode hooks."
+    }
+  ],
+  "forbidden_drift": [
+    "Do not add marriage, pregnancy, illness, betrayal, contract, family opposition, or love triangle facts unless source-grounded.",
+    "Do not change who loves whom, who knows what, or who hurt whom without source support.",
+    "Do not make characters confess information they are not ready or able to reveal according to the locked scene."
+  ],
+  "handoff_notes": {
+    "image": ["Lock two-person distance, eye line, public/private setting, and source-grounded object details."],
+    "video": ["Use reaction shots, hand pauses, blocked exits, and public gaze as emotional continuity anchors."]
+  }
+}

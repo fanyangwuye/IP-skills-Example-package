@@ -1,4 +1,5 @@
 from .base import CreativeEngine, CreativeEngineRequest, CreativeEngineResult, EngineBlockedError
+from .genre_examples import GENRE_EXAMPLE_PACK_VERSION, load_genre_example_pack, validate_genre_example_pack
 from .live_llm_engine import LiveLLMEngine
 from .mock_engine import MockCreativeEngine
 from .offline_engine import OfflineCreativeEngine
@@ -12,10 +13,12 @@ __all__ = [
     "CreativeEngineRequest",
     "CreativeEngineResult",
     "EngineBlockedError",
+    "GENRE_EXAMPLE_PACK_VERSION",
     "LiveLLMEngine",
     "MockCreativeEngine",
     "OfflineCreativeEngine",
     "build_prompt_pack",
+    "load_genre_example_pack",
     "build_provider_boundary",
     "build_provider_request",
     "PROVIDER_RESPONSE_PARSE_VERSION",
@@ -24,4 +27,5 @@ __all__ = [
     "REVIEW_VERSION",
     "build_post_response_review_plan",
     "review_creative_output",
+    "validate_genre_example_pack",
 ]
