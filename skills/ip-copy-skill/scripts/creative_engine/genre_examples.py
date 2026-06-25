@@ -25,6 +25,11 @@ _REQUIRED_FIELDS = [
     "handoff_notes",
 ]
 
+_SCENE_CARD_REQUIRED_FIELDS = ["visual", "voiceover", "duration_sec", "emotional_turn", "asset_goal"]
+_SCRIPT_SCENE_REQUIRED_FIELDS = ["visual", "voiceover", "dialogue", "action_result"]
+_NEGATIVE_EXAMPLE_REQUIRED_FIELDS = ["bad", "why_bad"]
+_HANDOFF_REQUIRED_KEYS = ["image", "video"]
+
 
 def load_genre_example_pack(primary_genre: str, examples_dir: Path | None = None) -> Dict[str, Any]:
     genre = (primary_genre or "general_short_drama").strip() or "general_short_drama"
@@ -48,26 +53,31 @@ def validate_genre_example_pack(pack: Dict[str, Any]) -> List[str]:
     for field in _REQUIRED_FIELDS:
         if field not in pack:
             errors.append(f"missing required field: {field}")
+    if errors:
+        return errors
     if pack.get("version") != GENRE_EXAMPLE_PACK_VERSION:
         errors.append(f"version must be {GENRE_EXAMPLE_PACK_VERSION}")
     if not _is_non_empty_string(pack.get("pack_id")):
         errors.append("pack_id must be a non-empty string")
+    if not _is_non_empty_string(pack.get("display_name")):
+        errors.append("display_name must be a non-empty string")
+    if not _is_non_empty_string(pack.get("purpose")):
+        errors.append("purpose must be a non-empty string")
     if not _is_non_empty_list(pack.get("applies_to")):
         errors.append("applies_to must be a non-empty list")
-    for field in [
-        "source_priority_rules",
-        "genre_boundary",
-        "scene_card_examples",
-        "script_scene_examples",
-        "dialogue_style_examples",
-        "negative_examples",
-        "forbidden_drift",
-    ]:
-        if field in pack and not _is_non_empty_list(pack.get(field)):
+    elif not _all_non_empty_strings(pack.get("applies_to")):
+        errors.append("applies_to entries must be non-empty strings")
+
+    for field in ["source_priority_rules", "genre_boundary", "dialogue_style_examples", "forbidden_drift"]:
+        if not _is_non_empty_list(pack.get(field)):
             errors.append(f"{field} must be a non-empty list")
-    handoff_notes = pack.get("handoff_notes")
-    if "handoff_notes" in pack and not isinstance(handoff_notes, dict):
-        errors.append("handoff_notes must be an object")
+        elif not _all_non_empty_strings(pack.get(field)):
+            errors.append(f"{field} entries must be non-empty strings")
+
+    errors.extend(_validate_scene_card_examples(pack.get("scene_card_examples")))
+    errors.extend(_validate_script_scene_examples(pack.get("script_scene_examples")))
+    errors.extend(_validate_negative_examples(pack.get("negative_examples")))
+    errors.extend(_validate_handoff_notes(pack.get("handoff_notes")))
     return errors
 
 
@@ -103,6 +113,92 @@ def _compact_pack(pack: Dict[str, Any], path: Path, requested_genre: str, fallba
     }
 
 
+def _validate_scene_card_examples(value: Any) -> List[str]:
+    errors: List[str] = []
+    if not _is_non_empty_list(value):
+        return ["scene_card_examples must be a non-empty list"]
+    for index, item in enumerate(value):
+        prefix = f"scene_card_examples[{index}]"
+        if not isinstance(item, dict):
+            errors.append(f"{prefix} must be an object")
+            continue
+        for field in _SCENE_CARD_REQUIRED_FIELDS:
+            if field not in item:
+                errors.append(f"{prefix} missing required field: {field}")
+        for field in ["visual", "voiceover", "emotional_turn"]:
+            if field in item and not _is_non_empty_string(item.get(field)):
+                errors.append(f"{prefix}.{field} must be a non-empty string")
+        if "duration_sec" in item and not _is_positive_number(item.get("duration_sec")):
+            errors.append(f"{prefix}.duration_sec must be a positive number")
+        asset_goal = item.get("asset_goal")
+        if "asset_goal" in item and not isinstance(asset_goal, dict):
+            errors.append(f"{prefix}.asset_goal must be an object")
+        elif isinstance(asset_goal, dict) and not _is_non_empty_string(asset_goal.get("type")):
+            errors.append(f"{prefix}.asset_goal.type must be a non-empty string")
+    return errors
+
+
+def _validate_script_scene_examples(value: Any) -> List[str]:
+    errors: List[str] = []
+    if not _is_non_empty_list(value):
+        return ["script_scene_examples must be a non-empty list"]
+    for index, item in enumerate(value):
+        prefix = f"script_scene_examples[{index}]"
+        if not isinstance(item, dict):
+            errors.append(f"{prefix} must be an object")
+            continue
+        for field in _SCRIPT_SCENE_REQUIRED_FIELDS:
+            if field not in item:
+                errors.append(f"{prefix} missing required field: {field}")
+        for field in ["visual", "voiceover", "action_result"]:
+            if field in item and not _is_non_empty_string(item.get(field)):
+                errors.append(f"{prefix}.{field} must be a non-empty string")
+        dialogue = item.get("dialogue")
+        if "dialogue" in item and not _is_non_empty_list(dialogue):
+            errors.append(f"{prefix}.dialogue must be a non-empty list")
+        elif isinstance(dialogue, list):
+            for line_index, line in enumerate(dialogue):
+                line_prefix = f"{prefix}.dialogue[{line_index}]"
+                if not isinstance(line, dict):
+                    errors.append(f"{line_prefix} must be an object")
+                    continue
+                if not _is_non_empty_string(line.get("speaker")):
+                    errors.append(f"{line_prefix}.speaker must be a non-empty string")
+                if not _is_non_empty_string(line.get("line")):
+                    errors.append(f"{line_prefix}.line must be a non-empty string")
+    return errors
+
+
+def _validate_negative_examples(value: Any) -> List[str]:
+    errors: List[str] = []
+    if not _is_non_empty_list(value):
+        return ["negative_examples must be a non-empty list"]
+    for index, item in enumerate(value):
+        prefix = f"negative_examples[{index}]"
+        if not isinstance(item, dict):
+            errors.append(f"{prefix} must be an object")
+            continue
+        for field in _NEGATIVE_EXAMPLE_REQUIRED_FIELDS:
+            if field not in item:
+                errors.append(f"{prefix} missing required field: {field}")
+            elif not _is_non_empty_string(item.get(field)):
+                errors.append(f"{prefix}.{field} must be a non-empty string")
+    return errors
+
+
+def _validate_handoff_notes(value: Any) -> List[str]:
+    errors: List[str] = []
+    if not isinstance(value, dict):
+        return ["handoff_notes must be an object"]
+    for key in _HANDOFF_REQUIRED_KEYS:
+        entries = value.get(key)
+        if not _is_non_empty_list(entries):
+            errors.append(f"handoff_notes.{key} must be a non-empty list")
+        elif not _all_non_empty_strings(entries):
+            errors.append(f"handoff_notes.{key} entries must be non-empty strings")
+    return errors
+
+
 def _safe_source_path(path: Path) -> str:
     try:
         return path.relative_to(_SKILL_DIR).as_posix()
@@ -116,3 +212,13 @@ def _is_non_empty_string(value: Any) -> bool:
 
 def _is_non_empty_list(value: Any) -> bool:
     return isinstance(value, list) and bool(value)
+
+
+def _all_non_empty_strings(items: List[Any]) -> bool:
+    return all(_is_non_empty_string(item) for item in items)
+
+
+def _is_positive_number(value: Any) -> bool:
+    if isinstance(value, bool):
+        return False
+    return isinstance(value, (int, float)) and value > 0

@@ -1462,6 +1462,51 @@ def test_genre_example_packs_validate_and_fallback():
     assert fallback_pack["fallback_used"] is True
 
 
+
+def test_validate_genre_example_pack_reports_structural_errors():
+    bad_pack = {
+        "pack_id": "broken_pack",
+        "version": "copy-genre-example-pack-v1",
+        "display_name": "Broken Pack",
+        "applies_to": ["broken_pack"],
+        "purpose": "broken",
+        "source_priority_rules": ["rule one"],
+        "genre_boundary": ["boundary one"],
+        "scene_card_examples": [
+            {
+                "visual": "Only visual",
+                "voiceover": "Only voiceover",
+                "duration_sec": 0,
+                "emotional_turn": "flat",
+                "asset_goal": {}
+            }
+        ],
+        "script_scene_examples": [
+            {
+                "visual": "Only visual",
+                "voiceover": "Only voiceover",
+                "dialogue": [{"speaker": "", "line": ""}],
+                "action_result": ""
+            }
+        ],
+        "dialogue_style_examples": ["style one"],
+        "negative_examples": [
+            {
+                "bad": "",
+                "why_bad": ""
+            }
+        ],
+        "forbidden_drift": ["drift one"],
+        "handoff_notes": {"image": [], "video": [""]}
+    }
+    errors = validate_genre_example_pack(bad_pack)
+    assert any("scene_card_examples[0].duration_sec" in item for item in errors)
+    assert any("scene_card_examples[0].asset_goal.type" in item for item in errors)
+    assert any("script_scene_examples[0].dialogue[0].speaker" in item for item in errors)
+    assert any("negative_examples[0].bad" in item for item in errors)
+    assert any("handoff_notes.image" in item for item in errors)
+    assert any("handoff_notes.video entries" in item for item in errors)
+
 def test_prompt_pack_uses_format_specific_genre_example_pack_when_source_is_generic():
     request = CreativeEngineRequest(
         kind="script_scenes",

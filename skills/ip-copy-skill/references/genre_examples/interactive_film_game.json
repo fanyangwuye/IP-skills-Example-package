@@ -27,6 +27,10 @@
     {
       "node_id": "n01",
       "visual": "The player-character can inspect a source-grounded clue or follow a source-grounded character.",
+      "voiceover": "The scene turns because the player must choose what kind of risk to take first.",
+      "dialogue": [
+        {"speaker": "guide character", "line": "Choose fast. The room will not wait for both answers."}
+      ],
       "player_goal": "Find out why the locked location changed.",
       "choices": [
         {"choice_id": "c01a", "text": "Inspect the clue", "consequence": "gain evidence_state=clue_seen"},
