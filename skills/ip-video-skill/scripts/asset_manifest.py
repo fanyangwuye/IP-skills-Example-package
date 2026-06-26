@@ -255,9 +255,9 @@ def validate_asset_manifest(task: Dict) -> Tuple[List[str], List[str]]:
             errors.append(f"asset_manifest reference missing path/url: {ref}")
         if _is_placeholder_path(value):
             errors.append(f"asset_manifest {role} still has placeholder path/url: {ref}")
-        if value.startswith("C:\\Users\\") or "\\Downloads\\" in value:
+        if value.startswith("C:\\Users\\") or "\\Downloads\\" in value or "\\Temp\\" in value or "\\AppData\\Local\\Temp" in value:
             warnings.append(f"asset_manifest reference uses fragile local user/download path: {value}")
-        if "/Downloads/" in value or value.startswith("/home/") or value.startswith("/Users/"):
+        if "/Downloads/" in value or value.startswith("/home/") or value.startswith("/Users/") or value.startswith("/tmp/") or value.startswith("/var/folders/"):
             warnings.append(f"asset_manifest reference uses fragile local user/download path: {value}")
         required = MANIFEST_REQUIRED_KEYS.get(role, [])
         if "character_id" in required and not ref.get("character_id"):

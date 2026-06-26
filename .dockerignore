@@ -1,0 +1,12 @@
+.git
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+outputs/*
+!outputs/.gitkeep
+logs/*
+!logs/.gitkeep
+*.zip
+.claude

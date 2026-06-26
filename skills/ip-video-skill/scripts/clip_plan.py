@@ -392,16 +392,19 @@ def _build_clip(index: int, shots: List[Dict], task: Dict, bible: Dict, style_re
             "decision_policy": (style_recognition or {}).get("decision_policy", ""),
         },
         "ready_prompt": build_ready_prompt(
-            {"timing": timing, "style_presets": {"loaded": [
-                {
-                    "style_id": p["_meta"].get("style_id"),
-                    "display_name": p["_meta"].get("display_name"),
-                    "primary_palette": p.get("primary_palette"),
-                    "camera_language": p.get("camera_language"),
-                    "rhythm": p.get("rhythm"),
-                }
-                for p in (style_recognition or {}).get("loaded", [])
-            ]}, "martial_arts_layer": martial_arts_layer},
+            {"timing": timing, "style_presets": {
+                "loaded": [
+                    {
+                        "style_id": p["_meta"].get("style_id"),
+                        "display_name": p["_meta"].get("display_name"),
+                        "primary_palette": p.get("primary_palette"),
+                        "camera_language": p.get("camera_language"),
+                        "rhythm": p.get("rhythm"),
+                    }
+                    for p in (style_recognition or {}).get("loaded", [])
+                ],
+                "conflicts": (style_recognition or {}).get("conflicts", []),
+            }, "martial_arts_layer": martial_arts_layer},
             shots,
         ),
         "storyboard_mode": storyboard_mode,

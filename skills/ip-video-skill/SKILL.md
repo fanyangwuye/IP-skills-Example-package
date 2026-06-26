@@ -229,7 +229,7 @@ Paid/live PoYo video model policy is locked: default to `seedance-2`, not `seeda
 - `scripts/poyo_video_client.py`: PoYo Seedance 2 submit, status polling, upload, and download client
 - `scripts/video_handoff.py`: handoff and EDL builder
 - `scripts/video_skill.py`: agent-facing task entrypoint
-- `scripts/ffmpeg_assembly.py`: phase-3 placeholder for local assembly helpers
+- Local ffmpeg assembly is implemented in video_sequence.py (concat/subtitle/voiceover utilities).
 - `references/workflows.md`: provider-agnostic workflow and consistency rules
 - `references/prompt_architecture.md`: fixed Prompt Packet structure, internal-facts vs platform-safe wording split, storyboard/spatial/live-generation gates
 - `assets/example_asset_manifest.json`: standard character/scene/storyboard/space-anchor asset manifest example

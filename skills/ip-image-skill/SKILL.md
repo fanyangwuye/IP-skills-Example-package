@@ -92,7 +92,9 @@ Preserve these fields in role cards, design sheets, keyframes, and video prompts
 
 ### Flow F: Storyboard Content Design Sheet
 
-1. Load a `storyboard_image_tasks` item from `ip-video-skill`.
+**MANDATORY PREREQUISITE — do not skip:** Storyboard / line-art sheets MUST be generated from `storyboard_image_tasks` produced by `ip-video-skill` after it has analyzed the actual script (characters, scenes, shot plan). NEVER generate a storyboard sheet without these script-derived tasks. If `storyboard_image_tasks` is missing or empty, STOP and first run `ip-video-skill` on the script to produce them — do NOT invent placeholder, sample, or unrelated content (e.g. ads, products, generic stock subjects). Every storyboard panel must trace back to a specific shot from the user's script.
+
+1. Load a `storyboard_image_tasks` item from `ip-video-skill` (required — see prerequisite above).
 2. Generate either a 3-panel clip storyboard design sheet (start state, main action beat, end state) or a shot-table storyboard sheet when `asset_kind=shot_table_storyboard`.
 3. Keep character, costume, props, scene layout, light direction, and palette consistent with the continuity bible.
 4. Keep Chinese production labels short and outside the image panels.

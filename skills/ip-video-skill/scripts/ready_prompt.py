@@ -65,28 +65,36 @@ def _style_setting_line(clip: Dict, shots: List[Dict]) -> str:
             tone = t
             break
     bits = []
-    loaded = (clip.get("style_presets") or {}).get("loaded") or []
+    sp = clip.get("style_presets") or {}
+    loaded = sp.get("loaded") or []
+    conflicts = sp.get("conflicts") or []
     p = loaded[0] if loaded else {}
-    # 配色：剧本基调里若含色调描述则用剧本，否则风格库辅助
+    zh = {"close_up": "特写", "medium": "中景", "wide": "全景", "extreme_close_up": "大特写"}
+    # 多个命中的风格都列出来作辅助参考（多选叠加），主风格取第一个
+    style_names = [x.get("display_name") for x in loaded if x.get("display_name")]
     if tone:
         bits.append(f"基调：{tone}")
-        # 风格库的景别/节奏仍可作辅助补充
+        if len(style_names) >= 1:
+            bits.append("风格库辅助参考：" + "、".join(style_names))
         cam = p.get("camera_language") or {}
         dist = cam.get("shot_type_distribution") or {}
         if dist:
-            zh = {"close_up": "特写", "medium": "中景", "wide": "全景", "extreme_close_up": "大特写"}
             order = sorted(dist.items(), key=lambda kv: -kv[1])
             bits.append("景别参考：" + "、".join(f"{zh.get(k, k)}为主" if i == 0 else zh.get(k, k) for i, (k, _) in enumerate(order)))
     else:
-        # 剧本没写基调 → 风格库辅助
+        # 剧本没写基调 → 风格库辅助（多选）
         if p.get("primary_palette"):
             bits.append(f"配色（风格库辅助）：{p['primary_palette']}")
+        if len(style_names) >= 2:
+            bits.append("叠加风格参考：" + "、".join(style_names[1:]))
         cam = p.get("camera_language") or {}
         dist = cam.get("shot_type_distribution") or {}
         if dist:
-            zh = {"close_up": "特写", "medium": "中景", "wide": "全景", "extreme_close_up": "大特写"}
             order = sorted(dist.items(), key=lambda kv: -kv[1])
             bits.append("景别：" + "、".join(f"{zh.get(k, k)}为主" if i == 0 else zh.get(k, k) for i, (k, _) in enumerate(order)))
+    # 多风格冲突 → 交给 agent 判断，不写死
+    if conflicts:
+        bits.append("（多风格冲突，由agent按本段剧情取舍：" + "；".join(conflicts) + "）")
     return _PRO_TEXTURE + ("，".join(bits) + "。" if bits else "")
 
 

@@ -28,7 +28,6 @@ video_style_presets/
 ├── million_dollar_one_take.json ← 百万运镜一镜到底
 ├── first_person_pov.json        ← 第一人称POV
 ├── video_analysis_remaking.json  ← 视频拉片复刻
-└── source/                      ← 原始文本参考（人工可读的完整风格说明）
     ├── one-take/
     ├── director-style/
     ├── genre/

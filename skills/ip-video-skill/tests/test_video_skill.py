@@ -476,12 +476,12 @@ def test_storyboard_image_task_for_clip_design_sheet():
     handoff = build_video_handoff(_task())
     task = handoff["storyboard_image_tasks"][0]
     assert task["mode"] == "text_to_image"
-    assert task["asset_kind"] == "clip_storyboard_board"
-    assert task["filename"] == "clip_001_clip_storyboard_board.jpg"
+    assert task["asset_kind"] == "shot_table_storyboard"
+    assert task["filename"] == "clip_001_shot_table_storyboard.jpg"
     assert task["visual_text_language"] == "zh-CN"
     assert "storyboard_profile" in task
     assert task["storyboard_profile"]["clip_id"] == "clip_001"
-    assert task["storyboard_profile"]["storyboard_type"] == "clip_storyboard_board"
+    assert task["storyboard_profile"]["storyboard_type"] == "shot_table_storyboard"
     assert task["storyboard_profile"]["panel_count"] == 5
     assert task["storyboard_profile"]["first_frame_spec"]["kind"] == "first_frame"
     assert "first frame composition alignment" in task["storyboard_profile"]["first_frame_spec"]["alignment_checks"]
@@ -497,7 +497,7 @@ def test_storyboard_image_task_for_clip_design_sheet():
     assert any("pose lock" in item for item in task["asset_requirements"])
     assert any("blocking lock" in item for item in task["asset_requirements"])
     assert any("screen direction lock" in item for item in task["asset_requirements"])
-    assert "5-panel short-drama storyboard board" in task["composition"]
+    assert "镜头号 / 画面与构图 / 摄影机运动 / 动作表演 / 台词声音 / 时长或时间点" in task["composition"]
     assert "panel 1 must match the intended video first frame composition" in task["composition"]
     assert "pose lock=" in task["composition"]
     assert "action phase lock=" in task["composition"]

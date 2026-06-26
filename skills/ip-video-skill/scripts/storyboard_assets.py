@@ -179,7 +179,8 @@ def _storyboard_types(task: Dict, clip: Dict) -> List[str]:
         return [_normalize_storyboard_type(task["storyboard_type"], clip)]
     if clip.get("martial_arts_layer"):
         return ["martial_action_storyboard"]
-    return ["clip_storyboard_board"]
+    # 默认分镜故事板：6 列分镜表（镜头号/画面构图/摄影机运动/动作表演/台词声音/时长时间点）
+    return ["shot_table_storyboard"]
 
 
 def _normalize_storyboard_type(value, clip: Dict) -> str:
@@ -187,7 +188,9 @@ def _normalize_storyboard_type(value, clip: Dict) -> str:
     allowed = {"clip_storyboard_board", "shot_table_storyboard", "martial_action_storyboard"}
     if value in allowed:
         return value
-    return "martial_action_storyboard" if clip.get("martial_arts_layer") else "clip_storyboard_board"
+    # 默认：分镜故事板走 6 列分镜表（镜头号/画面构图/摄影机运动/动作表演/台词声音/时长时间点）；
+    # 打斗戏走动作分镜板。
+    return "martial_action_storyboard" if clip.get("martial_arts_layer") else "shot_table_storyboard"
 
 
 def _creative_goal(storyboard_type: str) -> str:
