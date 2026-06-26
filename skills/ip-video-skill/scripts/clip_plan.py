@@ -6,16 +6,191 @@ PROVIDER_SECTION_WEIGHTS = {
     "Global Context": 2,
     "Internal Story Facts": 2,
     "Reference Bindings": 3,
-    "Spatial Blocking": 4,
-    "15s Timeline": 5,
+    "Spatial Blocking": 3,
+    "Visual Texture": 3,
+    "Style Directives": 2,
+    "15s Timeline": 6,
     "Continuation Contract": 1,
     "Platform-Safe Surface Wording": 3,
-    "Execution Constraints": 3,
+    "Execution Constraints": 2,
 }
 EN_SURFACE_TERMS = [
+    # === Shot types (景别) — long terms first for priority matching ===
+    ("远景镜头", "wide shot"),
+    ("大远景", "extreme wide shot"),
+    ("全景镜头", "full shot"),
+    ("中远景", "medium long shot"),
+    ("中景镜头", "medium shot"),
+    ("近景镜头", "medium close-up"),
+    ("特写镜头", "close-up shot"),
+    ("大特写", "extreme close-up"),
+    ("过肩镜头", "over-the-shoulder shot"),
+    ("主观镜头", "POV shot"),
+    ("跟镜头", "tracking shot"),
+    ("摇镜头", "pan shot"),
+    ("推镜头", "push-in"),
+    ("拉镜头", "pull-out"),
+    ("移镜头", "dolly shot"),
+    ("升降镜头", "crane shot"),
+    ("航拍镜头", "aerial shot"),
+    ("俯拍镜头", "high angle shot"),
+    ("仰拍镜头", "low angle shot"),
+    ("倾斜镜头", "Dutch angle"),
+    ("长镜头", "long take"),
+    ("手持镜头", "handheld shot"),
+    ("稳定器镜头", "Steadicam shot"),
+    ("转场镜头", "transition shot"),
+    ("慢镜头", "slow motion"),
+    ("快镜头", "fast motion"),
+    ("时间流逝", "time-lapse"),
+    ("延时摄影", "time-lapse photography"),
+    ("变速镜头", "speed ramp"),
+    ("浅景深", "shallow depth of field"),
+    ("远景", "wide shot"),
+    ("全景", "full shot"),
+    ("中景", "medium shot"),
+    ("近景", "medium close-up"),
+    ("特写", "close-up"),
+    ("俯拍", "high angle"),
+    ("仰拍", "low angle"),
+    ("航拍", "aerial shot"),
+    ("手持", "handheld"),
+    # === Lighting (光线) ===
+    ("逆光拍摄", "backlit"),
+    ("侧光照明", "side lighting"),
+    ("顶光照明", "top lighting"),
+    ("底光照明", "under lighting"),
+    ("自然光线", "natural light"),
+    ("人造光线", "artificial light"),
+    ("柔光照明", "soft light"),
+    ("硬光照明", "hard light"),
+    ("冷光照明", "cool light"),
+    ("暖光照明", "warm light"),
+    ("逆光", "backlit"),
+    ("侧光", "side lighting"),
+    ("顶光", "top lighting"),
+    ("底光", "under lighting"),
+    ("自然光", "natural light"),
+    ("人造光", "artificial light"),
+    ("柔光", "soft light"),
+    ("硬光", "hard light"),
+    ("冷光", "cool light"),
+    ("暖光", "warm light"),
+    ("剪影", "silhouette"),
+    ("轮廓光", "rim light"),
+    ("补光", "fill light"),
+    ("烛光", "candlelight"),
+    ("霓虹光", "neon light"),
+    # === Mood / Atmosphere (情绪氛围) ===
+    ("压抑窒息", "suffocating"),
+    ("悬疑紧张", "suspenseful and tense"),
+    ("诡异恐怖", "eerie and terrifying"),
+    ("温暖浪漫", "warm and romantic"),
+    ("冷酷无情", "cold and ruthless"),
+    ("热血激昂", "passionate and intense"),
+    ("心碎绝望", "heartbreaking and desperate"),
+    ("空灵飘渺", "ethereal and otherworldly"),
+    ("紧张", "tense"),
+    ("悬疑", "suspenseful"),
+    ("压抑", "oppressive"),
+    ("温暖", "warm"),
+    ("冷酷", "cold and ruthless"),
+    ("浪漫", "romantic"),
+    ("悲伤", "sorrowful"),
+    ("激烈", "intense"),
+    ("平静", "calm"),
+    ("诡异", "eerie"),
+    ("恐怖", "terrifying"),
+    ("热血", "passionate"),
+    ("心碎", "heartbreaking"),
+    ("震撼", "shocking"),
+    ("孤独", "lonely"),
+    ("绝望", "desperate"),
+    ("期待", "expectant"),
+    ("释然", "relieved"),
+    ("空灵", "ethereal"),
+    # === Actions (动作) ===
+    ("转身回望", "turns back to look"),
+    ("奋力奔跑", "runs desperately"),
+    ("猛然转身", "spins around"),
+    ("击飞对手", "sends opponent flying"),
+    ("闪避攻击", "dodges the attack"),
+    ("突破重围", "breaks through the siege"),
+    ("飞跃障碍", "leaps over obstacle"),
+    ("潜行接近", "sneaks closer"),
+    ("对峙凝视", "faces off in a stare"),
+    ("追逐奔跑", "chases at full speed"),
+    ("包围合围", "surrounds the target"),
+    ("爆发力量", "erupts with power"),
+    ("凝聚灵力", "concentrates spiritual power"),
+    ("转身", "turns around"),
+    ("奔跑", "runs"),
+    ("跌倒", "falls"),
+    ("起身", "stands up"),
+    ("握拳", "clenches fist"),
+    ("拥抱", "embraces"),
+    ("推开", "pushes away"),
+    ("抓住", "grabs"),
+    ("释放", "releases"),
+    ("击飞", "sends flying"),
+    ("闪避", "dodges"),
+    ("挡住", "blocks"),
+    ("突破", "breaks through"),
+    ("飞跃", "leaps"),
+    ("潜行", "sneaks"),
+    ("对峙", "faces off"),
+    ("追逐", "chases"),
+    ("包围", "surrounds"),
+    ("爆发", "erupts"),
+    # === Xianxia / Fantasy (修仙/玄幻) ===
+    ("修仙修炼", "cultivates immortality"),
+    ("灵力爆发", "spiritual power erupts"),
+    ("渡劫飞升", "undergoes tribulation and ascends"),
+    ("宗门大战", "sect war"),
+    ("丹炉炼药", "alchemy furnace refining"),
+    ("符箓阵法", "talisman formation"),
+    ("天劫降临", "heavenly tribulation descends"),
+    ("元婴出窍", "Nascent Soul emerges"),
+    ("灵根觉醒", "spiritual root awakens"),
+    ("阵法启动", "formation activates"),
+    ("修仙", "cultivates immortality"),
+    ("灵力", "spiritual power"),
+    ("飞剑", "flying sword"),
+    ("渡劫", "undergoes tribulation"),
+    ("宗门", "sect"),
+    ("丹炉", "alchemy furnace"),
+    ("符箓", "talisman"),
+    ("仙", "immortal"),
+    ("天劫", "heavenly tribulation"),
+    ("法术", "spell"),
+    ("结丹", "core formation"),
+    ("元婴", "Nascent Soul"),
+    ("飞升", "ascension"),
+    ("灵根", "spiritual root"),
+    ("阵法", "formation"),
+    # === Urban / Modern (都市/现代) ===
+    ("办公室", "office"),
+    ("电梯间", "elevator"),
+    ("豪华轿车", "luxury car"),
+    ("董事会", "boardroom"),
+    ("咖啡厅", "cafe"),
+    ("停车场", "parking lot"),
+    ("总裁办公室", "CEO office"),
+    ("豪华别墅", "luxury villa"),
+    ("总裁", "CEO"),
+    ("豪车", "luxury car"),
+    ("电梯", "elevator"),
+    ("商场", "mall"),
+    ("酒店", "hotel"),
+    ("天台", "rooftop"),
+    ("街道", "street"),
+    ("医院", "hospital"),
+    ("监狱", "prison"),
+    ("法庭", "courtroom"),
+    ("别墅", "villa"),
+    # === Original genre-specific terms (黄泉饭店 etc.) ===
     ("黄泉饭店", "the locked underworld restaurant"),
     ("饭店", "restaurant"),
-    ("酒店", "hotel"),
     ("餐厅", "dining hall"),
     ("大厅", "main hall"),
     ("柜台", "service counter"),
@@ -82,17 +257,28 @@ try:
     from .spatial_templates import high_risk_spatial_template_text
     from .shot_director import director_plan_text
     from .storyboard_quality import evaluate_storyboard_quality
+    from .style_presets import recognize_style_presets
+    from .ready_prompt import build_ready_prompt
 except ImportError:
     from martial_arts import build_martial_arts_layer, is_martial_arts_scene, martial_arts_text
     from spatial_templates import high_risk_spatial_template_text
     from shot_director import director_plan_text
     from storyboard_quality import evaluate_storyboard_quality
+    from style_presets import recognize_style_presets
+    from ready_prompt import build_ready_prompt
 
 
 def build_clip_plan(task: Dict, shots: List[Dict], continuity_bible: Dict) -> List[Dict]:
     target_duration = _positive_float(task.get("target_clip_duration_sec") or task.get("clip_duration_sec"), 15.0)
     max_duration = _positive_float(task.get("max_clip_duration_sec"), 15.0)
     target_duration = min(target_duration, max_duration)
+
+    # 风格库自动加载（README: 管线在构建 prompt 时自动加载并注入）
+    style_recognition = recognize_style_presets(
+        source_text=" ".join(s.get("visual", "") for s in shots),
+        creative_brief=task.get("creative_brief") or {},
+        explicit_ids=task.get("style_preset_ids"),
+    )
 
     clips: List[Dict] = []
     current: List[Dict] = []
@@ -101,14 +287,14 @@ def build_clip_plan(task: Dict, shots: List[Dict], continuity_bible: Dict) -> Li
     for shot in shots:
         shot_duration = _shot_duration(shot)
         if current and current_duration + shot_duration > target_duration:
-            clips.append(_build_clip(len(clips) + 1, current, task, continuity_bible))
+            clips.append(_build_clip(len(clips) + 1, current, task, continuity_bible, style_recognition))
             current = []
             current_duration = 0.0
         current.append(shot)
         current_duration += shot_duration
 
     if current:
-        clips.append(_build_clip(len(clips) + 1, current, task, continuity_bible))
+        clips.append(_build_clip(len(clips) + 1, current, task, continuity_bible, style_recognition))
     return clips
 
 
@@ -122,6 +308,9 @@ def build_clip_prompts(clips: List[Dict]) -> List[Dict]:
             "storyboard_revision_suggestions": clip.get("storyboard_revision_suggestions", []),
             "storyboard_quality": clip.get("storyboard_quality", {}),
             "prompt": clip["clip_prompt"],
+            "i2v_prompt": clip.get("i2v_prompt", ""),
+            "seedance_prompt": clip.get("seedance_prompt", ""),
+            "t2v_prompt": clip.get("t2v_prompt", ""),
             "negative_prompt": clip["negative_prompt"],
             "reference_binding": clip["reference_binding"],
             "video_reference_images": clip["video_reference_images"],
@@ -138,7 +327,7 @@ def build_clip_prompts(clips: List[Dict]) -> List[Dict]:
     ]
 
 
-def _build_clip(index: int, shots: List[Dict], task: Dict, bible: Dict) -> Dict:
+def _build_clip(index: int, shots: List[Dict], task: Dict, bible: Dict, style_recognition: Dict = None) -> Dict:
     clip_id = f"clip_{index:03d}"
     first = shots[0]
     last = shots[-1]
@@ -178,12 +367,43 @@ def _build_clip(index: int, shots: List[Dict], task: Dict, bible: Dict) -> Dict:
         storyboard_execution_map,
         storyboard_mode,
         storyboard_revision_suggestions,
+        bible.get("global_visual_lock", {}),
     )
 
     return {
         "clip_id": clip_id,
         "order": index,
         "shot_ids": [shot.get("shot_id", "") for shot in shots],
+        "style_presets": {
+            "loaded": [
+                {
+                    "style_id": p["_meta"].get("style_id"),
+                    "display_name": p["_meta"].get("display_name"),
+                    "style_direction": p.get("style_direction"),
+                    "primary_palette": p.get("primary_palette"),
+                    "camera_language": p.get("camera_language"),
+                    "rhythm": p.get("rhythm"),
+                    "positive_prompt_fragments": p.get("positive_prompt_fragments"),
+                    "negative_prompt_fragments": p.get("negative_prompt_fragments"),
+                }
+                for p in (style_recognition or {}).get("loaded", [])
+            ],
+            "conflicts": (style_recognition or {}).get("conflicts", []),
+            "decision_policy": (style_recognition or {}).get("decision_policy", ""),
+        },
+        "ready_prompt": build_ready_prompt(
+            {"timing": timing, "style_presets": {"loaded": [
+                {
+                    "style_id": p["_meta"].get("style_id"),
+                    "display_name": p["_meta"].get("display_name"),
+                    "primary_palette": p.get("primary_palette"),
+                    "camera_language": p.get("camera_language"),
+                    "rhythm": p.get("rhythm"),
+                }
+                for p in (style_recognition or {}).get("loaded", [])
+            ]}, "martial_arts_layer": martial_arts_layer},
+            shots,
+        ),
         "storyboard_mode": storyboard_mode,
         "storyboard_execution_map": storyboard_execution_map,
         "storyboard_revision_suggestions": storyboard_revision_suggestions,
@@ -243,6 +463,7 @@ def _clip_prompt_bundle(
     storyboard_execution_map: List[Dict],
     storyboard_mode: str,
     storyboard_revision_suggestions: List[str],
+    style: Dict = None,
 ) -> Dict:
     full_packet = _clip_prompt(
         clip_id,
@@ -270,6 +491,7 @@ def _clip_prompt_bundle(
             martial_arts_layer,
             storyboard_execution_map,
             storyboard_mode,
+            style,
         ),
         "seedance_prompt": _clip_provider_prompt(
             "seedance",
@@ -282,6 +504,7 @@ def _clip_prompt_bundle(
             martial_arts_layer,
             storyboard_execution_map,
             storyboard_mode,
+            style,
         ),
         "t2v_prompt": _clip_provider_prompt(
             "t2v",
@@ -294,6 +517,7 @@ def _clip_prompt_bundle(
             martial_arts_layer,
             storyboard_execution_map,
             storyboard_mode,
+            style,
         ),
         "prompt_strategy": {
             "architecture": "Prompt Packet V1",
@@ -303,6 +527,42 @@ def _clip_prompt_bundle(
             "provider_prompt_budgets": PROVIDER_PROMPT_BUDGETS,
         },
     }
+
+
+def _visual_texture_text(shots: List[Dict]) -> str:
+    """从首个镜头的 prompt_profile 中提取已组装的光影色调描述。
+    prompt_quality.build_prompt_profile 已将 lighting + palette + atmosphere +
+    style_direction + style_positive + realism_constraints 整合为
+    lighting_texture 字段，这里直接复用，避免重复拼装。
+    """
+    if not shots:
+        return ""
+    profile = shots[0].get("prompt_profile") or {}
+    return profile.get("lighting_texture") or ""
+
+
+def _style_directives_text(style: Dict) -> str:
+    """从视频风格预设中提取 prompt_rules（必含元素、禁用短语、镜头节奏）注入 provider prompt。"""
+    if not style:
+        return ""
+    prompt_rules = style.get("prompt_rules") or {}
+    rhythm = style.get("rhythm") or {}
+    mandatory = prompt_rules.get("mandatory_elements") or []
+    forbidden = prompt_rules.get("forbidden_phrases") or []
+    cuts = rhythm.get("cuts_per_15s")
+    pacing = rhythm.get("pacing_description") or ""
+    parts = []
+    if mandatory:
+        parts.append(f"风格必含：{'、'.join(mandatory)}")
+    if forbidden:
+        parts.append(f"禁止出现：{'、'.join(forbidden)}")
+    if cuts:
+        parts.append(f"节奏：每15秒约{cuts}个切镜")
+    if pacing:
+        parts.append(f"节奏描述：{pacing}")
+    if not parts:
+        return ""
+    return "Style Directives: " + "；".join(parts) + "。"
 
 
 def _clip_provider_prompt(
@@ -316,6 +576,7 @@ def _clip_provider_prompt(
     martial_arts_layer: Dict,
     storyboard_execution_map: List[Dict],
     storyboard_mode: str,
+    style: Dict = None,
 ) -> str:
     characters = _dedupe([char for shot in shots for char in (shot.get("characters") or [])])
     scene_ids = _dedupe([shot.get("scene_id") for shot in shots if shot.get("scene_id")])
@@ -327,6 +588,7 @@ def _clip_provider_prompt(
     refs = _compact_reference_text(video_refs, space_refs)
     martial = _clip_text(martial_arts_text(martial_arts_layer), 180)
     storyboard = _compact_storyboard_text(storyboard_execution_map, storyboard_mode)
+    texture = _visual_texture_text(shots)
 
     if kind == "i2v":
         mode_line = "Image-to-video. Use reference images as the identity, costume, scene, storyboard-composition and motion anchors."
@@ -350,6 +612,8 @@ def _clip_provider_prompt(
         f"Internal Story Facts: characters={characters or ['empty/cutaway']}; scenes={scene_ids or ['unspecified']}; start={_clip_text(continuity_state.get('current_start_state', ''), 120)}; action={action}; end={_clip_text(continuity_state.get('current_end_state', ''), 120)}.",
         f"Reference Bindings: {refs}; character refs lock identity and costume; scene refs lock layout and light; storyboard refs lock composition, blocking, action phase, screen direction and edit order.",
         f"Spatial Blocking: {spatial}",
+        f"Visual Texture: {texture}" if texture else "",
+        _style_directives_text(style) if style else "",
         f"15s Timeline: {timeline}",
         "Continuation Contract: Do not copy the previous clip composition unless hard_first_frame is explicitly selected; use reframed medium, close, wide, reverse, insert or cutaway shots only when continuity state, light, costume, prop hand and screen direction remain traceable.",
         f"Platform-Safe Surface Wording: {surface} Surface wording must stay visually equivalent to the locked references and storyboard; do not replace locked characters with strangers, masks, machines, celebrities, animals or unrelated creatures.",
@@ -377,12 +641,16 @@ def _budget_provider_prompt(kind: str, parts: List[str]) -> str:
             compressed.append(_clip_text(part, 320))
         elif part.startswith("Spatial Blocking"):
             compressed.append(_clip_text(part, 360))
+        elif part.startswith("Visual Texture"):
+            compressed.append(_clip_text(part, 200))
+        elif part.startswith("Style Directives"):
+            compressed.append(_clip_text(part, 200))
         elif part.startswith("15s Timeline"):
             compressed.append(_clip_text(part, 520))
         elif part.startswith("Continuation Contract"):
             compressed.append("Continuation Contract: Keep boundary mode, continuity state, light, costume, prop hand and screen direction traceable; do not reset composition unless approved.")
         elif part.startswith("Platform-Safe Surface Wording"):
-            compressed.append(_clip_text(part, 300))
+            compressed.append(_clip_text(part, 340))
         elif part.startswith("Execution Constraints"):
             compressed.append(_clip_text(part, 320))
         else:
@@ -397,11 +665,15 @@ def _budget_provider_prompt(kind: str, parts: List[str]) -> str:
         "Internal Story Facts",
         "Reference Bindings",
         "Spatial Blocking",
+        "Visual Texture",
+        "Style Directives",
         "15s Timeline",
         "Continuation Contract",
         "Platform-Safe Surface Wording",
         "Execution Constraints",
     ]
+    # 只保留实际存在的段，避免为缺失段分配预算
+    required_prefixes = [p for p in required_prefixes if any(part.startswith(p) for part in compressed)]
     section_map = {prefix: next((part for part in compressed if part.startswith(prefix)), prefix + ":") for prefix in required_prefixes}
     overhead = len("\n".join(required_prefixes)) + 40
     weighted_budget = max(budget - overhead, len(required_prefixes) * 40)
@@ -413,13 +685,15 @@ def _budget_provider_prompt(kind: str, parts: List[str]) -> str:
         if prefix == "Prompt Packet V1":
             section_limit = max(section_limit, len(section_map[prefix]))
         elif prefix == "15s Timeline":
-            section_limit = max(section_limit, 260)
+            section_limit = max(section_limit, 340)
         elif prefix == "Spatial Blocking":
             section_limit = max(section_limit, 210)
+        elif prefix == "Visual Texture":
+            section_limit = max(section_limit, 150)
         elif prefix == "Reference Bindings":
             section_limit = max(section_limit, 180)
         elif prefix == "Platform-Safe Surface Wording":
-            section_limit = max(section_limit, 220)
+            section_limit = max(section_limit, 260)
         elif prefix == "Continuation Contract":
             section_limit = min(section_limit, 130)
         final_parts.append(_clip_text(section_map[prefix], section_limit))
@@ -459,10 +733,10 @@ def _compact_timeline_text(shots: List[Dict]) -> str:
         rows.append(
             f"[{timing.get('start_sec')}-{timing.get('end_sec')}s] shot{order}={shot.get('shot_id', '')}: "
             f"{_clip_text(shot.get('visual', ''), 120)}; beat={_clip_text(director.get('beat_type', ''), 40)}; "
-            f"director={_clip_text(director_plan_text(director), 120)}; camera={_clip_text(card.get('camera_motion', '') or 'follow storyboard camera', 60)}; "
+            f"director={_clip_text(director_plan_text(director), 180)}; camera={_clip_text(card.get('camera_motion', '') or 'follow storyboard camera', 60)}; "
             f"start={_clip_text(state.get('current_start_state', ''), 70)}; end={_clip_text(state.get('current_end_state', ''), 70)}"
         )
-    return _clip_text(" ".join(rows), 760)
+    return _clip_text(" ".join(rows), 900)
 
 
 def _compact_storyboard_text(storyboard_execution_map: List[Dict], storyboard_mode: str = "production") -> str:
@@ -529,6 +803,8 @@ def _trim_weighted_sections(parts: List[str], budget: int) -> str:
         "Internal Story Facts",
         "Execution Constraints",
         "Reference Bindings",
+        "Style Directives",
+        "Visual Texture",
         "Spatial Blocking",
         "Platform-Safe Surface Wording",
         "15s Timeline",
@@ -537,8 +813,10 @@ def _trim_weighted_sections(parts: List[str], budget: int) -> str:
         "Prompt Packet V1": 140,
         "15s Timeline": 220,
         "Spatial Blocking": 180,
+        "Visual Texture": 100,
+        "Style Directives": 100,
         "Reference Bindings": 150,
-        "Platform-Safe Surface Wording": 180,
+        "Platform-Safe Surface Wording": 220,
         "Execution Constraints": 150,
     }
     for prefix in shrink_order:

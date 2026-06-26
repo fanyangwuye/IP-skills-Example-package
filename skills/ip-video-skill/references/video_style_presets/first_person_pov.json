@@ -1,0 +1,108 @@
+{
+  "_meta": {
+    "name": "first_person_pov",
+    "display_name": "第一人称POV",
+    "category": "technique",
+    "source_file": "source/technique/第一人称POV.txt"
+  },
+
+  "style_direction": "第一视角现实主义美学：严格第一人称POV铁律，主角不出现正脸/全身，仅通过手/鞋/衣袖/倒影入画。信息必须进入视野才算成立，主观运动链（视线起点→触发→转向→手部动作→落点）必须完整。",
+
+  "primary_palette": "纪实摄影、低饱和、湿冷空气、自然光、真实县城乡村质感、旧物质感",
+
+  "positive_prompt_fragments": [
+    "first-person POV from protagonist; camera is his/her eyes",
+    "handheld subjective movement手持主观运动",
+    "主角局部：手/鞋/衣袖/胸前物件/倒影/玻璃反光",
+    "视线起点→声音触发→视线转向→手部动作→视线落点",
+    "纪实摄影：低饱和/湿冷空气/旧物质感",
+    "环境声/动作声/呼吸声作为声音证据",
+    "压迫感→低机位封闭空间/孤独感→空旷留白",
+    "Handheld subjective movement | small jolts | cold grey morning"
+  ],
+
+  "realism_constraints": [
+    "禁止第三人称镜头/主角正脸/全身",
+    "禁止生成可读中文文字",
+    "禁止慢动作煽情",
+    "禁止结尾静止全身展示",
+    "声音证据不能替代关键画面"
+  ],
+
+  "forbidden_elements": [
+    "第三人称镜头",
+    "主角正脸或全身",
+    "可读中文文字",
+    "slow motion煽情",
+    "全身静止展示",
+    "fantasy glow",
+    "commercial advertising look",
+    "CG render",
+    "anime"
+  ],
+
+  "negative_prompt_fragments": [
+    "No third-person shot of protagonist",
+    "no full face of protagonist",
+    "no full body of protagonist",
+    "no subtitles",
+    "no on-screen text",
+    "no logo",
+    "no narration",
+    "no sentimental montage",
+    "no fantasy glow",
+    "no commercial advertising look",
+    "no CG render",
+    "no anime"
+  ],
+
+  "camera_language": {
+    "movement_preference": "first-person POV手持主观运动、视线从A移到B、视线被声音拉过去、视线跟着手、低机位POV",
+    "framing_preference": "主角不作为正脸角色资产、仅手/鞋/衣袖/局部倒影入画、视线落点构图",
+    "lens_bias": "手持纪实镜头、自然晃动感、真实透视",
+    "shot_type_distribution": {
+      "close_up": 0.5,
+      "medium": 0.3,
+      "wide": 0.2
+    }
+  },
+
+  "rhythm": {
+    "cuts_per_15s": 3,
+    "avg_shot_duration_sec": 5,
+    "pacing_description": "前快后慢节奏、每Clip一个主要故事转向、情绪通过物理证据表达而非口号",
+    "transition_style": "视线落点和声音触发衔接、硬切Segment间黑场过渡"
+  },
+
+  "prompt_rules": {
+    "language": "zh",
+    "structure_template": "【参考图输入】+【影像容器】+【首尾帧合约】+【四锚点（身份/空间/状态/质量）】+【画面】+【动作阶段】+【声音证据】+【禁止项】",
+    "mandatory_elements": [
+      "first-person POV铁律",
+      "主观运动链完整",
+      "视线落点构图",
+      "禁止第三人称泄漏",
+      "环境声作为声音证据"
+    ],
+    "forbidden_phrases": [
+      "third-person shot",
+      "full face",
+      "full body",
+      "可读文字",
+      "slow motion"
+    ]
+  },
+
+  "pipeline_config": {
+    "preferred_model": "seedance_2",
+    "resolution": "720p",
+    "clip_duration_sec": 15,
+    "handoff_mode": "last_frame"
+  },
+
+  "audio_direction": {
+    "bgm_style": "默认不加配乐、仅环境声",
+    "voice_character": "对白后期配音、不要求口型同步",
+    "ambient_sound": "环境空间声/物体动作声/呼吸声、声音是连续性控制一部分而非装饰"
+  }
+}

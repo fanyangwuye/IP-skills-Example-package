@@ -1,0 +1,96 @@
+{
+  "_meta": {
+    "name": "industrial_product_commercial",
+    "display_name": "工业产品商业宣传片",
+    "category": "commercial",
+    "source_file": "source/commercial/工业产品商业宣传片.txt"
+  },
+
+  "style_direction": "工业产品商业展示美学：棚拍产品视觉为核心，追求产品质感与细节的完美呈现。画面简洁大气，光影精准控制，四种可选风格覆盖冷峻工业、赛博科技、极简高端、奢华暗金等调性。",
+
+  "primary_palette": "深灰/金属银+科技蓝点缀（冷峻工业风）；科技蓝/电紫双色调（赛博科技风）；纯白/浅灰渐变（极简高端风）；哑黑+暗金配色（暗金奢华风）",
+
+  "positive_prompt_fragments": [
+    "棚拍纯黑背景，硬光单点主光源",
+    "边缘勾光，高反差暗调",
+    "产品本色呈现，精致表面质感",
+    "蓝紫荧光网格，霓虹发光边缘",
+    "镜面反射地面，低调奢华氛围",
+    "产品360度环绕展示",
+    "慢动作细节特写",
+    "科技感粒子效果"
+  ],
+
+  "realism_constraints": [
+    "保持产品实拍质感，禁止动画感",
+    "产品轮廓与比例必须准确",
+    "光影必须有物理逻辑",
+    "材质质感必须真实可信"
+  ],
+
+  "forbidden_elements": [
+    "杂乱的背景元素",
+    "过曝或欠曝",
+    "不自然的产品变形",
+    "明显的CG合成痕迹",
+    "过于复杂的场景"
+  ],
+
+  "negative_prompt_fragments": [
+    "杂乱背景",
+    "过曝",
+    "欠曝",
+    "动画感",
+    "产品变形",
+    "CG质感",
+    "复杂场景"
+  ],
+
+  "camera_language": {
+    "movement_preference": "产品360度环绕运镜、缓慢推拉、微距特写跟随",
+    "framing_preference": "产品居中特写构图为主、黄金分割构图、极简留白",
+    "lens_bias": "中长焦为主（50-85mm等效），微距镜头用于细节特写",
+    "shot_type_distribution": {
+      "close_up": 0.4,
+      "medium": 0.35,
+      "wide": 0.25
+    }
+  },
+
+  "rhythm": {
+    "cuts_per_15s": 6,
+    "avg_shot_duration_sec": 2.5,
+    "pacing_description": "快节奏切换，展示信息密度高；每个镜头完整呈现产品卖点；结尾定格收束",
+    "transition_style": "快速硬切、溶解叠化、速度匹配转场"
+  },
+
+  "prompt_rules": {
+    "language": "zh",
+    "structure_template": "【产品主体】+【背景环境】+【光影质感】+【镜头运动】+【画面氛围】",
+    "mandatory_elements": [
+      "产品主体清晰突出",
+      "精准光影控制",
+      "产品质感呈现",
+      "干净背景衬托"
+    ],
+    "forbidden_phrases": [
+      "杂乱背景",
+      "过曝欠曝",
+      "产品变形",
+      "动画感"
+    ]
+  },
+
+  "pipeline_config": {
+    "preferred_model": "seedance_2",
+    "resolution": "720p",
+    "clip_duration_sec": 15,
+    "handoff_mode": "last_frame"
+  },
+
+  "audio_direction": {
+    "bgm_style": "纯电子工业轻音乐，低沉鼓点，科技氛围感强",
+    "voice_character": "男声/女声旁白可选，播音腔，正式感",
+    "ambient_sound": "机械音效、产品操作声、电子脉冲声"
+  }
+}

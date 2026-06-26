@@ -1,0 +1,94 @@
+{
+  "_meta": {
+    "name": "video_analysis_remaking",
+    "display_name": "视频拉片复刻",
+    "category": "technique",
+    "source_file": "source/technique/视频拉片复刻.txt"
+  },
+
+  "style_direction": "视频拉片复刻美学：详尽分析参考视频，提取关键帧（标志性构图/取景/时刻），与镜头一一对应映射。保留剪辑点/镜头类型/摄像机运动/取景/节奏，仅替换角色主题。",
+
+  "primary_palette": "电影级调色、专业光影、Neo-Noir/导演风格锚点",
+
+  "positive_prompt_fragments": [
+    "镜头拆解：角色动作/对话/场景/摄像机运动/镜头类型角度",
+    "关键帧提取：标志性构图/取景/时刻",
+    "镜头一一对应映射参考视频节拍",
+    "长镜头+镜内分切（每镜头10-15秒）",
+    "剪辑频率遵循故事节奏",
+    "对白/旁白/内心独白OS完整转译",
+    "BGM风格节奏与参考视频匹配",
+    "声音语调与voice_reference对齐"
+  ],
+
+  "realism_constraints": [
+    "保持参考视频的镜头语言特征",
+    "保留剪辑点/摄像机运动/取景节奏",
+    "角色替换但表演风格延续",
+    "光影调色保持参考风格"
+  ],
+
+  "forbidden_elements": [
+    "偏离参考视频的镜头语言",
+    "增减参考视频的剪辑点",
+    "改变摄像机运动方式",
+    "背离参考视频的情绪节奏",
+    "角色外观与参考差异过大"
+  ],
+
+  "negative_prompt_fragments": [
+    "镜头语言偏差",
+    "剪辑点不一致",
+    "摄像机运动改变",
+    "情绪节奏偏离",
+    "角色风格不匹配"
+  ],
+
+  "camera_language": {
+    "movement_preference": "与参考视频完全一致的摄像机运动方式：static/push-in/orbit/pan等",
+    "framing_preference": "与参考视频一致的景别/角度/取景",
+    "lens_bias": "复刻参考视频的镜头类型和焦距特征",
+    "shot_type_distribution": {
+      "close_up": 0.3,
+      "medium": 0.4,
+      "wide": 0.3
+    }
+  },
+
+  "rhythm": {
+    "cuts_per_15s": 3,
+    "avg_shot_duration_sec": 5,
+    "pacing_description": "与参考视频节奏完全一致、保留内部剪辑频率、长镜头复刻",
+    "transition_style": "与参考视频一致的转场方式"
+  },
+
+  "prompt_rules": {
+    "language": "zh",
+    "structure_template": "【参考视频关键帧绑定】+【角色/场景替换】+【摄像机运动】+【镜头内部剪辑】+【对白/旁白】+【BGM标注】",
+    "mandatory_elements": [
+      "关键帧提取绑定",
+      "镜头语言复刻",
+      "剪辑点保留",
+      "对白/旁白转译",
+      "BGM风格匹配"
+    ],
+    "forbidden_phrases": [
+      "镜头语言偏差",
+      "剪辑点不一致",
+      "摄像机运动改变"
+    ]
+  },
+
+  "pipeline_config": {
+    "preferred_model": "seedance_2",
+    "resolution": "720p",
+    "clip_duration_sec": 15,
+    "handoff_mode": "last_frame"
+  },
+
+  "audio_direction": {
+    "bgm_style": "BGM风格节奏与参考视频匹配、按情绪段落拆分BGM片段",
+    "voice_character": "对白旁白按voice_reference对齐、中文用豆包/英文用elevenlabs",
+    "ambient_sound": "参考视频环境音效复刻"
+  }
+}

@@ -2,7 +2,9 @@
   "pack_id": "xianxia_fantasy",
   "version": "copy-genre-example-pack-v1",
   "display_name": "Xianxia Fantasy",
-  "applies_to": ["xianxia_fantasy"],
+  "applies_to": [
+    "xianxia_fantasy"
+  ],
   "purpose": "Craft examples for cultivation, sect conflict, spiritual rules, artifacts, trial grounds, tribulation, and inner-demon story logic.",
   "source_priority_rules": [
     "Only use cultivation realms, sect names, artifacts, spells, beasts, and rules that appear in source or locked payload.",
@@ -20,14 +22,20 @@
       "voiceover": "The artifact does not give him power for free; it exposes the price.",
       "duration_sec": 12,
       "emotional_turn": "hope -> cost recognition",
-      "asset_goal": {"type": "xianxia key frame", "purpose": "artifact reaction, protagonist posture, sect or trial environment"}
+      "asset_goal": {
+        "type": "xianxia key frame",
+        "purpose": "artifact reaction, protagonist posture, sect or trial environment"
+      }
     },
     {
       "visual": "A status opponent blocks the protagonist's path through rank, oath, or public rule rather than immediate combat.",
       "voiceover": "The real pressure is not the sword; it is the rule he cannot openly break.",
       "duration_sec": 10,
       "emotional_turn": "anger -> strategic restraint",
-      "asset_goal": {"type": "sect pressure frame", "purpose": "rank relationship and spatial power line"}
+      "asset_goal": {
+        "type": "sect pressure frame",
+        "purpose": "rank relationship and spatial power line"
+      }
     }
   ],
   "script_scene_examples": [
@@ -35,7 +43,10 @@
       "visual": "The protagonist stops before using power because a source-grounded rule would harm an ally, expose identity, or trigger a penalty.",
       "voiceover": "Winning here would cost more than losing face.",
       "dialogue": [
-        {"speaker": "protagonist", "line": "Not here. The rule is waiting for me to break it."}
+        {
+          "speaker": "protagonist",
+          "line": "Not here. The rule is waiting for me to break it."
+        }
       ],
       "action_result": "The protagonist chooses restraint, creating a strategic handoff."
     }
@@ -57,11 +68,17 @@
   ],
   "forbidden_drift": [
     "Do not invent cultivation realms, sect titles, techniques, pills, talismans, beasts, or artifacts.",
+    "Do not change lead character identity, sect role, companion status, or speaker authority without source support.",
     "Do not change artifact ownership.",
-    "Do not add combat, tribulation, or breakthrough beats without source setup."
+    "Do not add combat, tribulation, or breakthrough beats without source setup.",
+    "Do not shift sect space, mountain route, gate threshold, or combat blocking without a visible causal transition."
   ],
   "handoff_notes": {
-    "image": ["Lock artifact shape, wardrobe hierarchy, sect environment, and posture relationships."],
-    "video": ["Stage power use with clear start, visible cause, contained effect, and end state."]
+    "image": [
+      "Lock artifact shape, wardrobe hierarchy, sect environment, and posture relationships."
+    ],
+    "video": [
+      "Stage power use with clear start, visible cause, contained effect, and end state."
+    ]
   }
 }

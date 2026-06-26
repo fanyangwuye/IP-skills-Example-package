@@ -188,6 +188,13 @@ def _build_style_lock(task: Dict, ip_asset_pack: Dict, blueprint: Dict, polished
     tone = direction.get("tone") or polished_script.get("tone") or task.get("tone") or "cinematic IP adaptation"
     style_preset = task.get("style_preset") or ip_asset_pack.get("style_preset") or "realistic_short_drama"
     style_card = _load_video_style_card(task.get("style_card_path"), style_preset)
+
+    # 加载视频风格预设（如果指定），合并到 style_card（视频预设优先级更高）
+    video_preset_name = task.get("video_style_preset") or ""
+    video_preset = _load_video_style_preset(video_preset_name) if video_preset_name else {}
+    if video_preset:
+        style_card = _merge_style_card_dicts(style_card, video_preset)
+
     forbidden = [
         "no face drift",
         "no hairstyle drift",
@@ -198,18 +205,30 @@ def _build_style_lock(task: Dict, ip_asset_pack: Dict, blueprint: Dict, polished
     ]
     forbidden.extend(style_card.get("forbidden_elements") or [])
     forbidden.extend(style_card.get("negative_prompt_fragments") or [])
-    return {
+
+    result = {
         "style_preset": style_preset,
+        "video_style_preset": video_preset_name,
         "style_card_source": style_card.get("_source", ""),
         "style_direction": style_card.get("style_direction", ""),
         "style_positive_fragments": list(style_card.get("positive_prompt_fragments") or [])[:8],
         "style_realism_constraints": list(style_card.get("realism_constraints") or [])[:8],
         "tone_lock": tone,
-        "lens_language": task.get("lens_language", "短剧镜头语言，动作清楚，表演可读，避免过度炫技"),
+        "lens_language": task.get("lens_language") or style_card.get("camera_language", {}).get("movement_preference", "") or "短剧镜头语言，动作清楚，表演可读，避免过度炫技",
         "color_grade": task.get("color_grade") or style_card.get("primary_palette") or _infer_palette(str(tone)),
-        "lighting_policy": "保持同一场景内光源方向、冷暖和对比度连续。",
+        "lighting_policy": style_card.get("lighting_policy") or "保持同一场景内光源方向、冷暖和对比度连续。",
         "forbidden_drift": _dedupe(forbidden),
     }
+
+    # 注入视频专用字段（来自视频风格预设）
+    if video_preset:
+        result["camera_language"] = video_preset.get("camera_language", {})
+        result["rhythm"] = video_preset.get("rhythm", {})
+        result["prompt_rules"] = video_preset.get("prompt_rules", {})
+        result["pipeline_config"] = video_preset.get("pipeline_config", {})
+        result["audio_direction"] = video_preset.get("audio_direction", {})
+
+    return result
 
 
 def _load_video_style_card(style_card_path: Optional[str], style_preset: str) -> Dict:
@@ -235,6 +254,25 @@ def _load_video_style_card(style_card_path: Optional[str], style_preset: str) ->
 def _image_style_preset_path(style_preset: str) -> str:
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
     return os.path.join(project_root, "skills", "ip-image-skill", "references", "style_presets", f"{style_preset}.json")
+
+
+def _video_style_preset_path(video_style_preset: str) -> str:
+    return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "references", "video_style_presets", f"{video_style_preset}.json")
+
+
+def _load_video_style_preset(video_style_preset: str) -> Dict:
+    path = _video_style_preset_path(video_style_preset)
+    if not os.path.exists(path):
+        return {}
+    with open(path, "r", encoding="utf-8") as fh:
+        preset = json.load(fh)
+    # 如果有 linked_image_preset，加载并合并（视频预设优先级更高）
+    linked = preset.pop("linked_image_preset", None)
+    if linked:
+        image_card = _load_video_style_card(None, linked)
+        # 视频预设字段覆盖图片预设同名字段
+        preset = _merge_style_card_dicts(image_card, preset)
+    return preset
 
 
 def _merge_style_card_dicts(base: Dict, override: Dict) -> Dict:

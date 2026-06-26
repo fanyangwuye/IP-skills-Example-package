@@ -3,7 +3,7 @@ import re
 from typing import Any, Dict, List, Tuple
 
 from .review import review_creative_output
-from .schemas import validate_scene_cards, validate_script_scenes
+from .schemas import validate_scene_cards, validate_script_scenes, validate_viral_explainer
 
 
 PROVIDER_RESPONSE_PARSE_VERSION = "copy-provider-response-parse-v1"
@@ -112,6 +112,8 @@ def _schema_errors(schema_name: str, data: Any) -> List[str]:
         return validate_scene_cards(data)
     if schema_name == "script_scenes":
         return validate_script_scenes(data)
+    if schema_name == "viral_explainer_script":
+        return validate_viral_explainer(data)
     return []
 
 

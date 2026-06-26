@@ -1,0 +1,90 @@
+{
+  "_meta": {
+    "name": "wong_kar_wai",
+    "display_name": "王家卫风格",
+    "category": "director-style",
+    "source_file": "source/director-style/王家卫风格.txt"
+  },
+
+  "style_direction": "王家卫式诗意电影美学：抽帧降格的破碎时间感、框架式构图的窥视感、都市孤独与宿命纠缠。低照度高反差光影，霓虹暖调与青灰冷影交织。角色表演含蓄克制，内心独白具有文学性与诗意。",
+  "primary_palette": "霓虹琥珀、褪色棕黄、深青蓝阴影、冷灰钢蓝、偶尔的饱和红（危机层）",
+  "positive_prompt_fragments": [
+    "低照度电影级光影，强明暗对比",
+    "框架式构图（门框、窗户、百叶窗前景遮挡）",
+    "手持呼吸感摄影，微弱情绪化晃动",
+    "三维空间景深（前景-主体-背景层次分明）",
+    "霓虹灯光折射与潮湿表面反光",
+    "含蓄克制的表演，眼神的忧郁与试探",
+    "诗意内心独白，文学性叙事",
+    "褪色胶片质感，时间流逝的颗粒感"
+  ],
+  "realism_constraints": [
+    "保持真人实拍电影质感，禁止动画感",
+    "角色面部保持自然肤质，禁止过度磨皮",
+    "光影必须有物理逻辑（霓虹灯源、路灯、窗户自然光）",
+    "服装必须具有时代感与地域特征"
+  ],
+  "forbidden_elements": [
+    "静态PPT感画面",
+    "明亮均匀照明",
+    "高饱和度糖果色",
+    "正面平光证件照式构图",
+    "过度特效与CG元素",
+    "夸张的面部表情与肢体语言"
+  ],
+  "negative_prompt_fragments": [
+    "静态PPT感",
+    "沉闷默片",
+    "过度曝光",
+    "平光无层次",
+    "动画感",
+    "CGI质感",
+    "过度磨皮",
+    "高饱和糖果色调"
+  ],
+
+  "camera_language": {
+    "movement_preference": "手持呼吸感摄影，微弱情绪化晃动；缓慢推拉；偶尔极速横摆（全片最多1次）",
+    "framing_preference": "框架式构图为主（门框、窗户、窗帘前景遮挡）；窥视感；建筑压迫感（人物小建筑大）；中央孤立构图体现孤独",
+    "lens_bias": "中长焦为主（50-85mm等效），浅景深，背景虚化光斑",
+    "shot_type_distribution": {
+      "close_up": 0.4,
+      "medium": 0.35,
+      "wide": 0.25
+    }
+  },
+  "rhythm": {
+    "cuts_per_15s": 4,
+    "avg_shot_duration_sec": 4,
+    "pacing_description": "高频切镜，情绪碎片化叙事；抽帧降格全片最多1次；倾斜构图全片最多1次",
+    "transition_style": "动势匹配剪辑、遮挡转场、诗意叠化（少量）"
+  },
+  "prompt_rules": {
+    "language": "zh",
+    "structure_template": "【空间景深层次】+【光影质感与色温】+【角色动作与表情微细节】+【镜头运动】+【环境音效/诗意独白】",
+    "mandatory_elements": [
+      "框架式构图或前景遮挡",
+      "手持呼吸感",
+      "低照度光影",
+      "诗意内心独白（如有对白场景）"
+    ],
+    "forbidden_phrases": [
+      "静态PPT感",
+      "明亮均匀光",
+      "高饱和",
+      "正面平光"
+    ]
+  },
+  "pipeline_config": {
+    "preferred_model": "seedance_2",
+    "resolution": "720p",
+    "clip_duration_sec": 15,
+    "handoff_mode": "last_frame"
+  },
+  "audio_direction": {
+    "bgm_style": "大提琴拨弦 + 慵懒萨克斯风 + 复古电吉他（重混响）；或探戈手风琴 + 爵士钢琴",
+    "voice_character": "低沉磁性，缓慢语速，诗意文学性独白",
+    "ambient_sound": "雨声、远处爵士乐、电车声、霓虹电流声、时钟滴答"
+  },
+  "linked_image_preset": "dark_underworld_film"
+}

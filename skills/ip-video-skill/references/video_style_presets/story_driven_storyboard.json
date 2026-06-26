@@ -1,0 +1,94 @@
+{
+  "_meta": {
+    "name": "story_driven_storyboard",
+    "display_name": "故事驱动型故事板",
+    "category": "genre",
+    "source_file": "source/genre/故事驱动型故事板.txt"
+  },
+
+  "style_direction": "故事驱动叙事美学：以剧本为核心驱动力的电影级叙事，脚本忠实度最高优先级，关键元素（主体/场景/道具）必须完整注册，优先长镜头加镜内分切呈现故事内容。",
+
+  "primary_palette": "自然色调、电影级调色、写实风格",
+
+  "positive_prompt_fragments": [
+    "电影级叙事光影",
+    "场景/故事内容/镜头语言完整呈现",
+    "关键主体与场地完整",
+    "关键道具承担叙事功能",
+    "角色面部特征/发型/服装完整描述",
+    "长镜头叙事",
+    "自然写实风格",
+    "镜头分切流畅"
+  ],
+
+  "realism_constraints": [
+    "保持真人实拍质感，禁止动画感",
+    "角色形象必须与描述一致",
+    "场景必须与剧本描述匹配",
+    "道具必须具有叙事功能"
+  ],
+
+  "forbidden_elements": [
+    "动画感画面",
+    "与剧本不符的情节",
+    "缺乏叙事功能的道具",
+    "虚构情节或改写台词",
+    "不符合设定的角色形象"
+  ],
+
+  "negative_prompt_fragments": [
+    "动画感",
+    "剧本不符",
+    "虚构情节",
+    "道具无叙事功能",
+    "角色形象不符"
+  ],
+
+  "camera_language": {
+    "movement_preference": "优先长镜头+镜内分切、缓慢推拉、自然横移",
+    "framing_preference": "叙事性构图、角色关系构图、场景完整性",
+    "lens_bias": "中焦镜头（35-85mm）、自然景深、写实感",
+    "shot_type_distribution": {
+      "close_up": 0.3,
+      "medium": 0.4,
+      "wide": 0.3
+    }
+  },
+
+  "rhythm": {
+    "cuts_per_15s": 4,
+    "avg_shot_duration_sec": 4,
+    "pacing_description": "叙事节奏稳定，忠实剧本；镜头服务于故事；情绪随情节递进",
+    "transition_style": "自然叠化、叙事匹配转场"
+  },
+
+  "prompt_rules": {
+    "language": "zh",
+    "structure_template": "【场景】+【故事节拍/对白/表演】+【电影摄影（景别/角度/运动）】+【关键道具标注】",
+    "mandatory_elements": [
+      "剧本忠实度",
+      "关键主体与场景",
+      "叙事功能道具",
+      "镜头语言明确"
+    ],
+    "forbidden_phrases": [
+      "动画感",
+      "剧本不符",
+      "虚构情节",
+      "角色形象不符"
+    ]
+  },
+
+  "pipeline_config": {
+    "preferred_model": "seedance_2",
+    "resolution": "720p",
+    "clip_duration_sec": 15,
+    "handoff_mode": "last_frame"
+  },
+
+  "audio_direction": {
+    "bgm_style": "电影级背景音乐，叙事氛围，情感衬托",
+    "voice_character": "角色音色自然，符合角色设定",
+    "ambient_sound": "环境音效配合场景叙事"
+  }
+}

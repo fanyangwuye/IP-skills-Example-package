@@ -1,0 +1,98 @@
+{
+  "_meta": {
+    "name": "miyazaki_animation",
+    "display_name": "宫崎骏动画大师",
+    "category": "director-style",
+    "source_file": "source/director-style/宫崎骏动画大师.txt"
+  },
+
+  "style_direction": "宫崎骏手绘动画美学：二维赛璐珞质感、自然生命力与飞行诗意的完美融合。拒绝静态PPT感，坚持角色微动作、自然元素（风/水/光/机械）的动态美感，分层构图营造三维空间深度。",
+
+  "primary_palette": "自然绿色、天空蓝、暖黄阳光、水彩质感的柔和色调、宫崎骏标志性暖绿",
+
+  "positive_prompt_fragments": [
+    "高质量二维手绘动画风格",
+    "柔和线条、赛璐珞分层",
+    "前景-中景-背景三层空间深度",
+    "自然广角感户外开阔构图",
+    "生活细节温暖感（桌面/锅炉/窗台）",
+    "飞行与风的运动诗意",
+    "角色微动作与自然呼吸感",
+    "水彩背景质感"
+  ],
+
+  "realism_constraints": [
+    "必须保持手绘动画质感",
+    "禁止三维塑料感CG",
+    "禁止廉价贴图",
+    "禁止过度写实照片感",
+    "自然元素必须可动"
+  ],
+
+  "forbidden_elements": [
+    "静态PPT感画面",
+    "廉价动画感",
+    "三维CG塑料质感",
+    "无动作无表情的静态分镜",
+    "慢动作拖时长",
+    "过度真实照片感"
+  ],
+
+  "negative_prompt_fragments": [
+    "3D CGI塑料感",
+    "廉价贴图",
+    "PPT过渡",
+    "静态分镜",
+    "过度真实",
+    "无动作画面",
+    "慢动作拖时间"
+  ],
+
+  "camera_language": {
+    "movement_preference": "飞行镜头、低机位儿童视角、横向跟拍奔跑、特写微动作、静观自然",
+    "framing_preference": "分层赛璐珞构图（前景/中景/背景三层）、自然广角、生活细节特写",
+    "lens_bias": "标准镜头，模拟手绘动画透视，强调层次而非虚化",
+    "shot_type_distribution": {
+      "close_up": 0.3,
+      "medium": 0.4,
+      "wide": 0.3
+    }
+  },
+
+  "rhythm": {
+    "cuts_per_15s": 5,
+    "avg_shot_duration_sec": 3,
+    "pacing_description": "波形节奏：紧张-舒缓-惊奇-行动-情感回落；拒绝持续高强度",
+    "transition_style": "自然叠化、动作连贯转场、诗意过渡"
+  },
+
+  "prompt_rules": {
+    "language": "zh",
+    "structure_template": "Camera（镜头运动）→ Subject（主体动作及面部肌肉）→ Space（空间/风/水/机械阻力）→ Audio（物理拟音/对白）",
+    "mandatory_elements": [
+      "手绘动画质感",
+      "角色微动作",
+      "自然/机械可动元素",
+      "分层空间深度"
+    ],
+    "forbidden_phrases": [
+      "3D塑料感",
+      "廉价贴图",
+      "静态PPT",
+      "慢动作拖时长"
+    ]
+  },
+
+  "pipeline_config": {
+    "preferred_model": "seedance_2",
+    "resolution": "720p",
+    "clip_duration_sec": 15,
+    "handoff_mode": "last_frame"
+  },
+
+  "audio_direction": {
+    "bgm_style": "温暖交响乐器库：钢琴、弦乐群、长笛、双簧管、圆号、竖琴、钟琴、手风琴",
+    "voice_character": "日语感中文配音/儿童自然口语/少女成长叙事口吻/乡村生活化口音",
+    "ambient_sound": "干净精确的自然和生活拟音：风声、水声、鸟鸣、脚步、呼吸"
+  }
+}

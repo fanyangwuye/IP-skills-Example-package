@@ -167,6 +167,25 @@ def test_video_style_preset_flows_into_continuity_and_prompts():
     handoff = build_video_handoff(task)
     assert "realistic xianxia short-drama" in handoff["shots"][0]["i2v_prompt"]
     assert "grounded xianxia period styling" in handoff["shots"][0]["seedance_prompt"]
+
+
+def test_video_style_preset_injects_style_directives():
+    task = copy.deepcopy(_task())
+    task["video_style_preset"] = "wong_kar_wai"
+    bible = build_continuity_bible(task)
+    style = bible["global_visual_lock"]
+    assert style["video_style_preset"] == "wong_kar_wai"
+    assert "camera_language" in style
+    assert "rhythm" in style
+    assert "prompt_rules" in style
+    assert style["camera_language"]["framing_preference"] != ""
+    handoff = build_video_handoff(task)
+    # Style Directives are injected at the clip level, not shot level
+    clip_prompts = handoff["clip_prompts"]
+    assert len(clip_prompts) > 0
+    seedance_prompt = clip_prompts[0]["seedance_prompt"]
+    assert "Style Directives" in seedance_prompt
+    assert "框架式构图" in seedance_prompt or "手持呼吸感" in seedance_prompt
 def test_build_video_handoff_has_required_shot_fields():
     handoff = build_video_handoff(_task())
     assert len(handoff["shots"]) == 2
@@ -227,6 +246,7 @@ def test_clip_provider_prompts_are_model_specific_and_compact():
         "Internal Story Facts",
         "Reference Bindings",
         "Spatial Blocking",
+        "Visual Texture",
         "15s Timeline",
         "Continuation Contract",
         "Platform-Safe Surface Wording",
@@ -266,6 +286,7 @@ def test_storyboard_draft_mode_marks_review_only_without_changing_map():
         "Internal Story Facts",
         "Reference Bindings",
         "Spatial Blocking",
+        "Visual Texture",
         "15s Timeline",
         "Continuation Contract",
         "Platform-Safe Surface Wording",
@@ -315,6 +336,7 @@ def test_clip_provider_prompt_budget_preserves_required_sections_for_long_clip()
         "Internal Story Facts",
         "Reference Bindings",
         "Spatial Blocking",
+        "Visual Texture",
         "15s Timeline",
         "Continuation Contract",
         "Platform-Safe Surface Wording",

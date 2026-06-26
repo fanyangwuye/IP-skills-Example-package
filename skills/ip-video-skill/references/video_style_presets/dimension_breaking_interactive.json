@@ -1,0 +1,89 @@
+{
+  "_meta": {
+    "name": "dimension_breaking_interactive",
+    "display_name": "次元破壁互动玩法",
+    "category": "interactive",
+    "source_file": "source/interactive/次元破壁互动玩法.txt"
+  },
+
+  "style_direction": "次元破壁互动美学：二维角色突破屏幕进入三维现实的视觉奇观。两种方向——液态水膜包裹穿越或硬核玻璃爆裂——强调突破边界的震撼感与奇幻特效。",
+
+  "primary_palette": "现实层：自然色调；穿越层：蓝白像素电弧/异世界光波/奇幻色调",
+
+  "positive_prompt_fragments": [
+    "角色在屏幕内注视镜头",
+    "液化成水银般波纹的屏幕",
+    "同心涟漪异世界光波",
+    "硬质玻璃开裂白色蜘蛛网裂纹",
+    "2D像素线稿向3D真实实体转变",
+    "角色拉入/救出穿越效果",
+    "现实电脑桌环境",
+    "蓝白像素电弧特效"
+  ],
+
+  "realism_constraints": [
+    "角色与屏幕内容保持写实质感",
+    "屏幕内容必须与角色参考图一致",
+    "穿越特效必须有物理逻辑"
+  ],
+
+  "forbidden_elements": [
+    "不符合设定的角色外观",
+    "过于卡通化的穿越效果",
+    "缺乏视觉冲击力的平淡转场"
+  ],
+
+  "negative_prompt_fragments": [
+    "卡通质感",
+    "动画感",
+    "不符合设定",
+    "平淡转场"
+  ],
+
+  "camera_language": {
+    "movement_preference": "角色伸手触碰屏幕、屏幕破裂/液化的过程镜头、手部特写跟随",
+    "framing_preference": "POV第一视角/过肩视角/屏幕内外关系构图",
+    "lens_bias": "标准至中焦，保持屏幕平面感与穿越纵深感",
+    "shot_type_distribution": {
+      "close_up": 0.4,
+      "medium": 0.4,
+      "wide": 0.2
+    }
+  },
+
+  "rhythm": {
+    "cuts_per_15s": 4,
+    "avg_shot_duration_sec": 4,
+    "pacing_description": "戏剧化节奏：发现-接近-突破-穿越四段递进；穿越瞬间情绪爆发",
+    "transition_style": "特效遮挡转场、白光吞没过渡"
+  },
+
+  "prompt_rules": {
+    "language": "zh",
+    "structure_template": "【场景环境】+【角色动作与表情】+【穿越特效】+【音效标注】+【语言标注（日语/中文/英语台词）】",
+    "mandatory_elements": [
+      "屏幕内外关系明确",
+      "穿越特效完整",
+      "角色外观一致",
+      "短台词标注"
+    ],
+    "forbidden_phrases": [
+      "卡通质感",
+      "动画感",
+      "不符合设定"
+    ]
+  },
+
+  "pipeline_config": {
+    "preferred_model": "seedance_2",
+    "resolution": "720p",
+    "clip_duration_sec": 15,
+    "handoff_mode": "last_frame"
+  },
+
+  "audio_direction": {
+    "bgm_style": "无独立BGM，音效承担氛围",
+    "voice_character": "短台词标注：日语≤8字/中文≤10字/英语≤6词",
+    "ambient_sound": "次元破壁音效、电流声、空间穿梭风声"
+  }
+}

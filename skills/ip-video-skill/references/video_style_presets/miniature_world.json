@@ -1,0 +1,95 @@
+{
+  "_meta": {
+    "name": "miniature_world",
+    "display_name": "微缩世界",
+    "category": "commercial",
+    "source_file": "source/commercial/微缩世界.txt"
+  },
+
+  "style_direction": "微缩摄影艺术美学：以微型道具与模型场景为舞台，讲述有人物弧光的温柔小故事。移轴镜头效果营造梦幻虚焦感，精致细腻的画风传递童话般情感。",
+
+  "primary_palette": "暖黄阳光色、柔和粉蓝、复古糖果色、莫兰迪低饱和色调",
+
+  "positive_prompt_fragments": [
+    "微型道具与精致模型场景",
+    "移轴镜头感，浅景深虚化",
+    "精致细腻的微缩画风",
+    "温暖的阳光色调与柔和光影",
+    "小人国世界的童话氛围",
+    "精致的微型道具材质感",
+    "微缩街景或室内布景",
+    "梦幻虚焦散景效果"
+  ],
+
+  "realism_constraints": [
+    "微缩场景写实感优先，禁止过度风格化",
+    "道具材质感必须真实可信",
+    "光影逻辑符合微型世界物理规则",
+    "保持微缩摄影的精致感"
+  ],
+
+  "forbidden_elements": [
+    "比例失真的道具",
+    "过于写实的真人场景",
+    "暗沉压抑的色调",
+    "粗糙的道具质感",
+    "过度的CG特效"
+  ],
+
+  "negative_prompt_fragments": [
+    "比例失真",
+    "粗糙质感",
+    "暗沉色调",
+    "CG塑料感",
+    "过曝",
+    "模糊不清"
+  ],
+
+  "camera_language": {
+    "movement_preference": "缓慢环绕俯拍、微距跟焦、手持轻微晃动模拟真实微缩摄影",
+    "framing_preference": "俯拍为主体现微缩感、框架式小景别、浅景深层次",
+    "lens_bias": "微距镜头（90-100mm等效）、移轴效果、浅景深散景",
+    "shot_type_distribution": {
+      "close_up": 0.45,
+      "medium": 0.35,
+      "wide": 0.2
+    }
+  },
+
+  "rhythm": {
+    "cuts_per_15s": 4,
+    "avg_shot_duration_sec": 4,
+    "pacing_description": "舒缓温柔节奏，每个镜头充分展现微缩世界细节；故事性叙事；情感递进",
+    "transition_style": "缓慢叠化、场景过渡、诗意转场"
+  },
+
+  "prompt_rules": {
+    "language": "zh",
+    "structure_template": "【微缩场景描述】+【道具细节】+【光影氛围】+【镜头运动】+【情感基调】",
+    "mandatory_elements": [
+      "微型道具与模型场景",
+      "移轴镜头感",
+      "精致材质质感",
+      "温暖光影氛围"
+    ],
+    "forbidden_phrases": [
+      "比例失真",
+      "粗糙质感",
+      "暗沉色调",
+      "CG塑料感"
+    ]
+  },
+
+  "pipeline_config": {
+    "preferred_model": "seedance_2",
+    "resolution": "720p",
+    "clip_duration_sec": 15,
+    "handoff_mode": "last_frame"
+  },
+
+  "audio_direction": {
+    "bgm_style": "轻音乐BGM，钢琴/弦乐为主，温暖治愈",
+    "voice_character": "温柔旁白或无旁白，娓娓道来",
+    "ambient_sound": "轻柔的风声、远处钟声、环境白噪音"
+  }
+}

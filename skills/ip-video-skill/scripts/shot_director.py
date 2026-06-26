@@ -49,6 +49,7 @@ def director_plan_text(plan: Dict) -> str:
     action = plan.get("action_chain") or {}
     emotion = plan.get("emotional_turn") or {}
     edit = plan.get("editing_intent") or {}
+    perf = emotion.get('performance_note', '')
     return (
         f"节拍={plan.get('beat_type', '')}；功能={plan.get('narrative_function', '')}；"
         f"情绪={emotion.get('start', '')}->{emotion.get('turn', '')}->{emotion.get('end', '')}；"
@@ -56,6 +57,7 @@ def director_plan_text(plan: Dict) -> str:
         f"景别={framing.get('value', '')}，理由={framing.get('reason', '')}；"
         f"运镜={camera.get('value', '')}，理由={camera.get('reason', '')}；"
         f"剪辑={edit.get('cut_reason', '')}，最少可读拍点={edit.get('minimum_readable_beats', '')}。"
+        + (f"表演={perf}；" if perf else "")
     )
 
 

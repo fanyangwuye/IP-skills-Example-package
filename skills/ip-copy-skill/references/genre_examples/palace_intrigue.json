@@ -1,0 +1,69 @@
+{
+  "pack_id": "palace_intrigue",
+  "version": "copy-genre-example-pack-v1",
+  "display_name": "Palace Intrigue",
+  "applies_to": [
+    "palace_intrigue"
+  ],
+  "purpose": "Craft examples for court rank pressure, edict-driven reversals, hidden intentions, and public/private power play inside palace politics.",
+  "source_priority_rules": [
+    "Source text and locked payload outrank this example pack.",
+    "Use examples only to shape rank pressure, ceremony, accusation, and withheld intent.",
+    "Do not invent imperial orders, bloodline facts, poison, or secret alliances unless the source supports them."
+  ],
+  "genre_boundary": [
+    "Track who has public rank, who has private leverage, and what the room is allowed to hear.",
+    "Make the turn visible through ritual, seating, edict, accusation, or a controlled breach of protocol.",
+    "Do not treat palace strategy like a modern office confrontation."
+  ],
+  "scene_card_examples": [
+    {
+      "visual": "In the locked hall, a source-grounded order or ritual cue changes who may speak and who must kneel.",
+      "voiceover": "The shift is political because the room sees it before the people involved can deny it.",
+      "duration_sec": 11,
+      "emotional_turn": "formal control -> exposed danger",
+      "asset_goal": {
+        "type": "court reversal frame",
+        "purpose": "rank geography, edict cue, public witness"
+      }
+    }
+  ],
+  "script_scene_examples": [
+    {
+      "visual": "One controlled line, gesture, or decree forces a public change in rank pressure without yet exposing the full private plan.",
+      "voiceover": "Court strategy works because the public move and the hidden motive are not the same thing.",
+      "dialogue": [
+        {
+          "speaker": "locked strategist",
+          "line": "Read the order again, aloud."
+        }
+      ],
+      "action_result": "Public rank pressure shifts and the hidden agenda gains or loses leverage."
+    }
+  ],
+  "dialogue_style_examples": [
+    "Use concise court language tied to rank, accusation, mercy, or protocol.",
+    "Let the room's witness status matter in every reversal."
+  ],
+  "negative_examples": [
+    {
+      "bad": "Add a secret edict or poison twist that the source never set up.",
+      "why_bad": "It breaks fairness and collapses the political logic."
+    }
+  ],
+  "forbidden_drift": [
+    "Do not swap lead character identity, rank role, or speaker authority without source support.",
+    "Do not introduce a new decree, seal, poison, heirloom, or weapon unless the source seeds it.",
+    "Do not change hall, corridor, gate, throne line, or blocking position without a visible causal bridge.",
+    "Do not alter relationship status, knowledge state, or alliance state without source support.",
+    "Do not change cause and effect so the political reversal appears unsupported."
+  ],
+  "handoff_notes": {
+    "image": [
+      "Lock rank geography, line of sight, decree or seal anchor, and the posture difference between public power and private fear."
+    ],
+    "video": [
+      "Preserve continuity between protocol, accusation, and the new public state created by the reversal."
+    ]
+  }
+}

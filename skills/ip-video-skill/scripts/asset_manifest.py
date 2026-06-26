@@ -1,4 +1,4 @@
-import json
+﻿import json
 import os
 from typing import Dict, List, Tuple
 
@@ -257,6 +257,8 @@ def validate_asset_manifest(task: Dict) -> Tuple[List[str], List[str]]:
             errors.append(f"asset_manifest {role} still has placeholder path/url: {ref}")
         if value.startswith("C:\\Users\\") or "\\Downloads\\" in value:
             warnings.append(f"asset_manifest reference uses fragile local user/download path: {value}")
+        if "/Downloads/" in value or value.startswith("/home/") or value.startswith("/Users/"):
+            warnings.append(f"asset_manifest reference uses fragile local user/download path: {value}")
         required = MANIFEST_REQUIRED_KEYS.get(role, [])
         if "character_id" in required and not ref.get("character_id"):
             errors.append(f"asset_manifest {role} missing character_id: {ref}")
@@ -438,7 +440,7 @@ def _review_refs(refs: List[Dict], default_role: str) -> List[Dict]:
                 "matched_filename": normalized.get("matched_filename"),
                 "match_score": normalized.get("match_score"),
                 "matched_by": normalized.get("matched_by") or [],
-                "fragile_path": value.startswith("C:\\Users\\") or "\\Downloads\\" in value,
+                "fragile_path": value.startswith("C:\\Users\\") or "\\Downloads\\" in value or "/Downloads/" in value or value.startswith("/home/") or value.startswith("/Users/") or value.startswith("/tmp/") or value.startswith("/var/folders/"),
                 "required_fields": MANIFEST_REQUIRED_KEYS.get(role, []),
             }
         )

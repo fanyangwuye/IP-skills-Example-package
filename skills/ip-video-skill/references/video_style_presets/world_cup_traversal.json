@@ -1,0 +1,92 @@
+{
+  "_meta": {
+    "name": "world_cup_traversal",
+    "display_name": "穿越世界杯",
+    "category": "interactive",
+    "source_file": "source/interactive/穿越世界杯.txt"
+  },
+
+  "style_direction": "世界杯穿越互动美学：现实世界过肩视角（OTS）穿越进入电视足球赛场的时空奇观。Shot 1过肩穿越（3秒）+ Shot 2倒挂金钩高光（11秒），强调时空转换与体育动作的震撼感。",
+
+  "primary_palette": "现实层：昏暗室内暖调；穿越层：白光/蓝白像素；绿茵场：夜间灯光绿茵/运动色调",
+
+  "positive_prompt_fragments": [
+    "昏暗房间OTS过肩视角",
+    "主角看电视被球星拉入画面",
+    "液化成水银波纹的电视屏幕",
+    "夜间巨大绿茵足球场",
+    "腾空旋转蓄力",
+    "正面子弹时间倒挂金钩",
+    "足球暴射而出完美落地进球",
+    "观众欢呼与裁判哨声"
+  ],
+
+  "realism_constraints": [
+    "保持真人实拍电影质感",
+    "主角形象必须与参考图一致",
+    "足球动作必须符合运动力学",
+    "穿越特效必须有物理逻辑"
+  ],
+
+  "forbidden_elements": [
+    "动画感画面",
+    "不符合主角设定的形象",
+    "足球动作失真",
+    "缺乏时空穿越感的平淡转场"
+  ],
+
+  "negative_prompt_fragments": [
+    "动画感",
+    "主角形象不符",
+    "足球动作失真",
+    "缺乏震撼感",
+    "CG质感"
+  ],
+
+  "camera_language": {
+    "movement_preference": "Shot 1 OTS过肩跟随；Shot 2 面特写→背影正常→慢速→正面子弹时间极慢→背面落地进球",
+    "framing_preference": "过肩主观视角/正面动作/背面大全景/子弹时间特写",
+    "lens_bias": "标准至长焦，Shot 1室内感/Shot 2体育场大全景",
+    "shot_type_distribution": {
+      "close_up": 0.3,
+      "medium": 0.3,
+      "wide": 0.4
+    }
+  },
+
+  "rhythm": {
+    "cuts_per_15s": 5,
+    "avg_shot_duration_sec": 3,
+    "pacing_description": "双镜头节奏：Shot 1（3秒）紧凑穿越；Shot 2（11秒）正常-慢动作-子弹时间-正常的戏剧化节奏",
+    "transition_style": "白光吞没过渡时空切换"
+  },
+
+  "prompt_rules": {
+    "language": "zh",
+    "structure_template": "【场景环境】+【主角动作】+【足球动作细节】+【速度标注】+【SFX音效标注】",
+    "mandatory_elements": [
+      "OTS过肩视角",
+      "时空穿越特效",
+      "倒挂金钩完整动作链",
+      "速度变化标注"
+    ],
+    "forbidden_phrases": [
+      "动画感",
+      "主角形象不符",
+      "足球动作失真"
+    ]
+  },
+
+  "pipeline_config": {
+    "preferred_model": "seedance_2",
+    "resolution": "720p",
+    "clip_duration_sec": 15,
+    "handoff_mode": "last_frame"
+  },
+
+  "audio_direction": {
+    "bgm_style": "全程无独立BGM音轨",
+    "voice_character": "无对白台词",
+    "ambient_sound": "电视机电流声/科幻破壁风声（Shot 1）；雷鸣观众欢呼/裁判哨声/踢球重击爆裂声（Shot 2）"
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "_meta": {
+    "name": "ancient_sweet_short_drama",
+    "display_name": "古风甜宠短剧",
+    "category": "genre",
+    "source_file": "source/genre/古风甜宠短剧.txt"
+  },
+
+  "style_direction": "古风甜宠短剧美学：写实电影感古风设定，极致人设反差（表面形象与私下性格对比）、身份悬念钩子、高密度糖点铺排（肢体接触/语言撩拨/氛围心动），网红脸审美与真实质感并存。",
+
+  "primary_palette": "古风色调：墨蓝/深青/橘粉/浅金色调；古典雅致氛围",
+
+  "positive_prompt_fragments": [
+    "写实电影感人像质感",
+    "女主：黑色发丝高髻云鬓，橘粉色汉服套装",
+    "男主：乌黑长发，深墨蓝暗青广袖长袍",
+    "精致立体五官，网红脸审美",
+    "超逼真皮肤纹理，原生毛孔可见",
+    "古风场景：亭台楼阁、庭院深深",
+    "古典华丽服饰与配饰细节",
+    "甜宠互动：含蓄撩拨、心动氛围"
+  ],
+
+  "realism_constraints": [
+    "保持真人实拍质感，禁止动画感",
+    "网红脸审美：五官精致立体、轮廓感强",
+    "超写实还原皮肤纹理",
+    "古风服装与配饰必须真实可信"
+  ],
+
+  "forbidden_elements": [
+    "动画感画面",
+    "低质量网红脸（塑料感）",
+    "不符合古风的场景",
+    "过于暴露的服饰",
+    "过于外放的情绪表演"
+  ],
+
+  "negative_prompt_fragments": [
+    "动画感",
+    "塑料脸",
+    "过度磨皮",
+    "古风不符",
+    "暴露服饰",
+    "外放表演"
+  ],
+
+  "camera_language": {
+    "movement_preference": "缓慢推近捕捉微表情、手持微晃动情感戏、稳定镜头对话戏",
+    "framing_preference": "古风唯美构图、黄金分割、情感关系构图",
+    "lens_bias": "中长焦（50-85mm），浅景深突出主体，古风唯美感",
+    "shot_type_distribution": {
+      "close_up": 0.4,
+      "medium": 0.35,
+      "wide": 0.25
+    }
+  },
+
+  "rhythm": {
+    "cuts_per_15s": 4,
+    "avg_shot_duration_sec": 4,
+    "pacing_description": "节奏紧凑有起伏，每场戏有明确情绪落点；高密度糖点铺排；情感递进",
+    "transition_style": "情感叠化、黑场过渡、情绪留白"
+  },
+
+  "prompt_rules": {
+    "language": "zh",
+    "structure_template": "【镜头运动】+【人物动作与情绪细节】+【空间/环境变化】+【糖点互动】+【音效/台词标注】",
+    "mandatory_elements": [
+      "网红脸审美+真实质感",
+      "古风服装与场景",
+      "甜宠互动细节",
+      "情绪节拍完整"
+    ],
+    "forbidden_phrases": [
+      "动画感",
+      "塑料脸",
+      "古风不符",
+      "外放表演"
+    ]
+  },
+
+  "pipeline_config": {
+    "preferred_model": "seedance_2",
+    "resolution": "720p",
+    "clip_duration_sec": 15,
+    "handoff_mode": "last_frame"
+  },
+
+  "audio_direction": {
+    "bgm_style": "古风甜宠配乐：古筝/琵琶/笛子+现代编曲，甜蜜温馨",
+    "voice_character": "古风旁白/配音，温柔甜糯，符合角色设定",
+    "ambient_sound": "古风环境音：风声、鸟鸣、水流、古典音效"
+  }
+}

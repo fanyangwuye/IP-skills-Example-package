@@ -1,0 +1,69 @@
+{
+  "pack_id": "rule_horror",
+  "version": "copy-genre-example-pack-v1",
+  "display_name": "Rule Horror",
+  "applies_to": [
+    "rule_horror"
+  ],
+  "purpose": "Craft examples for rule-based horror, forbidden instructions, late-night compliance pressure, and consequence-driven suspense.",
+  "source_priority_rules": [
+    "Source text and locked payload outrank this example pack.",
+    "Use examples only to shape rule revelation, consequence, and tension progression.",
+    "Do not invent rules, penalties, or rooms that the source never establishes."
+  ],
+  "genre_boundary": [
+    "Show the rule, the violation risk, and the consequence path in a visible sequence.",
+    "Keep the space grounded so the threat feels like a rule inside a room, not a random monster reveal.",
+    "Do not resolve the danger before the rule has been clearly shown."
+  ],
+  "scene_card_examples": [
+    {
+      "visual": "A locked hallway and a posted rule card force the lead to stop before crossing the threshold.",
+      "voiceover": "The danger is not unseen; it is written down before it happens.",
+      "duration_sec": 10,
+      "emotional_turn": "curiosity -> restraint",
+      "asset_goal": {
+        "type": "rule horror key frame",
+        "purpose": "threshold, posted rule, visible stop"
+      }
+    }
+  ],
+  "script_scene_examples": [
+    {
+      "visual": "The lead reads the rule again, then chooses a path that keeps the room's cause and effect intact.",
+      "voiceover": "Survival starts with reading the rule correctly.",
+      "dialogue": [
+        {
+          "speaker": "locked lead",
+          "line": "Don't cross until we know the cost."
+        }
+      ],
+      "action_result": "The scene ends with a consequence-ready choice, not a random scare."
+    }
+  ],
+  "dialogue_style_examples": [
+    "Use measured lines that sound like compliance under pressure.",
+    "Let the rule and the consequence stay readable in every beat."
+  ],
+  "negative_examples": [
+    {
+      "bad": "Replace the written rule with a random monster attack.",
+      "why_bad": "It destroys the consequence logic and makes the scene generic."
+    }
+  ],
+  "forbidden_drift": [
+    "Do not swap lead character identity, role hierarchy, or speaker authority without source support.",
+    "Do not introduce a new prop, rule card, device, or weapon unless the source or locked payload supports it.",
+    "Do not change room, corridor, threshold, or blocking position without a visible causal bridge.",
+    "Do not alter relationship status, knowledge state, or alliance state without source support.",
+    "Do not change cause and effect so the consequence appears random."
+  ],
+  "handoff_notes": {
+    "image": [
+      "Lock the written rule, threshold line, room layout, and the first visible consequence cue."
+    ],
+    "video": [
+      "Preserve continuity between rule reveal, hesitation, and consequence-ready movement."
+    ]
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "pack_id": "detective_casework",
+  "version": "copy-genre-example-pack-v1",
+  "display_name": "Detective Casework",
+  "applies_to": [
+    "detective_casework"
+  ],
+  "purpose": "Craft examples for procedural clue work, evidence pressure, interrogation turns, and source-grounded investigative progression.",
+  "source_priority_rules": [
+    "Source text and locked payload outrank this example pack.",
+    "Use examples only to shape evidence handling, timeline pressure, and procedural escalation.",
+    "Do not invent clues, forensic results, suspects, or confessions unless the source supports them."
+  ],
+  "genre_boundary": [
+    "Show who observed what, how the clue changes the theory, and what procedural step follows.",
+    "Keep the case logic readable through object handling, questioning, and timeline correction.",
+    "Do not replace clue work with random thriller noise."
+  ],
+  "scene_card_examples": [
+    {
+      "visual": "The locked investigator notices a source-grounded contradiction in the evidence layout and stops the room on that detail.",
+      "voiceover": "The case turns when one visible fact stops matching the story around it.",
+      "duration_sec": 10,
+      "emotional_turn": "routine review -> focused breakthrough",
+      "asset_goal": {
+        "type": "evidence turn frame",
+        "purpose": "clue layout, investigator hand, contradiction anchor"
+      }
+    }
+  ],
+  "script_scene_examples": [
+    {
+      "visual": "An interrogation, evidence check, or timeline review produces one clear procedural next step.",
+      "voiceover": "A real lead does not end the case; it changes the next question.",
+      "dialogue": [
+        {
+          "speaker": "locked investigator",
+          "line": "Then explain why the time stamp moves."
+        }
+      ],
+      "action_result": "The case gains a new direction, suspect pressure, or evidence requirement."
+    }
+  ],
+  "dialogue_style_examples": [
+    "Keep lines evidence-based and pressure-specific.",
+    "Let every question point to a visible contradiction, missing fact, or next procedure."
+  ],
+  "negative_examples": [
+    {
+      "bad": "Add a surprise confession or miracle clue with no evidence chain.",
+      "why_bad": "It breaks procedural fairness and weakens the casework rhythm."
+    }
+  ],
+  "forbidden_drift": [
+    "Do not swap lead character identity, role hierarchy, or speaker authority without source support.",
+    "Do not introduce a new clue, report, weapon, device, or object unless the source seeds it.",
+    "Do not change scene location, route, door line, or blocking position without a visible causal bridge.",
+    "Do not alter relationship status, knowledge state, or alliance state without source support.",
+    "Do not change cause and effect so an investigative breakthrough appears unsupported."
+  ],
+  "handoff_notes": {
+    "image": [
+      "Lock clue layout, investigator stance, object order, and the contradiction anchor that drives the turn."
+    ],
+    "video": [
+      "Preserve continuity between observation, interrogation, and the new procedural state created by the clue."
+    ]
+  }
+}

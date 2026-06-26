@@ -1,0 +1,106 @@
+{
+  "_meta": {
+    "name": "art_film_mood",
+    "display_name": "文艺片情绪氛围",
+    "category": "genre",
+    "source_file": "source/genre/文艺片情绪氛围.txt"
+  },
+
+  "style_direction": "文艺片情绪美学：不依赖事件推进叙事，真正推动影片的是人物情绪在时间里的缓慢变化。固定镜头与极慢推进营造呼吸感留白，东亚内收式情感表达，自然光影与胶片质感。",
+
+  "primary_palette": "中低饱和度、柔和高光溢出、有层次阴影不死黑、偏暖黄肤色。是枝裕和日光柔和/王家卫暖黄深绿/李沧东黄昏金与暗部蓝灰/侯孝贤胶片感偏暖",
+
+  "positive_prompt_fragments": [
+    "slow cinematic，observational，emotionally restrained",
+    "East Asian arthouse，intimate，contemplative，naturalistic",
+    "film grain，soft focus，natural lighting，muted palette",
+    "固定镜头（static camera）：安静注视，8-15秒",
+    "极慢推进（very slow push-in）：靠近沉思的人",
+    "微弱手持（subtle handheld）：用眼睛注视",
+    "缓慢横移（slow lateral tracking）：在房间里走过",
+    "窗边自然光/黄昏清晨方向光/阴天散射光"
+  ],
+
+  "realism_constraints": [
+    "保持真人实拍质感，禁止动画感",
+    "禁止正面平光、彩色霓虹、完全黑暗无光源",
+    "允许不均匀肤色、自然状态",
+    "保持文艺片写实美学"
+  ],
+
+  "forbidden_elements": [
+    "快速推拉/甩镜/急摇/环绕运镜",
+    "无人机高空俯冲",
+    "单镜头内频繁切换景别",
+    "dramatic/intense/explosive/fast/dynamic",
+    "perfect skin/beautiful/glamorous/neon/cyberpunk/futuristic",
+    "剧烈情绪爆发、快速肢体运动"
+  ],
+
+  "negative_prompt_fragments": [
+    "dramatic",
+    "intense",
+    "explosive",
+    "fast",
+    "dynamic",
+    "energetic",
+    "drone shot",
+    "aerial view",
+    "neon",
+    "cyberpunk",
+    "perfect skin",
+    "beautiful",
+    "动画感"
+  ],
+
+  "camera_language": {
+    "movement_preference": "固定镜头（8-15秒）、极慢推进（10-15秒）、微弱手持（6-10秒）、缓慢横移（8-12秒）、固定特写（6-10秒）",
+    "framing_preference": "固定机位凝视、留白呼吸感、空间生活痕迹、物件符号叙事",
+    "lens_bias": "标准镜头，中性透视，强调场景整体而非虚化",
+    "shot_type_distribution": {
+      "close_up": 0.3,
+      "medium": 0.4,
+      "wide": 0.3
+    }
+  },
+
+  "rhythm": {
+    "cuts_per_15s": 2,
+    "avg_shot_duration_sec": 8,
+    "pacing_description": "极慢呼吸节奏：单镜头最短不低于6秒；3-4个镜头组成情绪单元；镜头间1-2秒黑场过渡",
+    "transition_style": "黑场淡入淡出、环境空镜过渡、呼吸感留白"
+  },
+
+  "prompt_rules": {
+    "language": "zh",
+    "structure_template": "[风格锚定词] + [光线条件] + [主体/人物状态] + [具体动作（微小）] + [环境细节] + [情绪方向] + [质感词] + [运镜指令]",
+    "mandatory_elements": [
+      "文艺片风格锚定词（slow cinematic等）",
+      "固定镜头或极慢运动",
+      "自然光影",
+      "胶片质感"
+    ],
+    "forbidden_phrases": [
+      "dramatic",
+      "intense",
+      "fast",
+      "dynamic",
+      "drone shot",
+      "neon",
+      "完美皮肤"
+    ]
+  },
+
+  "pipeline_config": {
+    "preferred_model": "seedance_2",
+    "resolution": "720p",
+    "clip_duration_sec": 15,
+    "handoff_mode": "last_frame"
+  },
+
+  "audio_direction": {
+    "bgm_style": "文艺片配乐：极简钢琴/环境音/自然声响，情绪延伸而非推动",
+    "voice_character": "克制内省独白，第一人称/第三人称均可",
+    "ambient_sound": "环境白噪音：风声、雨声、时钟滴答、城市底噪"
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "pack_id": "wealthy_romance",
+  "version": "copy-genre-example-pack-v1",
+  "display_name": "Wealthy Romance",
+  "applies_to": [
+    "wealthy_romance"
+  ],
+  "purpose": "Craft examples for wealthy-family romance, engagement pressure, status games, and restrained emotional reversal.",
+  "source_priority_rules": [
+    "Source text and locked payload outrank this example pack.",
+    "Use examples only to shape relationship pressure, status contrast, and emotional restraint.",
+    "Do not add marriage, inheritance, betrayal, or family facts unless the source supports them."
+  ],
+  "genre_boundary": [
+    "Keep affection tied to status pressure, public role, or private restraint.",
+    "Use a visible object, gesture, or room change to mark the emotional turn.",
+    "Do not flatten the scene into generic sweet talk."
+  ],
+  "scene_card_examples": [
+    {
+      "visual": "In a high-end setting, the locked pair holds distance while a source-grounded object or notice changes the relationship pressure.",
+      "voiceover": "The scene turns because status and feeling do not point to the same answer.",
+      "duration_sec": 12,
+      "emotional_turn": "restrained distance -> exposed care",
+      "asset_goal": {
+        "type": "status romance frame",
+        "purpose": "public/private contrast, object anchor"
+      }
+    }
+  ],
+  "script_scene_examples": [
+    {
+      "visual": "One character pauses before speaking, then chooses the line that protects the other person's status.",
+      "voiceover": "The choice is emotional, but the consequence is social.",
+      "dialogue": [
+        {
+          "speaker": "locked lead",
+          "line": "I will handle it."
+        }
+      ],
+      "action_result": "The relationship pressure shifts without breaking the locked status state."
+    }
+  ],
+  "dialogue_style_examples": [
+    "Romance lines should carry restraint, choice, or public pressure.",
+    "Let subtext stay readable through action and blocking."
+  ],
+  "negative_examples": [
+    {
+      "bad": "Add a random third person to force jealousy.",
+      "why_bad": "It inserts unsupported relationship drift."
+    }
+  ],
+  "forbidden_drift": [
+    "Do not swap lead character identity, role hierarchy, or speaker authority without source support.",
+    "Do not introduce a new prop, gift, letter, ring, or weapon unless the source or locked payload supports it.",
+    "Do not change room, route, private space, or blocking position without a visible causal transition.",
+    "Do not alter relationship status, knowledge state, or alliance state without source support.",
+    "Do not change cause and effect so the emotional reversal appears unsupported."
+  ],
+  "handoff_notes": {
+    "image": [
+      "Lock two-person distance, eye line, room luxury cues, and the object that carries the emotional turn."
+    ],
+    "video": [
+      "Preserve restraint through reaction shots, pauses, and continuity in the room's social state."
+    ]
+  }
+}

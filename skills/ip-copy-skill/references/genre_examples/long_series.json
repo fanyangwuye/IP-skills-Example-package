@@ -2,7 +2,9 @@
   "pack_id": "long_series",
   "version": "copy-genre-example-pack-v1",
   "display_name": "Long Series",
-  "applies_to": ["long_series"],
+  "applies_to": [
+    "long_series"
+  ],
   "purpose": "Craft examples for multi-act episodic drama with A/B stories, ensemble pressure, act breaks, and character arc progression.",
   "source_priority_rules": [
     "Episode engine, subplot tracks, season arc facts, and ensemble roles must come from source or locked payload.",
@@ -20,14 +22,20 @@
       "voiceover": "The scene works because everyone is in the same room for a different reason.",
       "duration_sec": 20,
       "emotional_turn": "shared objective -> agenda split",
-      "asset_goal": {"type": "long series ensemble frame", "purpose": "multi-character leverage, A/B story overlap, act pressure"}
+      "asset_goal": {
+        "type": "long series ensemble frame",
+        "purpose": "multi-character leverage, A/B story overlap, act pressure"
+      }
     },
     {
       "visual": "An act-break beat reveals a source-grounded fact that forces the next act to reframe the plan.",
       "voiceover": "The hook is not a pause; it is a turn that changes the next act's objective.",
       "duration_sec": 15,
       "emotional_turn": "plan -> reframe",
-      "asset_goal": {"type": "act break hook frame", "purpose": "fact reveal and leverage change"}
+      "asset_goal": {
+        "type": "act break hook frame",
+        "purpose": "fact reveal and leverage change"
+      }
     }
   ],
   "script_scene_examples": [
@@ -35,7 +43,10 @@
       "visual": "A character protects a long-arc secret in the middle of an episode-level conflict, complicating the A story instead of stopping it.",
       "voiceover": "The episode moves forward, but the season wound stays active.",
       "dialogue": [
-        {"speaker": "ensemble lead", "line": "If I answer that now, this story stops being today's problem."}
+        {
+          "speaker": "ensemble lead",
+          "line": "If I answer that now, this story stops being today's problem."
+        }
       ],
       "action_result": "The episode conflict escalates while the long-arc secret remains in play."
     }
@@ -51,12 +62,18 @@
     }
   ],
   "forbidden_drift": [
+    "Do not swap lead character identity, companion role, or speaker authority mid-arc without source support.",
+    "Do not insert a prop, clue object, ledger, or weapon that the source never seeds.",
     "Do not invent subplots, family reveals, conspiracies, or alliances without source support.",
     "Do not end an act without a leverage shift, information turn, or relationship change.",
     "Do not resolve season-level pressure inside one scene unless source explicitly does."
   ],
   "handoff_notes": {
-    "image": ["Lock ensemble blocking, A/B story overlap cues, and act-break reveal objects."],
-    "video": ["Keep multi-character spatial logic readable so act-break hooks and callback scenes match later episodes."]
+    "image": [
+      "Lock ensemble blocking, A/B story overlap cues, and act-break reveal objects."
+    ],
+    "video": [
+      "Keep multi-character spatial logic readable so act-break hooks and callback scenes match later episodes."
+    ]
   }
 }

@@ -1,0 +1,69 @@
+{
+  "pack_id": "martial_action",
+  "version": "copy-genre-example-pack-v1",
+  "display_name": "Martial Action",
+  "applies_to": [
+    "martial_action"
+  ],
+  "purpose": "Craft examples for chase, clash, blocking, impact, and clean action beat handoff without turning action into random chaos.",
+  "source_priority_rules": [
+    "Source text and locked payload outrank this example pack.",
+    "Use examples only to shape beat readability, spacing, impact, and reaction timing.",
+    "Do not invent combat logic that the source never establishes."
+  ],
+  "genre_boundary": [
+    "Use visible start, contact, reaction, and recover states.",
+    "Keep motion readable so actions can be storyboarded and cut cleanly.",
+    "Do not turn an action beat into a generic explosion or random fight."
+  ],
+  "scene_card_examples": [
+    {
+      "visual": "The locked lead steps into frame, sets stance, and blocks the first source-grounded attack in a readable line.",
+      "voiceover": "The fight is not wild; it has a clear start, impact, and recovery.",
+      "duration_sec": 8,
+      "emotional_turn": "pressure -> controlled response",
+      "asset_goal": {
+        "type": "action beat key frame",
+        "purpose": "clear stance, contact line, and spatial axis"
+      }
+    }
+  ],
+  "script_scene_examples": [
+    {
+      "visual": "A chase or clash resolves into a visible stop point so the next beat can re-enter the space cleanly.",
+      "voiceover": "The movement matters because the space changes with it.",
+      "dialogue": [
+        {
+          "speaker": "locked lead",
+          "line": "Now I know where you stand."
+        }
+      ],
+      "action_result": "The action ends on a readable new position or advantage."
+    }
+  ],
+  "dialogue_style_examples": [
+    "Use short lines that reveal timing, distance, or intent.",
+    "Keep action dialogue tied to a visible change, not a slogan."
+  ],
+  "negative_examples": [
+    {
+      "bad": "Turn the action into a random barrage with no stance or result.",
+      "why_bad": "It breaks readability and downstream continuity."
+    }
+  ],
+  "forbidden_drift": [
+    "Do not swap lead character identity, role hierarchy, or speaker authority during action without source support.",
+    "Do not introduce new props, weapons, or tools just to make the fight longer.",
+    "Do not change room, route, door, threshold, or blocking position without a visible causal transition.",
+    "Do not alter relationship status, knowledge state, or alliance state mid-clash without source support.",
+    "Do not change cause and effect so the action appears out of nowhere."
+  ],
+  "handoff_notes": {
+    "image": [
+      "Lock body stance, hand used for the weapon or prop, and the visible contact line."
+    ],
+    "video": [
+      "Preserve start -> impact -> recover continuity so the clip can be cut and bridged cleanly."
+    ]
+  }
+}

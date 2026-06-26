@@ -1,0 +1,98 @@
+{
+  "_meta": {
+    "name": "nolan_director_style",
+    "display_name": "诺兰导演风格",
+    "category": "director-style",
+    "source_file": "source/director-style/诺兰导演风格.txt"
+  },
+
+  "style_direction": "诺兰电影叙事美学：多时间线非线性叙事与复杂结构哲学深度交织，建筑压迫与几何秩序构图营造命运感，冷灰钢蓝现实层与暖黄记忆层色彩对立，汉斯·季默式低频配乐构建紧张氛围。",
+
+  "primary_palette": "冷灰/钢蓝/混凝土黑（现实层）；暖黄/琥珀/褪色棕（记忆层）；深蓝/高反差黑（危机层）；纯白/极简（真相层）",
+
+  "positive_prompt_fragments": [
+    "建筑压迫构图：人物渺小，建筑巨大",
+    "中央孤立构图：人物居中，孤独存在",
+    "几何秩序：走廊/楼梯/隧道/舱门重复结构",
+    "信息分层：前景/中景/背景同时承载叙事信息",
+    "IMAX广角建立镜头强调空间规模",
+    "主观意识镜头：记忆/梦境/幻觉",
+    "时间膨胀慢动作情绪高潮",
+    "冷灰钢蓝与暖黄琥珀色彩对立"
+  ],
+
+  "realism_constraints": [
+    "保持真人实拍电影质感，禁止动画感",
+    "禁止魔幻森林/二次元空间等幻想元素",
+    "光影必须有物理逻辑",
+    "道具必须承担剧情功能"
+  ],
+
+  "forbidden_elements": [
+    "魔幻森林",
+    "二次元空间",
+    "夸张幻想世界",
+    "抒情歌曲",
+    "流行音乐",
+    "动画感",
+    "过度滤镜"
+  ],
+
+  "negative_prompt_fragments": [
+    "fantasy elements",
+    "cartoon",
+    "neon colors",
+    "动画感",
+    "抒情歌曲",
+    "魔幻元素",
+    "夸张滤镜"
+  ],
+
+  "camera_language": {
+    "movement_preference": "N-01静止观察角色入画、N-02长焦推进逼近真相、N-03 IMAX广角建立、N-04圆周运动体现认知变化、N-07时间膨胀慢动作",
+    "framing_preference": "建筑压迫感、几何秩序重复结构、中央孤立留白、信息分层叙事",
+    "lens_bias": "广角（24-35mm）建立空间、长焦（85-135mm）推进与压缩",
+    "shot_type_distribution": {
+      "close_up": 0.3,
+      "medium": 0.4,
+      "wide": 0.3
+    }
+  },
+
+  "rhythm": {
+    "cuts_per_15s": 5,
+    "avg_shot_duration_sec": 3,
+    "pacing_description": "紧张递进节奏，剪辑点对齐BGM节拍；多时间线交叉剪辑；高潮慢动作释放",
+    "transition_style": "匹配转场、时间切换叠化、交叉剪辑"
+  },
+
+  "prompt_rules": {
+    "language": "zh",
+    "structure_template": "【主体+场景环境】+【光影色调】+【构图语言（建筑压迫/几何秩序/信息分层）】+【诺兰镜头语言标记】",
+    "mandatory_elements": [
+      "诺兰式构图词汇",
+      "色调锚定（现实层/记忆层/危机层）",
+      "道具剧情功能",
+      "几何秩序空间"
+    ],
+    "forbidden_phrases": [
+      "fantasy elements",
+      "cartoon",
+      "抒情歌曲",
+      "魔幻元素"
+    ]
+  },
+
+  "pipeline_config": {
+    "preferred_model": "seedance_2",
+    "resolution": "720p",
+    "clip_duration_sec": 15,
+    "handoff_mode": "last_frame"
+  },
+
+  "audio_direction": {
+    "bgm_style": "汉斯·季默方向：持续低频、钟表节奏、管风琴、弦乐推进、逐层堆叠；星际穿越/盗梦空间/信条风格",
+    "voice_character": "简洁冷静哲学化旁白、纪录片式口吻",
+    "ambient_sound": "实景化SFX设计：时钟滴答、心跳、低频脉冲、机械运作声"
+  }
+}

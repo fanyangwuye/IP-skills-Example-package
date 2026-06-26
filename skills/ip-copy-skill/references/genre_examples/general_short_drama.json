@@ -2,7 +2,9 @@
   "pack_id": "general_short_drama",
   "version": "copy-genre-example-pack-v1",
   "display_name": "General Short Drama",
-  "applies_to": ["general_short_drama"],
+  "applies_to": [
+    "general_short_drama"
+  ],
   "purpose": "Generic craft examples for source-grounded short-drama adaptation when no specific genre pack matches.",
   "source_priority_rules": [
     "Source text and locked payload outrank this example pack.",
@@ -20,7 +22,10 @@
       "voiceover": "The first visible change tells the audience the old rule no longer works.",
       "duration_sec": 10,
       "emotional_turn": "certainty -> pressure",
-      "asset_goal": {"type": "adapted scene key frame", "purpose": "show locked location, protagonist posture, and the changed rule"}
+      "asset_goal": {
+        "type": "adapted scene key frame",
+        "purpose": "show locked location, protagonist posture, and the changed rule"
+      }
     }
   ],
   "script_scene_examples": [
@@ -28,7 +33,10 @@
       "visual": "The protagonist acts on a known clue, then stops because the result contradicts the previous rule.",
       "voiceover": "The problem is not the clue itself, but what it proves has changed.",
       "dialogue": [
-        {"speaker": "locked protagonist", "line": "This was not like this before."}
+        {
+          "speaker": "locked protagonist",
+          "line": "This was not like this before."
+        }
       ],
       "action_result": "A clear new question or obstacle is created for the next beat."
     }
@@ -46,10 +54,15 @@
   "forbidden_drift": [
     "Do not add new named characters.",
     "Do not create props that are absent from source or locked payload.",
-    "Do not reverse entry, exit, chase direction, object ownership, or relationship status without source support."
+    "Do not reverse entry, exit, chase direction, object ownership, or relationship status without source support.",
+    "Do not break spatial blocking, door threshold, route direction, or scene position continuity when compressing beats."
   ],
   "handoff_notes": {
-    "image": ["Preserve locked character identity, wardrobe, and location anchors."],
-    "video": ["Write actions that can be storyboarded into clear start, middle, and end states."]
+    "image": [
+      "Preserve locked character identity, wardrobe, and location anchors."
+    ],
+    "video": [
+      "Write actions that can be storyboarded into clear start, middle, and end states."
+    ]
   }
 }

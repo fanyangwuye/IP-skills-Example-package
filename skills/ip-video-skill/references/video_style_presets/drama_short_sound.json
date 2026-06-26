@@ -1,0 +1,95 @@
+{
+  "_meta": {
+    "name": "drama_short_sound",
+    "display_name": "剧情短片音色",
+    "category": "genre",
+    "source_file": "source/genre/剧情短片音色.txt"
+  },
+
+  "style_direction": "剧情短片叙事美学：以角色音色一致性为核心的电影级叙事，优先长镜头加镜内分切，每个镜头包含完整场景故事内容与镜头语言，音色锚点确保跨镜头角色一致性。",
+
+  "primary_palette": "自然色调、电影级调色、写实光影",
+
+  "positive_prompt_fragments": [
+    "电影级叙事光影",
+    "长镜头+镜内分切",
+    "关键主体与场景完整呈现",
+    "关键道具叙事功能",
+    "角色自然表演",
+    "写实风格场景",
+    "自然光影氛围",
+    "情绪饱满的对白"
+  ],
+
+  "realism_constraints": [
+    "保持真人实拍质感，禁止动画感",
+    "角色面部保持自然肤质",
+    "光影必须有物理逻辑",
+    "场景必须符合叙事需求"
+  ],
+
+  "forbidden_elements": [
+    "动画感画面",
+    "失真的角色形象",
+    "与剧本不符的场景",
+    "缺乏叙事功能的道具",
+    "音色不一致的角色"
+  ],
+
+  "negative_prompt_fragments": [
+    "动画感",
+    "失真",
+    "音色不一致",
+    "场景不符",
+    "平光无层次",
+    "过度磨皮"
+  ],
+
+  "camera_language": {
+    "movement_preference": "长镜头为主、缓慢推拉、镜内分切、手持微晃动",
+    "framing_preference": "黄金分割构图、叙事性构图、角色关系构图",
+    "lens_bias": "中焦镜头（35-85mm等效）、自然景深",
+    "shot_type_distribution": {
+      "close_up": 0.3,
+      "medium": 0.4,
+      "wide": 0.3
+    }
+  },
+
+  "rhythm": {
+    "cuts_per_15s": 4,
+    "avg_shot_duration_sec": 4,
+    "pacing_description": "叙事节奏稳定，长镜头展现剧情深度；情绪随对白递进",
+    "transition_style": "自然叠化、叙事匹配转场"
+  },
+
+  "prompt_rules": {
+    "language": "zh",
+    "structure_template": "【场景】+【故事内容/对白】+【镜头语言（景别/角度/运动）】+【角色音色标注】",
+    "mandatory_elements": [
+      "关键主体清晰",
+      "场景完整呈现",
+      "镜头语言明确",
+      "音色一致性"
+    ],
+    "forbidden_phrases": [
+      "动画感",
+      "失真",
+      "音色不一致",
+      "场景不符"
+    ]
+  },
+
+  "pipeline_config": {
+    "preferred_model": "seedance_2",
+    "resolution": "720p",
+    "clip_duration_sec": 15,
+    "handoff_mode": "last_frame"
+  },
+
+  "audio_direction": {
+    "bgm_style": "电影级背景音乐，情感叙事，氛围铺垫",
+    "voice_character": "角色音色一致性锚定，MiniMax/ElevenLabs生成自然人声",
+    "ambient_sound": "环境音效配合场景，真实自然"
+  }
+}

@@ -1,4 +1,4 @@
-import argparse
+﻿import argparse
 import json
 import os
 import re
@@ -7,13 +7,13 @@ from typing import Dict, List, Optional
 
 try:
     from .blueprint_validate import validate_blueprint
-    from .creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_prompt_pack, build_provider_request, summarize_provider_request
+    from .creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, ProviderResponseEngine, build_prompt_pack, build_provider_request, build_double_confirm_live_execution_ticket, intake_provider_response, normalize_provider_response_to_result, prepare_provider_execution, summarize_provider_request
     from .format_adapters import FeatureFilmAdapter, InteractiveFilmGameAdapter, LongSeriesAdapter, MurderMysteryAdapter, OverseasShortDramaAdapter, VerticalShortDramaAdapter
     from .license_gate import check_license, gate
     from .quality_evaluator import evaluate_scene_cards_quality, evaluate_script_quality
 except ImportError:
     from blueprint_validate import validate_blueprint
-    from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_prompt_pack, build_provider_request, summarize_provider_request
+    from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, ProviderResponseEngine, build_prompt_pack, build_provider_request, build_double_confirm_live_execution_ticket, intake_provider_response, normalize_provider_response_to_result, prepare_provider_execution, summarize_provider_request
     from format_adapters import FeatureFilmAdapter, InteractiveFilmGameAdapter, LongSeriesAdapter, MurderMysteryAdapter, OverseasShortDramaAdapter, VerticalShortDramaAdapter
     from license_gate import check_license, gate
     from quality_evaluator import evaluate_scene_cards_quality, evaluate_script_quality
@@ -30,6 +30,14 @@ def run_task(task: Dict) -> Dict:
         return _run_update_adaptation_state(task, output_dir)
     if mode == "build_creative_prompt_pack":
         return _run_build_creative_prompt_pack(task, output_dir)
+    if mode == "prepare_live_provider_execution":
+        return _run_prepare_live_provider_execution(task, output_dir)
+    if mode == "intake_provider_response":
+        return _run_intake_provider_response(task, output_dir)
+    if mode == "normalize_provider_response":
+        return _run_normalize_provider_response(task, output_dir)
+    if mode == "double_confirm_live_provider_execution":
+        return _run_double_confirm_live_provider_execution(task, output_dir)
     if mode == "build_adaptation_scene_cards":
         return _run_build_adaptation_scene_cards(task, output_dir)
     if mode == "build_script_draft":
@@ -44,7 +52,7 @@ def run_task(task: Dict) -> Dict:
         return _run_build_character_handoff(task, output_dir)
     if mode == "build_blueprint":
         return _run_build_blueprint(task, output_dir)
-    raise ValueError("mode must be one of: check_license, build_blueprint, build_character_handoff, build_ip_asset_pack, update_adaptation_state, build_creative_prompt_pack, build_adaptation_scene_cards, build_script_draft, polish_script_draft, build_viral_explainer_script")
+    raise ValueError("mode must be one of: check_license, build_blueprint, build_character_handoff, build_ip_asset_pack, update_adaptation_state, build_creative_prompt_pack, prepare_live_provider_execution, intake_provider_response, normalize_provider_response, double_confirm_live_provider_execution, build_adaptation_scene_cards, build_script_draft, polish_script_draft, build_viral_explainer_script")
 
 
 def _run_check_license(task: Dict) -> Dict:
@@ -184,22 +192,15 @@ def _run_polish_script_draft(task: Dict, output_dir: str) -> Dict:
 
 
 def _run_build_creative_prompt_pack(task: Dict, output_dir: str) -> Dict:
-    request = _creative_prompt_request_from_task(task)
-    prompt_pack = build_prompt_pack(request)
-    provider_request = build_provider_request(
-        prompt_pack,
-        provider=str(task.get("llm_provider") or task.get("provider") or ""),
-        model=str(task.get("llm_model") or task.get("model") or ""),
-        allow_live=bool(task.get("allow_live_llm")),
-        request_allow_live=bool(task.get("live_generation") or task.get("allow_live_llm")),
-        max_input_chars=int(task.get("max_input_chars") or 0),
-        max_output_tokens=int(task.get("max_output_tokens") or 0),
-        max_cost_usd=float(task.get("max_cost_usd") or 0.0),
-    )
+    payload = _build_creative_prompt_handoff(task)
     payload = {
-        "prompt_pack": prompt_pack,
-        "provider_request": provider_request,
-        "provider_request_summary": summarize_provider_request(provider_request),
+        "prompt_pack": payload["prompt_pack"],
+        "provider_request": payload["provider_request"],
+        "provider_request_summary": payload["provider_request_summary"],
+        "transport_request": payload["transport_request"],
+        "transport_request_summary": payload["transport_request_summary"],
+        "response_intake_handoff": payload["response_intake_handoff"],
+        "execution_manifest": payload["execution_manifest"],
         "live_call_made": False,
     }
     out_path = os.path.join(output_dir, task.get("prompt_pack_filename", "creative_prompt_pack.json"))
@@ -214,6 +215,168 @@ def _run_build_creative_prompt_pack(task: Dict, output_dir: str) -> Dict:
         ],
         "handoff": payload,
         "logs": ["creative prompt pack built in dry-run mode; no live provider call was made"],
+    }
+
+
+def _build_creative_prompt_handoff(task: Dict) -> Dict:
+    request = _creative_prompt_request_from_task(task)
+    prompt_pack = build_prompt_pack(request)
+    provider_request = build_provider_request(
+        prompt_pack,
+        provider=str(task.get("llm_provider") or task.get("provider") or ""),
+        model=str(task.get("llm_model") or task.get("model") or ""),
+        allow_live=bool(task.get("allow_live_llm")),
+        request_allow_live=bool(task.get("live_generation") or task.get("allow_live_llm")),
+        max_input_chars=int(task.get("max_input_chars") or 0),
+        max_output_tokens=int(task.get("max_output_tokens") or 0),
+        max_cost_usd=float(task.get("max_cost_usd") or 0.0),
+        execute_live=bool(task.get("execute_live")),
+    )
+    execution_manifest = prepare_provider_execution(request, provider_request)
+    return {
+        "creative_request": request,
+        "prompt_pack": prompt_pack,
+        "provider_request": provider_request,
+        "provider_request_summary": summarize_provider_request(provider_request),
+        "transport_request": provider_request.get("transport_request", {}),
+        "transport_request_summary": provider_request.get("transport_request_summary", {}),
+        "response_intake_handoff": provider_request.get("response_intake_handoff", {}),
+        "execution_manifest": execution_manifest,
+        "live_call_made": False,
+    }
+
+
+def _run_prepare_live_provider_execution(task: Dict, output_dir: str) -> Dict:
+    payload = _build_creative_prompt_handoff(task)
+    payload = {
+        "prompt_pack": payload["prompt_pack"],
+        "provider_request": payload["provider_request"],
+        "provider_request_summary": payload["provider_request_summary"],
+        "transport_request": payload["transport_request"],
+        "transport_request_summary": payload["transport_request_summary"],
+        "response_intake_handoff": payload["response_intake_handoff"],
+        "execution_manifest": payload["execution_manifest"],
+        "live_call_made": False,
+    }
+    out_path = os.path.join(output_dir, task.get("execution_manifest_filename", "provider_execution_manifest.json"))
+    _write_json(out_path, payload)
+    return {
+        "status": "success",
+        "skill": "ip-copy-skill",
+        "mode": "prepare_live_provider_execution",
+        "task_id": task.get("task_id", "prepare_live_provider_execution"),
+        "artifacts": [
+            {"type": "json", "path": out_path, "meta": {"kind": "provider_execution_manifest"}}
+        ],
+        "handoff": payload,
+        "logs": ["provider execution manifest prepared; no live provider call was made"],
+    }
+
+
+def _run_double_confirm_live_provider_execution(task: Dict, output_dir: str) -> Dict:
+    payload = _build_creative_prompt_handoff(task)
+    ticket = build_double_confirm_live_execution_ticket(
+        payload["creative_request"],
+        payload.get("provider_request") or {},
+        confirm_primary=bool(task.get("confirm_live_execution_primary")),
+        confirm_secondary=bool(task.get("confirm_live_execution_secondary")),
+    )
+    ticket_payload = {
+        "provider_request_summary": payload["provider_request_summary"],
+        "transport_request_summary": payload["transport_request_summary"],
+        "response_intake_handoff": payload["response_intake_handoff"],
+        "execution_manifest": payload["execution_manifest"],
+        "double_confirm_ticket": ticket,
+        "live_call_made": False,
+    }
+    out_path = os.path.join(output_dir, task.get("double_confirm_ticket_filename", "double_confirm_live_execution_ticket.json"))
+    _write_json(out_path, ticket_payload)
+    return {
+        "status": "success",
+        "skill": "ip-copy-skill",
+        "mode": "double_confirm_live_provider_execution",
+        "task_id": task.get("task_id", "double_confirm_live_provider_execution"),
+        "artifacts": [
+            {"type": "json", "path": out_path, "meta": {"kind": "double_confirm_live_execution_ticket"}}
+        ],
+        "handoff": ticket_payload,
+        "logs": ["double-confirm live execution ticket prepared; no live provider call was made"],
+    }
+
+
+def _run_intake_provider_response(task: Dict, output_dir: str) -> Dict:
+    provider_response = task.get("provider_response")
+    if provider_response is None:
+        raise ValueError("intake_provider_response requires provider_response")
+    payload = _build_creative_prompt_handoff(task)
+    response_review = intake_provider_response(
+        payload["creative_request"],
+        provider_response,
+        provider_request=payload.get("provider_request") or {},
+    )
+    review_payload = {
+        "provider_request_summary": payload["provider_request_summary"],
+        "transport_request_summary": payload["transport_request_summary"],
+        "response_intake_handoff": payload["response_intake_handoff"],
+        "execution_manifest": payload["execution_manifest"],
+        "provider_response_review": response_review,
+        "live_call_made": False,
+    }
+    out_path = os.path.join(output_dir, task.get("provider_response_review_filename", "provider_response_review.json"))
+    _write_json(out_path, review_payload)
+    return {
+        "status": "success",
+        "skill": "ip-copy-skill",
+        "mode": "intake_provider_response",
+        "task_id": task.get("task_id", "intake_provider_response"),
+        "artifacts": [
+            {"type": "json", "path": out_path, "meta": {"kind": "provider_response_review"}}
+        ],
+        "handoff": review_payload,
+        "logs": ["provider response reviewed offline; no live provider call was made by this skill"],
+    }
+
+
+def _run_normalize_provider_response(task: Dict, output_dir: str) -> Dict:
+    provider_response = task.get("provider_response")
+    if provider_response is None:
+        raise ValueError("normalize_provider_response requires provider_response")
+    payload = _build_creative_prompt_handoff(task)
+    result = normalize_provider_response_to_result(
+        payload["creative_request"],
+        provider_response,
+        provider_request=payload.get("provider_request") or {},
+    )
+    result_payload = {
+        "status": result.status,
+        "generation_source": result.generation_source,
+        "data": result.data,
+        "errors": result.errors,
+        "warnings": result.warnings,
+        "review_report": result.review_report,
+        "raw_response": result.raw_response,
+        "ok": result.ok,
+    }
+    normalized_payload = {
+        "provider_request_summary": payload["provider_request_summary"],
+        "transport_request_summary": payload["transport_request_summary"],
+        "response_intake_handoff": payload["response_intake_handoff"],
+        "execution_manifest": payload["execution_manifest"],
+        "creative_engine_result": result_payload,
+        "live_call_made": False,
+    }
+    out_path = os.path.join(output_dir, task.get("creative_engine_result_filename", "creative_engine_result.json"))
+    _write_json(out_path, normalized_payload)
+    return {
+        "status": "success",
+        "skill": "ip-copy-skill",
+        "mode": "normalize_provider_response",
+        "task_id": task.get("task_id", "normalize_provider_response"),
+        "artifacts": [
+            {"type": "json", "path": out_path, "meta": {"kind": "creative_engine_result"}}
+        ],
+        "handoff": normalized_payload,
+        "logs": ["provider response normalized into CreativeEngineResult offline; no live provider call was made"],
     }
 
 
@@ -293,7 +456,45 @@ def _run_build_viral_explainer_script(task: Dict, output_dir: str) -> Dict:
     }
 
 
+def _try_creative_viral_explainer(task: Dict):
+    """Try to generate viral explainer script using Creative Engine."""
+    source_text = task.get("source_text") or _source_text_from_script(task.get("script_draft") or task.get("polished_script") or {})
+    if not source_text:
+        return None
+    creative_engine_mode = task.get("creative_engine_mode", "")
+    allow_live = task.get("allow_live_llm") or task.get("live_generation") or False
+    if creative_engine_mode == "mock" and task.get("creative_engine_outputs", {}).get("viral_explainer_script"):
+        mock_output = task["creative_engine_outputs"]["viral_explainer_script"]
+        if isinstance(mock_output, dict) and mock_output.get("episodes"):
+            return mock_output
+        return None
+    if not allow_live:
+        return None
+    provider = str(task.get("llm_provider") or task.get("provider") or "generic")
+    model = str(task.get("llm_model") or task.get("model") or "")
+    try:
+        engine = LiveLLMEngine(provider=provider, model=model, allow_live=True)
+        request = CreativeEngineRequest(
+            kind="viral_explainer_script",
+            source_text=source_text,
+            creative_brief=task.get("creative_brief") or {},
+            format_name="vertical_short_drama",
+            schema_name="viral_explainer_script",
+            payload={"title": task.get("title") or _infer_title(source_text) or "IP", "source_text": source_text, "max_episodes": int(task.get("max_episodes") or 3), "target_platform": task.get("target_platform") or "short_video"},
+            allow_live=True,
+        )
+        result = engine.generate(request)
+        if result.ok and result.data:
+            return result.data
+    except (EngineBlockedError, Exception):
+        pass
+    return None
+
+
 def _build_viral_explainer_script(task: Dict) -> Dict:
+    creative_result = _try_creative_viral_explainer(task)
+    if creative_result and creative_result.get("episodes"):
+        return creative_result
     source_text = task.get("source_text") or _source_text_from_script(task.get("script_draft") or task.get("polished_script") or {})
     if not source_text:
         raise ValueError("build_viral_explainer_script requires source_text, script_draft, or polished_script")
@@ -748,6 +949,12 @@ def _creative_engine_from_task(task: Dict):
     outputs = task.get("creative_engine_outputs") or task.get("mock_creative_outputs") or {}
     if mode == "mock" or outputs:
         return MockCreativeEngine(outputs)
+    if mode in {"provider_response", "reviewed_provider_response", "provider"} and task.get("provider_response") is not None:
+        return ProviderResponseEngine(
+            task.get("provider_response"),
+            provider=str(task.get("llm_provider") or task.get("provider") or ""),
+            model=str(task.get("llm_model") or task.get("model") or ""),
+        )
     if mode in {"live", "live_llm", "llm"}:
         return LiveLLMEngine(provider=str(task.get("llm_provider") or task.get("provider") or ""), model=str(task.get("llm_model") or task.get("model") or ""), allow_live=bool(task.get("allow_live_llm")))
     return OfflineCreativeEngine()

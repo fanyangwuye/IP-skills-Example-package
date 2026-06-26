@@ -1,0 +1,96 @@
+{
+  "_meta": {
+    "name": "one_take_ad",
+    "display_name": "一镜到底广告短片",
+    "category": "one-take",
+    "source_file": "source/one-take/一镜到底广告短片.txt"
+  },
+
+  "style_direction": "一镜到底广告美学：无缝衔接的连续镜头感，强调镜头物理运动与环境微观质感。可选写实/二次元/赛博朋克/科幻废土等多种风格，禁用转场效果，首尾帧精准裁剪确保流畅。",
+
+  "primary_palette": "写实风格：自然光/电影级调色；二次元：手绘光影张力；赛博朋克：冷暖对比光源；科幻废土：锈蚀金属/风沙介质",
+
+  "positive_prompt_fragments": [
+    "电影级镜头物理运动（Dolly/Orbit）",
+    "单镜头连续画面，无cuts无transitions",
+    "环境微观质感：皮肤毛孔/衣物纤维/光影流动",
+    "多层空间视差动感纹理（二次元）",
+    "冷暖对比光源动态漫反射（赛博朋克）",
+    "首帧→尾帧首尾帧完美衔接",
+    "镜头轨迹连贯无阻尼过渡",
+    "硬切无缝拼合"
+  ],
+
+  "realism_constraints": [
+    "保持真人实拍质感，禁止动画感",
+    "禁用转场效果、黑屏淡入淡出",
+    "首尾帧必须裁剪至出现物理运动趋势",
+    "相邻镜头物理位移速率必须连贯"
+  ],
+
+  "forbidden_elements": [
+    "cuts/transitions/split-screen/grid",
+    "多宫格视频",
+    "首尾凝固或像素抖动",
+    "动作重复现象",
+    "转场效果"
+  ],
+
+  "negative_prompt_fragments": [
+    "no cuts",
+    "no transitions",
+    "no split-screen",
+    "no grid",
+    "no multi-view panels",
+    "动画感",
+    "凝固画面"
+  ],
+
+  "camera_language": {
+    "movement_preference": "Dolly推拉/Orbit环绕/手持跟拍/缓慢推进等多种运动形式连贯衔接",
+    "framing_preference": "单镜头完整构图、景深平滑过渡",
+    "lens_bias": "明确焦距描述、光学运动感",
+    "shot_type_distribution": {
+      "close_up": 0.25,
+      "medium": 0.4,
+      "wide": 0.35
+    }
+  },
+
+  "rhythm": {
+    "cuts_per_15s": 1,
+    "avg_shot_duration_sec": 15,
+    "pacing_description": "真正一镜到底感：禁用任何转场，首尾帧精准裁剪，动作无重复",
+    "transition_style": "硬切无缝拼合，无任何转场效果"
+  },
+
+  "prompt_rules": {
+    "language": "zh",
+    "structure_template": "【相机运动主导】+【主体动作与微表情】+【环境变化（光影/风力/烟雾）】+【音频标记（旁白/音效/BGM）】",
+    "mandatory_elements": [
+      "单一完整连续镜头",
+      "相机运动描述",
+      "首尾帧衔接",
+      "无转场标注"
+    ],
+    "forbidden_phrases": [
+      "no cuts",
+      "no transitions",
+      "no split-screen",
+      "动画感"
+    ]
+  },
+
+  "pipeline_config": {
+    "preferred_model": "seedance_2",
+    "resolution": "720p",
+    "clip_duration_sec": 15,
+    "handoff_mode": "last_frame"
+  },
+
+  "audio_direction": {
+    "bgm_style": "BGM音量0.15-0.25压低，铺垫氛围",
+    "voice_character": "对白旁白{}包裹，音量1.0主导",
+    "ambient_sound": "SFX环境音效0.3-0.5基准，帧级音画对齐"
+  }
+}

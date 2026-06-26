@@ -1,6 +1,8 @@
 import os
 from typing import Any, Dict, List
 
+from .provider_transport import build_response_intake_handoff, build_transport_request
+
 
 DEFAULT_MODELS = {
     "generic": "configured-live-llm-model",
@@ -28,9 +30,11 @@ def build_provider_request(
     max_input_chars: int = 0,
     max_output_tokens: int = 0,
     max_cost_usd: float = 0.0,
+    execute_live: bool = False,
 ) -> Dict[str, Any]:
     provider_name = (provider or "generic").strip().lower()
     model_name = model or DEFAULT_MODELS.get(provider_name, DEFAULT_MODELS["generic"])
+    request_allow_live = bool(request_allow_live or execute_live)
     boundary = build_provider_boundary(
         prompt_pack,
         provider=provider_name,
@@ -41,12 +45,13 @@ def build_provider_request(
         max_output_tokens=max_output_tokens,
         max_cost_usd=max_cost_usd,
     )
-    return {
+    network_call_allowed = boundary.get("network_call_allowed", False)
+    request_obj = {
         "provider_request_version": "copy-live-provider-request-v1",
         "provider": provider_name,
         "model": model_name,
-        "network_call_allowed": False,
-        "mode": "dry_run_provider_request",
+        "network_call_allowed": network_call_allowed,
+        "mode": "live_provider_request" if network_call_allowed else "dry_run_provider_request",
         "provider_boundary": boundary,
         "messages": [
             {"role": "system", "content": prompt_pack.get("system_prompt", "")},
@@ -61,6 +66,9 @@ def build_provider_request(
         "quality_targets": prompt_pack.get("quality_targets", []),
         "prompt_pack": prompt_pack,
     }
+    request_obj["transport_request"] = build_transport_request(request_obj)
+    request_obj["response_intake_handoff"] = build_response_intake_handoff(request_obj)
+    return request_obj
 
 
 def build_provider_boundary(
@@ -85,6 +93,7 @@ def build_provider_boundary(
         blockers.append("engine_live_not_approved")
     if not request_allow_live:
         blockers.append("request_live_not_approved")
+        blockers.append("live_execution_not_requested")
     if not api_key_present:
         blockers.append("api_key_missing")
     if max_input_chars and prompt_chars > int(max_input_chars):
@@ -93,7 +102,11 @@ def build_provider_boundary(
         blockers.append("invalid_max_output_tokens")
     if max_cost_usd and float(max_cost_usd) <= 0:
         blockers.append("invalid_max_cost_usd")
-    blockers.append("network_adapter_not_implemented")
+    network_adapter_implemented = False
+    if not network_adapter_implemented:
+        blockers.append("network_adapter_not_implemented")
+    network_call_allowed = not blockers and network_adapter_implemented
+    ready_for_live_call = not blockers
     return {
         "provider_boundary_version": "copy-provider-boundary-v1",
         "provider": provider_name,
@@ -103,8 +116,11 @@ def build_provider_boundary(
         "api_key_present": api_key_present,
         "engine_allow_live": bool(allow_live),
         "request_allow_live": bool(request_allow_live),
-        "network_adapter_implemented": False,
-        "network_call_allowed": False,
+        "execute_live_requested": bool(request_allow_live),
+        "request_shape_implemented": True,
+        "transport_adapter_implemented": True,
+        "network_adapter_implemented": network_adapter_implemented,
+        "network_call_allowed": network_call_allowed,
         "prompt_chars": prompt_chars,
         "budget": {
             "max_input_chars": int(max_input_chars or 0),
@@ -112,7 +128,7 @@ def build_provider_boundary(
             "max_cost_usd": float(max_cost_usd or 0.0),
         },
         "blockers": blockers,
-        "ready_for_live_call": False,
+        "ready_for_live_call": ready_for_live_call,
     }
 
 

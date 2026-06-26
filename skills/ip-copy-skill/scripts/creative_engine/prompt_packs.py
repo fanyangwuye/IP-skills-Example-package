@@ -12,6 +12,7 @@ KIND_TASKS = {
     "scene_cards": "Generate adaptation scene cards for downstream storyboard, image, and video planning.",
     "script_scenes": "Generate structured script scenes from locked scene cards and format constraints.",
     "polished_script_scenes": "Polish structured script scenes while preserving timing, scene order, characters, and plot facts.",
+    "viral_explainer_script": "Generate viral short-video explainer script with strong hooks, fast pacing, and cliffhanger endings from source material.",
 }
 
 
@@ -35,6 +36,15 @@ TASK_INSTRUCTIONS = {
         "Polish dialogue rhythm and conflict without changing scene order, timing, asset goals, or source facts.",
         "Keep original speaker intent and character status; tighten wording instead of replacing the scene.",
         "Add conflict notes only when they are supported by existing scene facts.",
+    ],
+    "viral_explainer_script": [
+        "Open with a 3-second hook: state conflict, reversal, or danger immediately — no world-building setup allowed.",
+        "Add new information, pressure, or reversal every 20-30 seconds to maintain retention.",
+        "Use short punchy sentences, rhetorical questions, and exclamations suitable for voiceover delivery.",
+        "End each episode with an unresolved question, secret, or choice that hands off to the next episode.",
+        "Only compress and retell source plot beats; do not invent new plot facts or replace locked characters.",
+        "Build emotional arc: shock -> tension -> reversal -> bigger crisis -> cliffhanger.",
+        "Avoid generic connectors like '故事一开始' or '接着'; write with dramatic urgency instead.",
     ],
 }
 
@@ -197,6 +207,37 @@ KIND_OUTPUT_SHAPES = {
             "conflict_notes": ["supported pressure strengthened"],
         }
     ],
+    "viral_explainer_script": {
+        "title": "IP title",
+        "mode": "viral_explainer_script",
+        "target_platform": "short_video",
+        "viewpoint": "third-person narrator",
+        "style_profile": {
+            "viral_intensity": "high tension, strong hooks, fast pacing",
+            "opening_policy": "first 3 seconds must state conflict, reversal, or survival pressure",
+            "rewrite_boundary": "retell and compress story beats; do not invent new plot facts or replace locked characters",
+        },
+        "episodes": [
+            {
+                "episode_index": 1,
+                "episode_title": "episode title",
+                "duration_sec": 90,
+                "opening_hook": "3-second dramatic hook stating conflict or reversal",
+                "narration_lines": [
+                    "Punchy short narration line with dramatic urgency",
+                    "Next beat with new information or pressure",
+                    "Reversal or escalation",
+                    "Cliffhanger setup",
+                ],
+                "cliffhanger": "Unresolved question or bigger crisis that hands off to next episode",
+                "retention_devices": [
+                    "opening hook in first 3 seconds",
+                    "new info or pressure every 20-30 seconds",
+                    "cliffhanger ending",
+                ],
+            }
+        ],
+    },
 }
 
 SCHEMA_CONTRACTS = {
@@ -229,6 +270,18 @@ SCHEMA_CONTRACTS = {
             "include causality links and unanswered questions",
         ],
     },
+    "viral_explainer_script": {
+        "root_type": "object",
+        "item_required": ["title", "episodes"],
+        "notes": [
+            "episodes must be a non-empty list",
+            "each episode needs opening_hook, narration_lines, cliffhanger",
+            "narration_lines must be short punchy sentences suitable for voiceover",
+            "do not use generic connectors; write with dramatic urgency",
+            "opening_hook must state conflict or reversal in the first sentence",
+            "cliffhanger must end with unresolved question or bigger crisis",
+        ],
+    },
 }
 
 
@@ -238,7 +291,14 @@ GENRE_SIGNALS = [
     ("wasteland_survival", ["废土", "避难所", "荒原", "基地", "辐射", "生存"]),
     ("urban_suspense", ["探测器", "异常", "酒店", "饭店", "雨夜", "规则", "门口"]),
     ("romance_drama", ["甜宠", "婚约", "重逢", "心动", "误会", "情感"]),
-    ("martial_action", ["追", "冲", "打", "刀", "剑", "拳", "爆炸", "投掷"]),
+    ("martial_action", ["追", "冲", "打", "刀", "剑", "拳", "爆炸", "投掷", "martial_action", "chase", "blade", "block", "counter", "action line"]),
+    ("urban_revenge", ["urban_revenge", "fired", "struck back", "took the project", "都市", "复仇", "逆袭", "反击", "被开除", "职场"]),
+    ("wealthy_romance", ["wealthy_romance", "engagement", "white moonlight", "divorce papers", "豪门", "婚约", "白月光", "离婚", "总裁", "联姻"]),
+    ("rule_horror", ["rule_horror", "the wall says", "night shift", "must never", "规则", "怪谈", "诡异", "禁忌", "守则", "值夜班", "不能回头"]),
+    ("rebirth_revenge", ["rebirth_revenge", "remembers the first life", "changes the choice", "before the trap", "重生", "前世", "重来", "改命", "回到", "复仇"]),
+    ("system_power_fantasy", ["system_power_fantasy", "task panel", "reward", "cost is immediate", "系统", "任务面板", "奖励", "签到", "升级", "金手指"]),
+    ("palace_intrigue", ["palace_intrigue", "court order", "rank pressure", "read aloud", "宫斗", "后宫", "圣旨", "位份", "妃", "皇", "朝堂", "算计"]),
+    ("detective_casework", ["detective_casework", "investigator", "contradiction", "time stamp", "next question", "侦探", "查案", "线索", "推理", "时间线", "矛盾", "凶手"]),
 ]
 
 

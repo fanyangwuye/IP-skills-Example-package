@@ -1,0 +1,69 @@
+{
+  "pack_id": "rebirth_revenge",
+  "version": "copy-genre-example-pack-v1",
+  "display_name": "Rebirth Revenge",
+  "applies_to": [
+    "rebirth_revenge"
+  ],
+  "purpose": "Craft examples for second-chance revenge, future knowledge pressure, corrected choices, and source-grounded payoff reversals.",
+  "source_priority_rules": [
+    "Source text and locked payload outrank this example pack.",
+    "Use examples only to shape regret, foreknowledge, and reversal timing.",
+    "Do not invent future memories, hidden crimes, or new relationships unless the source supports them."
+  ],
+  "genre_boundary": [
+    "Show what the character remembers, what they change, and what pressure returns because of that change.",
+    "Keep the revenge logic readable through visible choice rather than vague destiny language.",
+    "Do not flatten the scene into a generic comeback speech."
+  ],
+  "scene_card_examples": [
+    {
+      "visual": "The locked lead recognizes a source-grounded moment from the previous life and stops the old mistake before it repeats.",
+      "voiceover": "The point of rebirth is not memory alone; it is the changed choice under the same pressure.",
+      "duration_sec": 10,
+      "emotional_turn": "regret -> decisive correction",
+      "asset_goal": {
+        "type": "rebirth reversal frame",
+        "purpose": "same place, changed choice, visible pressure return"
+      }
+    }
+  ],
+  "script_scene_examples": [
+    {
+      "visual": "The lead uses one known future detail to reverse the room's power balance without revealing every hidden fact.",
+      "voiceover": "A second chance matters only if the consequence changes this time.",
+      "dialogue": [
+        {
+          "speaker": "locked lead",
+          "line": "I will not repeat that mistake."
+        }
+      ],
+      "action_result": "The previous-life pressure turns into a visible present advantage or warning."
+    }
+  ],
+  "dialogue_style_examples": [
+    "Use lines that carry memory, restraint, and a specific corrective choice.",
+    "Avoid explaining the whole prior life when one present action can prove it."
+  ],
+  "negative_examples": [
+    {
+      "bad": "Add random prophetic powers or unsupported villains just to make the revenge bigger.",
+      "why_bad": "It breaks source causality and turns rebirth into arbitrary escalation."
+    }
+  ],
+  "forbidden_drift": [
+    "Do not swap lead character identity, role hierarchy, or speaker authority without source support.",
+    "Do not introduce a new prop, letter, poison, ledger, or weapon unless the source seeds it.",
+    "Do not change room, route, threshold, or blocking position without a visible causal bridge.",
+    "Do not alter relationship status, knowledge state, or alliance state without source support.",
+    "Do not change cause and effect so the rebirth advantage appears unsupported."
+  ],
+  "handoff_notes": {
+    "image": [
+      "Lock the repeated location anchor, the corrective gesture, and the object that proves the changed choice."
+    ],
+    "video": [
+      "Preserve continuity between remembered pressure, present action, and the new state created by the reversal."
+    ]
+  }
+}

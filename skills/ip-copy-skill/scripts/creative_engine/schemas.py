@@ -31,3 +31,19 @@ def validate_script_scenes(scenes: Any) -> List[str]:
     for index, scene in enumerate(scenes, start=1):
         errors.extend(validate_required_fields(scene, SCRIPT_SCENE_REQUIRED_FIELDS, f"script_scene[{index}]"))
     return errors
+
+
+VIRAL_EXPLAINER_EPISODE_REQUIRED_FIELDS = ["episode_index", "opening_hook", "narration_lines", "cliffhanger"]
+
+
+def validate_viral_explainer(data: Any) -> List[str]:
+    if not isinstance(data, dict):
+        return ["viral_explainer must be an object"]
+    errors = []
+    episodes = data.get("episodes")
+    if not isinstance(episodes, list) or not episodes:
+        errors.append("viral_explainer must have a non-empty episodes list")
+        return errors
+    for index, episode in enumerate(episodes, start=1):
+        errors.extend(validate_required_fields(episode, VIRAL_EXPLAINER_EPISODE_REQUIRED_FIELDS, f"episode[{index}]"))
+    return errors

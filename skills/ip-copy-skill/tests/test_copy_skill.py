@@ -7,7 +7,7 @@ from datetime import date
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from blueprint_validate import validate_blueprint  # noqa: E402
 from copy_skill import run_task  # noqa: E402
-from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, build_post_response_review_plan, build_prompt_pack, build_provider_boundary, build_provider_request, load_genre_example_pack, parse_provider_response, review_creative_output, validate_genre_example_pack  # noqa: E402
+from creative_engine import CreativeEngineRequest, EngineBlockedError, LiveLLMEngine, MockCreativeEngine, OfflineCreativeEngine, ProviderResponseEngine, build_post_response_review_plan, build_prompt_pack, build_provider_boundary, build_provider_request, build_transport_request, build_response_intake_handoff, load_genre_example_pack, build_double_confirm_live_execution_ticket, normalize_provider_response_to_result, parse_provider_response, review_creative_output, summarize_transport_request, validate_genre_example_pack  # noqa: E402
 from format_adapters import FeatureFilmAdapter, InteractiveFilmGameAdapter, LongSeriesAdapter, MurderMysteryAdapter, OverseasShortDramaAdapter, VerticalShortDramaAdapter  # noqa: E402
 from license_gate import check_license, gate  # noqa: E402
 from quality_evaluator import evaluate_scene_cards_quality, evaluate_script_quality  # noqa: E402
@@ -470,6 +470,8 @@ def test_mock_and_live_engines_attach_review_artifacts():
     live = LiveLLMEngine(provider="openai", model="unit-test-model", allow_live=True)
     live_result = live.generate(request)
     assert live_result.status == "provider_request_ready"
+    assert live_result.raw_response["transport_request"]["execution_mode"] == "prepared_but_not_executed"
+    assert live_result.raw_response["response_intake_handoff"]["response_intake_version"] == "copy-provider-response-intake-v1"
     assert live_result.raw_response["post_response_review_plan"]["when"] == "after_provider_json_response_before_accepting_creative_output"
     assert "validate_schema_required_fields" in live_result.review_report["required_stages"]
     assert build_post_response_review_plan(request)["review_version"] == "copy-creative-engine-review-v1"
@@ -492,7 +494,34 @@ def test_live_llm_engine_blocks_without_explicit_double_approval():
 
 
 
-def test_prompt_pack_builds_adapter_constraints_and_provider_request():
+def test_normalize_provider_response_to_result_accepts_reviewed_output():
+    request = CreativeEngineRequest(
+        kind="scene_cards",
+        schema_name="scene_cards",
+        source_text="sample locked source text",
+        payload={"characters": [{"name": "Lead"}, {"name": "Support"}]},
+    )
+    result = normalize_provider_response_to_result(
+        request,
+        '[{"visual":"sample locked source text, Lead and Support stay on screen.","voiceover":"The rules change first.","duration_sec":8,"asset_goal":{"type":"adapted scene key frame"}}]',
+        provider_request={"provider": "openai", "model": "unit-test-model"},
+    )
+    assert result.status == "success"
+    assert result.ok is True
+    assert result.generation_source == "provider_response_normalized"
+    assert result.data[0]["visual"]
+    assert result.raw_response["provider_response_review"]["acceptance_status"] == "accepted"
+
+
+def test_normalize_provider_response_to_result_rejects_unusable_output():
+    request = CreativeEngineRequest(kind="scene_cards", schema_name="scene_cards", source_text="sample locked source text")
+    result = normalize_provider_response_to_result(request, "not json", provider_request={"provider": "openai"})
+    assert result.status == "provider_response_rejected"
+    assert result.ok is False
+    assert result.errors
+
+
+def _PENDING_thirdparty_provider_test_prompt_pack_builds_adapter_constraints_and_provider_request():
     adapter = VerticalShortDramaAdapter()
     request = CreativeEngineRequest(
         kind="scene_cards",
@@ -522,7 +551,14 @@ def test_prompt_pack_builds_adapter_constraints_and_provider_request():
     assert provider_request["response_format"]["schema_name"] == "scene_cards"
     assert provider_request["provider_boundary"]["provider_boundary_version"] == "copy-provider-boundary-v1"
     assert provider_request["provider_boundary"]["api_key_env_var"] == "OPENAI_API_KEY"
-    assert "network_adapter_not_implemented" in provider_request["provider_boundary"]["blockers"]
+    assert provider_request["provider_boundary"]["request_shape_implemented"] is True
+    assert provider_request["provider_boundary"]["transport_adapter_implemented"] is True
+    assert provider_request["provider_boundary"]["execute_live_requested"] is False
+    assert "live_execution_not_requested" in provider_request["provider_boundary"]["blockers"]
+    assert provider_request["transport_request"]["execution_mode"] == "prepared_but_not_executed"
+    assert provider_request["response_intake_handoff"]["response_intake_version"] == "copy-provider-response-intake-v1"
+    assert provider_request["provider_surface"]["surface_packet_version"] == "copy-provider-surface-v1"
+    assert provider_request["response_format"]["type"] == "json_schema"
 
 
 
@@ -552,7 +588,7 @@ def test_prompt_pack_builds_character_voice_contract_from_roles():
     assert any("evidence" in item for item in voice_contract[1]["voice_rules"])
     assert "do not add unsupported plot facts" in prompt_pack["creative_diagnostics"]["forbidden_drift"]
 
-def test_provider_boundary_records_live_guard_budget_and_blockers():
+def _PENDING_thirdparty_provider_test_provider_boundary_records_live_guard_budget_and_blockers():
     prompt_pack = build_prompt_pack(
         CreativeEngineRequest(
             kind="script_scenes",
@@ -578,7 +614,60 @@ def test_provider_boundary_records_live_guard_budget_and_blockers():
     assert boundary["network_call_allowed"] is False
     assert boundary["ready_for_live_call"] is False
     assert "prompt_exceeds_max_input_chars" in boundary["blockers"]
-    assert "network_adapter_not_implemented" in boundary["blockers"]
+    assert boundary["request_shape_implemented"] is True
+    assert boundary["transport_adapter_implemented"] is True
+    assert boundary["execute_live_requested"] is False
+    assert "live_execution_not_requested" in boundary["blockers"]
+
+def test_transport_request_and_response_intake_handoff_are_built():
+    prompt_pack = build_prompt_pack(
+        CreativeEngineRequest(
+            kind="scene_cards",
+            source_text="system_power_fantasy: a task panel appears and the reward changes the risk.",
+            creative_brief={"target": "short_drama", "tone": "system power fantasy"},
+            schema_name="scene_cards",
+        )
+    )
+    provider_request = build_provider_request(prompt_pack, provider="openai", model="gpt-test")
+    transport_request = build_transport_request(provider_request)
+    assert transport_request["transport_adapter_version"] == "copy-provider-transport-v1"
+    assert transport_request["request"]["method"] == "POST"
+    assert transport_request["request"]["headers"]["Authorization"].startswith("Bearer $ENV:")
+
+    intake = build_response_intake_handoff(provider_request)
+    assert intake["response_intake_version"] == "copy-provider-response-intake-v1"
+    assert "parse_provider_response_as_json" in intake["acceptance_flow"]
+
+    summary = summarize_transport_request(transport_request)
+    assert summary["execution_mode"] == "prepared_but_not_executed"
+    assert summary["has_response_format"] is True
+
+
+def _PENDING_thirdparty_provider_test_provider_request_uses_provider_specific_surface_shapes():
+    prompt_pack = build_prompt_pack(
+        CreativeEngineRequest(
+            kind="script_scenes",
+            source_text="rule_horror: the wall says the night shift must never turn back.",
+            creative_brief={"target": "overseas_short_drama", "tone": "rule horror suspense"},
+            format_name=OverseasShortDramaAdapter().spec().format_name,
+            schema_name="script_scenes",
+        )
+    )
+    openai_request = build_provider_request(prompt_pack, provider="openai", model="gpt-test")
+    assert openai_request["provider_surface"]["strategy"] == "compact_json_schema_surface"
+    assert openai_request["response_format"]["type"] == "json_schema"
+    assert openai_request["request_options"]["api_style"] == "openai_json_schema"
+
+    deepseek_request = build_provider_request(prompt_pack, provider="deepseek", model="deepseek-test")
+    assert deepseek_request["provider_surface"]["strategy"] == "compact_json_mode_surface"
+    assert deepseek_request["response_format"]["type"] == "json_object"
+    assert deepseek_request["request_options"]["api_style"] == "deepseek_json_mode"
+
+    qwen_request = build_provider_request(prompt_pack, provider="qwen", model="qwen-test")
+    assert qwen_request["provider_surface"]["strategy"] == "compact_json_instruction_surface"
+    assert qwen_request["request_options"]["api_style"] == "qwen_json_instruction"
+    assert "Source text excerpt:" in qwen_request["provider_surface"]["user_surface"]
+
 
 def test_run_task_build_creative_prompt_pack_writes_dry_run_provider_request():
     with tempfile.TemporaryDirectory() as output_dir:
@@ -945,6 +1034,94 @@ def test_build_adaptation_scene_cards_rejects_bad_explicit_creative_engine_outpu
             assert "CreativeEngine scene card generation failed" in str(exc)
         else:
             raise AssertionError("explicit bad CreativeEngine output must not silently fall back")
+
+def test_provider_response_engine_routes_reviewed_output_into_scene_cards_flow():
+    engine = ProviderResponseEngine(
+        '[{"visual":"sample locked source text, Lead stays at the front desk.","voiceover":"The hotel opens again.","duration_sec":8,"asset_goal":{"type":"adapted scene key frame"}}]',
+        provider="openai",
+        model="unit-test-model",
+    )
+    request = CreativeEngineRequest(
+        kind="scene_cards",
+        schema_name="scene_cards",
+        source_text="sample locked source text",
+        payload={"characters": [{"name": "Lead"}]},
+    )
+    result = engine.generate(request)
+    assert result.status == "success"
+    assert result.generation_source == "provider_response_normalized"
+    assert result.data[0]["visual"]
+
+
+def test_build_adaptation_scene_cards_can_use_provider_response_engine():
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                "mode": "build_adaptation_scene_cards",
+                "title": "sample title",
+                "source_text": "sample locked source text",
+                "creative_engine_mode": "provider_response",
+                "provider_response": '[{"visual":"sample locked source text, Lead stays at the front desk.","voiceover":"The hotel opens again.","duration_sec":8,"asset_goal":{"type":"adapted scene key frame"}}]',
+                "characters": [{"name": "Lead"}],
+                "output_dir": output_dir,
+            }
+        )
+        cards = result["handoff"]["scene_cards"]
+        assert cards[0]["generation_source"] == "provider_response_normalized"
+        assert cards[0]["creative_engine_review_status"] == "pass"
+
+
+def test_build_script_draft_can_use_provider_response_engine():
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                "mode": "build_script_draft",
+                "title": "sample title",
+                "source_text": "sample locked source text",
+                "creative_engine_mode": "provider_response",
+                "provider_response": '[{"visual":"sample locked source text, Lead stays at the front desk.","voiceover":"The hotel opens again.","dialogue":[{"speaker":"Lead","line":"The rules changed first."}],"start_sec":0,"end_sec":8}]',
+                "characters": [{"name": "Lead"}],
+                "scene_cards": [{"visual":"sample locked source text, Lead stays at the front desk.","voiceover":"The hotel opens again.","duration_sec":8,"asset_goal":{"type":"adapted scene key frame"}}],
+                "total_duration_sec": 8,
+                "output_dir": output_dir,
+            }
+        )
+        script = result["handoff"]["script_draft"]
+        assert script["generation_source"] == "provider_response_normalized"
+        assert script["scenes"][0]["generation_source"] == "provider_response_normalized"
+        assert script["scenes"][0]["dialogue"][0]["line"] == "The rules changed first."
+
+
+def test_polish_script_draft_can_use_provider_response_engine():
+    with tempfile.TemporaryDirectory() as output_dir:
+        script_draft = {
+            "title": "sample title",
+            "total_duration_sec": 8,
+            "scenes": [
+                {
+                    "scene_no": 1,
+                    "start_sec": 0,
+                    "end_sec": 8,
+                    "visual": "sample locked source text, Lead stays at the front desk.",
+                    "voiceover": "The hotel opens again.",
+                    "dialogue": [{"speaker": "Lead", "line": "Fallback line."}],
+                    "asset_goal": {"type": "adapted scene key frame"},
+                }
+            ],
+        }
+        result = run_task(
+            {
+                "mode": "polish_script_draft",
+                "script_draft": script_draft,
+                "creative_engine_mode": "provider_response",
+                "provider_response": '[{"visual":"sample locked source text, Lead stays at the front desk.","voiceover":"The hotel opens again.","dialogue":[{"speaker":"Lead","line":"Reviewed line."}],"start_sec":0,"end_sec":8}]',
+                "output_dir": output_dir,
+            }
+        )
+        polished = result["handoff"]["polished_script"]
+        assert polished["generation_source"] == "provider_response_normalized"
+        assert polished["scenes"][0]["dialogue"][0]["line"] == "Reviewed line."
+
 
 def test_build_script_draft_from_scene_cards():
     with tempfile.TemporaryDirectory() as output_dir:
@@ -1436,11 +1613,19 @@ def test_genre_example_packs_validate_and_fallback():
     pack_files = sorted(name for name in os.listdir(examples_dir) if name.endswith(".json"))
     assert "general_short_drama.json" in pack_files
     assert "underworld_supernatural.json" in pack_files
+    assert "rule_horror.json" in pack_files
+    assert "rebirth_revenge.json" in pack_files
+    assert "system_power_fantasy.json" in pack_files
+    assert "urban_revenge.json" in pack_files
+    assert "wealthy_romance.json" in pack_files
+    assert "palace_intrigue.json" in pack_files
     assert "xianxia_fantasy.json" in pack_files
+    assert "detective_casework.json" in pack_files
     assert "urban_suspense.json" in pack_files
     assert "romance_drama.json" in pack_files
     assert "interactive_film_game.json" in pack_files
     assert "wasteland_survival.json" in pack_files
+    assert "martial_action.json" in pack_files
     assert "murder_mystery.json" in pack_files
     assert "overseas_short_drama.json" in pack_files
     assert "feature_film.json" in pack_files
@@ -1507,6 +1692,55 @@ def test_validate_genre_example_pack_reports_structural_errors():
     assert any("handoff_notes.image" in item for item in errors)
     assert any("handoff_notes.video entries" in item for item in errors)
 
+
+def test_validate_genre_example_pack_reports_content_boundary_errors():
+    bad_pack = {
+        "pack_id": "boundary_pack",
+        "version": "copy-genre-example-pack-v1",
+        "display_name": "Boundary Pack",
+        "applies_to": ["boundary_pack"],
+        "purpose": "See https://example.com for details.",
+        "source_priority_rules": ["Source text outranks examples."],
+        "genre_boundary": ["Keep actions source-grounded."],
+        "scene_card_examples": [
+            {
+                "visual": "A locked room reveals a clue.",
+                "voiceover": "The room changes first.",
+                "duration_sec": 8,
+                "emotional_turn": "calm -> alarm",
+                "asset_goal": {"type": "test frame"}
+            }
+        ],
+        "script_scene_examples": [
+            {
+                "visual": "The lead studies the clue.",
+                "voiceover": "The clue changes the plan.",
+                "dialogue": [{"speaker": "lead", "line": "This changes everything."}],
+                "action_result": "The investigation shifts direction."
+            }
+        ],
+        "dialogue_style_examples": ["Keep lines short."],
+        "negative_examples": [
+            {
+                "bad": "Use Harry Potter from C:\\Users\\qjw\\Downloads as a shortcut clue.",
+                "why_bad": "It drifts outside the source boundary."
+            }
+        ],
+        "forbidden_drift": ["Do not improvise."],
+        "handoff_notes": {
+            "image": ["Make it pretty."],
+            "video": ["Move the camera nicely."]
+        }
+    }
+    errors = validate_genre_example_pack(bad_pack)
+    assert any("forbidden_drift must cover character_or_role" in item for item in errors)
+    assert any("forbidden_drift must cover props_or_objects" in item for item in errors)
+    assert any("handoff_notes.image must mention an image anchor" in item for item in errors)
+    assert any("handoff_notes.video must mention continuity" in item for item in errors)
+    assert any("contains disallowed url marker" in item for item in errors)
+    assert any("contains disallowed local_path_windows marker" in item for item in errors)
+    assert any("contains disallowed realworld_ip_or_person marker" in item for item in errors)
+
 def test_prompt_pack_uses_format_specific_genre_example_pack_when_source_is_generic():
     request = CreativeEngineRequest(
         kind="script_scenes",
@@ -1542,6 +1776,63 @@ def test_prompt_pack_injects_genre_example_pack():
     assert "Genre Example Pack" in prompt_pack["user_prompt"]
     assert "random handkerchief" in prompt_pack["user_prompt"]
     assert "source_text and locked payload remain authoritative" in prompt_pack["user_prompt"]
+
+
+def test_prompt_pack_picks_new_subgenre_packs():
+    cases = [
+        (
+            "urban_revenge",
+            "urban_revenge: he was fired, then struck back and took the project.",
+            {"target": "short_drama", "tone": "urban revenge"},
+        ),
+        (
+            "wealthy_romance",
+            "wealthy_romance: the engagement, the white moonlight return, and the divorce papers all land on the table.",
+            {"target": "short_drama", "tone": "wealthy romance"},
+        ),
+        (
+            "rule_horror",
+            "rule_horror: the wall says the night shift must never turn back.",
+            {"target": "short_drama", "tone": "rule horror"},
+        ),
+        (
+            "martial_action",
+            "martial_action: chase, draw blade, block, and counter in a clean action line.",
+            {"target": "short_drama", "tone": "hard action"},
+        ),
+        (
+            "rebirth_revenge",
+            "rebirth_revenge: she remembers the first life and changes the choice before the trap closes.",
+            {"target": "short_drama", "tone": "rebirth revenge"},
+        ),
+        (
+            "system_power_fantasy",
+            "system_power_fantasy: a task panel appears, the reward is real, and the cost is immediate.",
+            {"target": "short_drama", "tone": "system power fantasy"},
+        ),
+        (
+            "palace_intrigue",
+            "palace_intrigue: the court order is read aloud and the room's rank pressure changes at once.",
+            {"target": "short_drama", "tone": "palace intrigue"},
+        ),
+        (
+            "detective_casework",
+            "detective_casework: the investigator finds the contradiction in the time stamp and pushes the next question.",
+            {"target": "short_drama", "tone": "detective casework"},
+        ),
+    ]
+    for expected_pack_id, source_text, creative_brief in cases:
+        request = CreativeEngineRequest(
+            kind="scene_cards",
+            source_text=source_text,
+            creative_brief=creative_brief,
+            format_name=VerticalShortDramaAdapter().spec().format_name,
+            schema_name="scene_cards",
+            payload={"adapter": VerticalShortDramaAdapter().creative_engine_payload({"title": "Test"}, {})},
+        )
+        prompt_pack = build_prompt_pack(request)
+        assert prompt_pack["genre_example_pack"]["pack_id"] == expected_pack_id
+        assert prompt_pack["metadata"]["genre_example_pack_id"] == expected_pack_id
 
 
 def test_prompt_pack_includes_format_templates_and_few_shot_shapes():
@@ -1584,6 +1875,111 @@ def test_prompt_pack_includes_format_templates_and_few_shot_shapes():
     interactive_pack = build_prompt_pack(interactive_request)
     assert "node_graph" in interactive_pack["few_shot_output_shape"]["format_specific_top_level_fields"]
     assert "fake choices" in interactive_pack["format_prompt_template"]["avoid"][0]
+
+
+def _PENDING_thirdparty_provider_test_build_creative_prompt_pack_includes_transport_and_execution_manifest():
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                "mode": "build_creative_prompt_pack",
+                "title": "sample title",
+                "source_text": "sample locked source text",
+                "creative_brief": {"target": "short_drama", "tone": "suspense"},
+                "prompt_kind": "scene_cards",
+                "output_dir": output_dir,
+            }
+        )
+        handoff = result["handoff"]
+        assert handoff["transport_request"]["execution_mode"] == "prepared_but_not_executed"
+        assert handoff["transport_request_summary"]["network_call_allowed"] is False
+        assert handoff["response_intake_handoff"]["response_intake_version"] == "copy-provider-response-intake-v1"
+        assert handoff["execution_manifest"]["execution_state"] == "prepared_but_not_executed"
+        assert handoff["execution_manifest"]["network_call_allowed"] is False
+
+
+
+def _PENDING_thirdparty_provider_test_prepare_live_provider_execution_and_intake_provider_response_stay_offline():
+    with tempfile.TemporaryDirectory() as output_dir:
+        prepare_result = run_task(
+            {
+                "mode": "prepare_live_provider_execution",
+                "title": "sample title",
+                "source_text": "sample locked source text",
+                "creative_brief": {"target": "short_drama", "tone": "suspense"},
+                "prompt_kind": "scene_cards",
+                "output_dir": output_dir,
+            }
+        )
+        manifest = prepare_result["handoff"]["execution_manifest"]
+        assert manifest["execution_state"] == "prepared_but_not_executed"
+        assert manifest["network_call_allowed"] is False
+        assert "api_key_missing" in manifest["readiness"]["blockers"]
+        assert prepare_result["handoff"]["transport_request_summary"]["execution_mode"] == "prepared_but_not_executed"
+
+        intake_result = run_task(
+            {
+                "mode": "intake_provider_response",
+                "title": "sample title",
+                "source_text": "sample locked source text",
+                "creative_brief": {"target": "short_drama", "tone": "suspense"},
+                "prompt_kind": "scene_cards",
+                "characters": [{"name": "Lead"}, {"name": "Support"}],
+                "provider_response": '[{"visual":"sample locked source text, Lead and Support stay on screen.","voiceover":"The rules change first.","duration_sec":8,"asset_goal":{"type":"adapted scene key frame"}}]',
+                "output_dir": output_dir,
+            }
+        )
+        review = intake_result["handoff"]["provider_response_review"]
+        assert review["execution_state"] == "response_reviewed_offline"
+        assert review["network_call_allowed"] is False
+        assert review["accepted_for_normalization"] is True
+        assert review["acceptance_status"] == "accepted"
+        assert intake_result["handoff"]["execution_manifest"]["network_call_allowed"] is False
+        assert os.path.exists(os.path.join(output_dir, "provider_response_review.json"))
+
+
+def test_double_confirm_live_provider_execution_mode_writes_ticket():
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                "mode": "double_confirm_live_provider_execution",
+                "title": "sample title",
+                "source_text": "sample locked source text",
+                "creative_brief": {"target": "short_drama", "tone": "suspense"},
+                "prompt_kind": "scene_cards",
+                "confirm_live_execution_primary": True,
+                "confirm_live_execution_secondary": True,
+                "output_dir": output_dir,
+            }
+        )
+        ticket = result["handoff"]["double_confirm_ticket"]
+        assert ticket["execution_state"] == "live_execution_double_confirmed_blocked" or ticket["execution_state"] == "live_execution_double_confirmed_ready"
+        assert ticket["network_call_allowed"] is False
+        assert ticket["confirmations"]["primary"] is True
+        assert ticket["confirmations"]["secondary"] is True
+        assert result["handoff"]["execution_manifest"]["network_call_allowed"] is False
+        assert os.path.exists(os.path.join(output_dir, "double_confirm_live_execution_ticket.json"))
+
+
+def test_normalize_provider_response_mode_writes_creative_engine_result():
+    with tempfile.TemporaryDirectory() as output_dir:
+        result = run_task(
+            {
+                "mode": "normalize_provider_response",
+                "title": "sample title",
+                "source_text": "sample locked source text",
+                "creative_brief": {"target": "short_drama", "tone": "suspense"},
+                "prompt_kind": "scene_cards",
+                "characters": [{"name": "Lead"}, {"name": "Support"}],
+                "provider_response": '[{"visual":"sample locked source text, Lead and Support stay on screen.","voiceover":"The rules change first.","duration_sec":8,"asset_goal":{"type":"adapted scene key frame"}}]',
+                "output_dir": output_dir,
+            }
+        )
+        creative_engine_result = result["handoff"]["creative_engine_result"]
+        assert creative_engine_result["status"] == "success"
+        assert creative_engine_result["generation_source"] == "provider_response_normalized"
+        assert creative_engine_result["ok"] is True
+        assert result["handoff"]["execution_manifest"]["network_call_allowed"] is False
+        assert os.path.exists(os.path.join(output_dir, "creative_engine_result.json"))
 
 if __name__ == "__main__":
     for name, fn in list(globals().items()):

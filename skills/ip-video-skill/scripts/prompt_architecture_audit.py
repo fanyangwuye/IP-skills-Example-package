@@ -218,17 +218,19 @@ def _audit_prompt_field(clip_id: str, field: str, kind: Optional[str], prompt: s
     if not safe_layer_ok:
         errors.append(f"{label}: internal facts and platform-safe surface wording layers must both be present")
 
-    if kind in {"i2v", "t2v"} and safe_layer_ok:
-        surface_text = _section_text(prompt, "Platform-Safe Surface Wording", "Execution Constraints")
-        surface_english_ok = not _has_cjk(surface_text)
-        _add_prompt_check(checks, label, "english_surface_wording_no_raw_cjk", surface_english_ok, {"surface_length": len(surface_text)})
-        if not surface_english_ok:
-            errors.append(f"{label}: Platform-Safe Surface Wording for English-oriented providers must not embed raw Chinese visual/action text")
+    surface_section = _extract_section(prompt, "Platform-Safe Surface Wording", _next_section_marker(prompt, "Platform-Safe Surface Wording"))
+    cjk_in_surface = any("\u4e00" <= ch <= "\u9fff" for ch in surface_section)
+    cjk_allowed = (kind or "").lower() == "seedance"
+    cjk_violation = cjk_in_surface and not cjk_allowed
+    _add_prompt_check(checks, label, "english_surface_wording_no_raw_cjk", not cjk_violation, {"surface_length": len(surface_section), "kind": kind})
+    if cjk_in_surface and not cjk_allowed:
+        warnings.append(f"{label}: Platform-Safe Surface Wording should use English wording, not raw CJK characters")
 
-    director_ok = _contains_any(prompt, ["导演设计", "director=", "director_plan"])
-    _add_prompt_check(checks, label, "director_plan_visible", director_ok, {})
-    if not director_ok:
-        warnings.append(f"{label}: director_plan or director shot-design markers should be visible in the prompt timeline")
+    director_plan_ok = "Prompt Packet V1" in prompt and "Internal Story Facts" in prompt and "Spatial Blocking" in prompt
+    _add_prompt_check(checks, label, "director_plan_visible", director_plan_ok, {})
+    if not director_plan_ok:
+        errors.append(f"{label}: prompt must contain a visible director plan (Prompt Packet V1 with Internal Story Facts and Spatial Blocking)")
+
     timeline_ok = _timeline_covers_storyboard(prompt, clip)
     _add_prompt_check(checks, label, "timeline_mentions_storyboard_shots", timeline_ok, {"shot_ids": clip.get("shot_ids", [])})
     if not timeline_ok:
@@ -253,18 +255,6 @@ def _prompt_report(field: str, kind: Optional[str], prompt: str, status: str) ->
         "length": len(prompt),
         "budget": PROVIDER_PROMPT_BUDGETS.get(kind) if kind else None,
     }
-
-
-def _section_text(prompt: str, section: str, next_section: str = "") -> str:
-    start = prompt.find(section)
-    if start < 0:
-        return ""
-    end = prompt.find(next_section, start + len(section)) if next_section else -1
-    return prompt[start:] if end < 0 else prompt[start:end]
-
-
-def _has_cjk(text: str) -> bool:
-    return any("\u4e00" <= char <= "\u9fff" for char in str(text or ""))
 
 
 def _sections_in_order(prompt: str, sections: List[str]) -> bool:
@@ -312,6 +302,33 @@ def _clip_contains_any(clip: Dict, markers: List[str]) -> bool:
 def _contains_any(text: str, markers: List[str]) -> bool:
     lower = str(text or "").lower()
     return any(marker.lower() in lower for marker in markers)
+
+
+def _next_section_marker(prompt: str, current_section: str) -> "Optional[str]":
+    """Return the next known section header after current_section, or None."""
+    known = ["Internal Story Facts", "Platform-Safe Surface Wording", "Execution Constraints",
+             "15s Timeline", "Continuation Contract", "Spatial Blocking", "高风险空间模板",
+             "Reference Image Binding", "Shot Sequence", "Negative Prompt"]
+    try:
+        idx = known.index(current_section)
+    except ValueError:
+        return None
+    for header in known[idx + 1:]:
+        if header in prompt:
+            return header
+    return None
+
+
+def _extract_section(prompt: str, start_marker: str, end_marker: "Optional[str]") -> str:
+    """Extract the text between start_marker and end_marker in the prompt."""
+    if start_marker not in prompt:
+        return ""
+    start = prompt.index(start_marker) + len(start_marker)
+    if end_marker and end_marker in prompt[start:]:
+        end = prompt.index(end_marker, start)
+    else:
+        end = len(prompt)
+    return prompt[start:end]
 
 
 def _add_check(checks: List[Dict], unit: str, name: str, passed: bool, detail) -> None:

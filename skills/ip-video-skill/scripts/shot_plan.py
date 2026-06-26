@@ -112,8 +112,18 @@ def _build_shot(index: int, segment: Dict, bible: Dict, previous_end_state: str)
         "sound_subtitle": {
             "voiceover": segment.get("voiceover", ""),
             "dialogue": segment.get("dialogue", []),
+            "screen_text": segment.get("screen_text", []),
             "subtitle": segment.get("subtitle", segment.get("voiceover", "")),
             "music_cue": segment.get("music_cue", ""),
+        },
+        "pro_design": {
+            "vfx": segment.get("vfx") or segment.get("特效") or segment.get("vfx_design") or "",
+            "camera": segment.get("camera") or segment.get("运镜") or segment.get("分镜") or segment.get("camera_design") or "",
+            "lighting": segment.get("lighting") or segment.get("光影") or segment.get("光影氛围") or "",
+            "action_design": segment.get("action_design") or segment.get("动作设计") or segment.get("动作") or "",
+            "style_tone": segment.get("style_tone") or segment.get("基调") or segment.get("风格基调") or "",
+            "hook": segment.get("hook") or segment.get("爆点") or segment.get("钩子") or "",
+            "sound_design": segment.get("sound_design") or segment.get("音效") or segment.get("music_cue") or "",
         },
         "timing": timing,
     }

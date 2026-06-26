@@ -1,0 +1,94 @@
+{
+  "_meta": {
+    "name": "immersive_interactive_girlfriend",
+    "display_name": "沉浸式互动女友",
+    "category": "interactive",
+    "source_file": "source/interactive/沉浸式互动女友.txt"
+  },
+
+  "style_direction": "POV第一人称沉浸式互动美学：女性角色与观众一对一互动，暧昧灵动或微醺夜色风格，画面永远只呈现一个主体，强调沉浸感与互动性。",
+
+  "primary_palette": "暧昧灵动：暖粉/柔光/柔和色调；微醺夜色：暗调/霓虹暖色/微醺氛围",
+
+  "positive_prompt_fragments": [
+    "POV第一视角沉浸画面",
+    "女性角色娇俏灵动微表情丰富",
+    "暧昧氛围互动感",
+    "微醺夜色暧昧感觉",
+    "女主角半身特写清晰",
+    "自然眼神交流与互动",
+    "情感戏肢体接触细节",
+    "竖屏9:16画面比例"
+  ],
+
+  "realism_constraints": [
+    "保持真人实拍质感，禁止动画感",
+    "女性角色必须颜值出挑",
+    "单主体约束：画面永远只呈现一个主体"
+  ],
+
+  "forbidden_elements": [
+    "动画感画面",
+    "画面内出现多个主体",
+    "男性角色",
+    "过度磨皮失真",
+    "缺乏互动感的静态画面"
+  ],
+
+  "negative_prompt_fragments": [
+    "动画感",
+    "多主体",
+    "男性角色",
+    "过度磨皮",
+    "静态画面",
+    "CG质感"
+  ],
+
+  "camera_language": {
+    "movement_preference": "POV主观镜头、角色微动作与表情特写、自然眼神互动",
+    "framing_preference": "第一人称POV构图、角色居中/黄金分割、自然对话感",
+    "lens_bias": "中焦至长焦（50-85mm），浅景深突出角色主体",
+    "shot_type_distribution": {
+      "close_up": 0.5,
+      "medium": 0.4,
+      "wide": 0.1
+    }
+  },
+
+  "rhythm": {
+    "cuts_per_15s": 3,
+    "avg_shot_duration_sec": 5,
+    "pacing_description": "慢节奏沉浸：每个镜头充分展现互动细节；情绪暧昧递进；无快速剪辑",
+    "transition_style": "自然叠化、黑场过渡"
+  },
+
+  "prompt_rules": {
+    "language": "zh",
+    "structure_template": "【POV第一人称视角】+【女主动作与表情微细节】+【暧昧互动内容】+【氛围标注】",
+    "mandatory_elements": [
+      "POV第一视角",
+      "单主体女性角色",
+      "互动感与暧昧氛围",
+      "情感细节呈现"
+    ],
+    "forbidden_phrases": [
+      "动画感",
+      "多主体",
+      "男性角色",
+      "过度磨皮"
+    ]
+  },
+
+  "pipeline_config": {
+    "preferred_model": "seedance_2",
+    "resolution": "720p",
+    "clip_duration_sec": 15,
+    "handoff_mode": "last_frame"
+  },
+
+  "audio_direction": {
+    "bgm_style": "无独立BGM，声音通过视频模型内嵌生成",
+    "voice_character": "女性声音，娇俏灵动或微醺感",
+    "ambient_sound": "环境音与角色互动声嵌入视频"
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "pack_id": "system_power_fantasy",
+  "version": "copy-genre-example-pack-v1",
+  "display_name": "System Power Fantasy",
+  "applies_to": [
+    "system_power_fantasy"
+  ],
+  "purpose": "Craft examples for system prompts, task pressure, upgrade reward logic, and source-grounded power progression.",
+  "source_priority_rules": [
+    "Source text and locked payload outrank this example pack.",
+    "Use examples only to shape task, reward, restriction, and progression timing.",
+    "Do not invent new abilities, panels, penalties, or reward tiers unless the source supports them."
+  ],
+  "genre_boundary": [
+    "Show the task or panel clearly enough that the action feels caused rather than random.",
+    "Keep power gains tied to stated conditions, cost, or risk.",
+    "Do not let the system solve every scene instantly."
+  ],
+  "scene_card_examples": [
+    {
+      "visual": "A source-grounded system prompt appears at the locked pressure point, forcing the lead to choose between reward and immediate risk.",
+      "voiceover": "The system is not decoration; it changes what the lead must do next.",
+      "duration_sec": 9,
+      "emotional_turn": "confusion -> tactical acceptance",
+      "asset_goal": {
+        "type": "system prompt frame",
+        "purpose": "task cue, lead reaction, visible cost"
+      }
+    }
+  ],
+  "script_scene_examples": [
+    {
+      "visual": "The lead completes or rejects a task in a way that visibly changes capability, position, or danger.",
+      "voiceover": "Power means nothing if the cost and trigger are unclear.",
+      "dialogue": [
+        {
+          "speaker": "locked lead",
+          "line": "If I take the reward, I take the risk too."
+        }
+      ],
+      "action_result": "A system rule, reward, or penalty becomes active for the next beat."
+    }
+  ],
+  "dialogue_style_examples": [
+    "Keep lines tactical and condition-aware.",
+    "Let the task and reward logic stay readable in plain language."
+  ],
+  "negative_examples": [
+    {
+      "bad": "Add a new legendary skill out of nowhere because the scene needs a bigger win.",
+      "why_bad": "It breaks the system's internal cause and reward logic."
+    }
+  ],
+  "forbidden_drift": [
+    "Do not swap lead character identity, role hierarchy, or speaker authority without source support.",
+    "Do not introduce a new prop, artifact, panel, currency, or weapon unless the source seeds it.",
+    "Do not change room, route, threshold, or blocking position without a visible causal bridge.",
+    "Do not alter relationship status, knowledge state, or alliance state without source support.",
+    "Do not change cause and effect so a system reward appears without a valid trigger."
+  ],
+  "handoff_notes": {
+    "image": [
+      "Lock the system cue, the reaction pose, and the object or panel anchor that proves the task logic."
+    ],
+    "video": [
+      "Preserve continuity between system prompt, player choice, and the visible state change created by the reward or penalty."
+    ]
+  }
+}

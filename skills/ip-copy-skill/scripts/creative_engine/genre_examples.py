@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, Iterable, List
 
 
 GENRE_EXAMPLE_PACK_VERSION = "copy-genre-example-pack-v1"
@@ -29,6 +29,25 @@ _SCENE_CARD_REQUIRED_FIELDS = ["visual", "voiceover", "duration_sec", "emotional
 _SCRIPT_SCENE_REQUIRED_FIELDS = ["visual", "voiceover", "dialogue", "action_result"]
 _NEGATIVE_EXAMPLE_REQUIRED_FIELDS = ["bad", "why_bad"]
 _HANDOFF_REQUIRED_KEYS = ["image", "video"]
+
+_FORBIDDEN_DRIFT_CATEGORIES = {
+    "character_or_role": ["character", "角色", "speaker", "role", "identity", "lead", "host", "suspect", "companion", "worker", "official", "monster"],
+    "props_or_objects": ["prop", "object", "artifact", "weapon", "inventory", "tool", "clue", "resource", "menu", "ledger", "道具", "物件"],
+    "space_or_blocking": ["space", "location", "room", "route", "door", "threshold", "scene", "spatial", "blocking", "position", "场景", "空间", "路线"],
+    "relationship_or_state": ["relationship", "status", "ownership", "knowledge state", "public", "private", "alliance", "pov", "choice", "state", "关系", "身份", "地位", "视角"],
+    "causality_or_source": ["cause", "effect", "causal", "source", "unsupported", "setup", "transition", "without explanation", "without source", "source-grounded", "因果", "依据"],
+}
+
+_IMAGE_HANDOFF_HINTS = ["anchor", "anchors", "identity", "layout", "wardrobe", "prop", "motif", "lock", "reference", "锚点", "构图"]
+_VIDEO_HANDOFF_HINTS = ["continuity", "bridge", "transition", "state", "blocking", "connect", "match", "later", "衔接", "连续", "状态", "转场"]
+
+_UNSAFE_TEXT_MARKERS = {
+    "local_path_windows": ["c:\\", "d:\\", "e:\\", "\\users\\", "\\downloads\\"],
+    "local_path_posix": ["/users/", "/home/", "file://"],
+    "url": ["http://", "https://", "www."],
+    "secret": ["sk-", "api_key", "apikey", "bearer ", "authorization:"],
+    "realworld_ip_or_person": ["harry potter", "spider-man", "batman", "superman", "marvel", "dc comics", "star wars", "disney", "taylor swift", "elon musk"],
+}
 
 
 def load_genre_example_pack(primary_genre: str, examples_dir: Path | None = None) -> Dict[str, Any]:
@@ -78,6 +97,8 @@ def validate_genre_example_pack(pack: Dict[str, Any]) -> List[str]:
     errors.extend(_validate_script_scene_examples(pack.get("script_scene_examples")))
     errors.extend(_validate_negative_examples(pack.get("negative_examples")))
     errors.extend(_validate_handoff_notes(pack.get("handoff_notes")))
+    errors.extend(_validate_forbidden_drift_coverage(pack.get("forbidden_drift")))
+    errors.extend(_validate_text_boundaries(pack))
     return errors
 
 
@@ -196,7 +217,50 @@ def _validate_handoff_notes(value: Any) -> List[str]:
             errors.append(f"handoff_notes.{key} must be a non-empty list")
         elif not _all_non_empty_strings(entries):
             errors.append(f"handoff_notes.{key} entries must be non-empty strings")
+    if isinstance(value.get("image"), list) and not _contains_any_marker(value.get("image", []), _IMAGE_HANDOFF_HINTS):
+        errors.append("handoff_notes.image must mention an image anchor, identity lock, layout, prop, motif, or equivalent reference cue")
+    if isinstance(value.get("video"), list) and not _contains_any_marker(value.get("video", []), _VIDEO_HANDOFF_HINTS):
+        errors.append("handoff_notes.video must mention continuity, bridge, transition, state, blocking, or equivalent motion continuity cue")
     return errors
+
+
+def _validate_forbidden_drift_coverage(value: Any) -> List[str]:
+    if not isinstance(value, list):
+        return []
+    text = "\n".join(str(item).lower() for item in value)
+    errors: List[str] = []
+    for category, markers in _FORBIDDEN_DRIFT_CATEGORIES.items():
+        if not any(marker in text for marker in markers):
+            errors.append(f"forbidden_drift must cover {category}")
+    return errors
+
+
+def _validate_text_boundaries(pack: Dict[str, Any]) -> List[str]:
+    errors: List[str] = []
+    for path, text in _iter_string_fields(pack):
+        lowered = text.lower()
+        for category, markers in _UNSAFE_TEXT_MARKERS.items():
+            for marker in markers:
+                if marker in lowered:
+                    errors.append(f"{path} contains disallowed {category} marker: {marker}")
+                    break
+    return errors
+
+
+def _iter_string_fields(value: Any, path: str = "pack") -> Iterable[tuple[str, str]]:
+    if isinstance(value, str):
+        yield path, value
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            yield from _iter_string_fields(item, f"{path}[{index}]")
+    elif isinstance(value, dict):
+        for key, item in value.items():
+            yield from _iter_string_fields(item, f"{path}.{key}")
+
+
+def _contains_any_marker(items: List[str], markers: List[str]) -> bool:
+    text = "\n".join(items).lower()
+    return any(marker in text for marker in markers)
 
 
 def _safe_source_path(path: Path) -> str:

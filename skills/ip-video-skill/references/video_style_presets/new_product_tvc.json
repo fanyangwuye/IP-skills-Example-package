@@ -1,0 +1,98 @@
+{
+  "_meta": {
+    "name": "new_product_tvc",
+    "display_name": "新品视觉TVC广告宣传",
+    "category": "commercial",
+    "source_file": "source/commercial/新品视觉TVC广告宣传.txt"
+  },
+
+  "style_direction": "品牌TVC广告美学：基于代言人视觉基因与品牌调性定制叙事，以3秒视觉重点+7秒情绪高潮为核心结构，追求广告传播力与品牌美学的完美统一。",
+
+  "primary_palette": "高饱和品牌色、电影级调色、品牌色彩体系",
+
+  "positive_prompt_fragments": [
+    "代言人视觉基因精准还原",
+    "品牌调性精准匹配（高奢/时尚/运动/汽车/3C）",
+    "电影级光影质感",
+    "3秒视觉重点抓取",
+    "7秒情绪高潮营造",
+    "干净背景全身像或场景图",
+    "产品与人物关系呈现",
+    "品牌精神与受众情绪表达"
+  ],
+
+  "realism_constraints": [
+    "保持代言人真实质感，禁止过度修图",
+    "产品必须保持真实比例与质感",
+    "光影必须符合物理逻辑",
+    "场景必须符合品牌调性"
+  ],
+
+  "forbidden_elements": [
+    "失真的代言人形象",
+    "与品牌调性不符的场景",
+    "过度的视觉特效",
+    "杂乱无章的画面",
+    "缺乏品牌识别度的设计"
+  ],
+
+  "negative_prompt_fragments": [
+    "失真变形",
+    "过度磨皮",
+    "杂乱背景",
+    "品牌调性不符",
+    "视觉特效过度",
+    "塑料质感",
+    "曝光过度"
+  ],
+
+  "camera_language": {
+    "movement_preference": "电影级运镜、缓慢推进/横移、情绪化手持跟拍",
+    "framing_preference": "黄金分割构图、品牌视觉标准、人物与产品关系构图",
+    "lens_bias": "电影镜头（35-85mm等效）、浅景深、电影级虚化",
+    "shot_type_distribution": {
+      "close_up": 0.3,
+      "medium": 0.4,
+      "wide": 0.3
+    }
+  },
+
+  "rhythm": {
+    "cuts_per_15s": 5,
+    "avg_shot_duration_sec": 3,
+    "pacing_description": "叙事节奏明确，3秒吸引注意力，7秒释放情绪高潮；品牌表达与情感叙事交织",
+    "transition_style": "动感硬切、匹配转场、情绪叠化"
+  },
+
+  "prompt_rules": {
+    "language": "zh",
+    "structure_template": "【镜头序号】+【3s视觉重点】+【7s高潮】+【动作链】+【转场逻辑】+【品牌情绪】+【负向约束】",
+    "mandatory_elements": [
+      "3秒视觉重点",
+      "7秒情绪高潮",
+      "代言人动作",
+      "产品展示",
+      "品牌情绪表达",
+      "首尾衔接策略"
+    ],
+    "forbidden_phrases": [
+      "失真变形",
+      "品牌调性不符",
+      "杂乱背景",
+      "视觉特效过度"
+    ]
+  },
+
+  "pipeline_config": {
+    "preferred_model": "seedance_2",
+    "resolution": "720p",
+    "clip_duration_sec": 15,
+    "handoff_mode": "last_frame"
+  },
+
+  "audio_direction": {
+    "bgm_style": "品牌定制BGM，电影级配乐，节奏与画面情绪匹配",
+    "voice_character": "专业配音，情感饱满，与品牌调性统一",
+    "ambient_sound": "环境音效、产品声效、品牌声音标识"
+  }
+}

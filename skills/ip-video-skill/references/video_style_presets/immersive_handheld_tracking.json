@@ -1,0 +1,95 @@
+{
+  "_meta": {
+    "name": "immersive_handheld_tracking",
+    "display_name": "沉浸式手持跟拍",
+    "category": "one-take",
+    "source_file": "source/one-take/沉浸式手持跟拍.txt"
+  },
+
+  "style_direction": "沉浸式手持跟拍美学：物理真实的运动摄影机系统，无固定机位禁令，至少4种运镜类型。FPV肩后跟拍/手持跟拍/环绕/急推等，情绪强度与运镜类型联动映射，台词节奏与运镜速率精确同步。",
+
+  "primary_palette": "写实电影色调、自然光/环境光源、色温标注明确",
+
+  "positive_prompt_fragments": [
+    "手持跟拍：上下起伏微弱晃动感",
+    "FPV肩后跟拍：主角肩背后脑勺前景虚化",
+    "缓慢推近/拉远：情绪渐进",
+    "快速甩镜Whip Pan：视线转移或突发事件",
+    "环绕推移Orbital：内心纠结或人物对峙",
+    "急推Crash Zoom：情绪突变或受惊吓",
+    "惯性过冲Inertial Overshoot：运镜急停换向回弹",
+    "呼吸式微晃：极轻情绪波动"
+  ],
+
+  "realism_constraints": [
+    "禁止固定镜头/静止机位/Static",
+    "禁止无动机的抽搐/违反物理的悬浮",
+    "禁止关节反向弯折/身体穿透场景物体",
+    "动作必须符合人体工学"
+  ],
+
+  "forbidden_elements": [
+    "固定镜头",
+    "静止机位",
+    "Static",
+    "无动机动作",
+    "穿模现象",
+    "相同景别连续镜头"
+  ],
+
+  "negative_prompt_fragments": [
+    "固定机位",
+    "静止画面",
+    "Static",
+    "穿模",
+    "无动机动作"
+  ],
+
+  "camera_language": {
+    "movement_preference": "每片至少4种运镜类型：手持跟拍/缓慢推近/快速甩镜/环绕推移/急推/惯性过冲/FPV肩后跟拍",
+    "framing_preference": "无固定机位，景别变化链：远景→全景→中景→近景→特写（禁止连续相同景别）",
+    "lens_bias": "标准至中焦，强调运动感而非虚化",
+    "shot_type_distribution": {
+      "close_up": 0.3,
+      "medium": 0.4,
+      "wide": 0.3
+    }
+  },
+
+  "rhythm": {
+    "cuts_per_15s": 2,
+    "avg_shot_duration_sec": 8,
+    "pacing_description": "建立段（呼吸式微晃/FPV）→发展段（运镜频率提升）→爆发/收束段（急推/快速甩镜）；运镜密度控制≤3种/镜",
+    "transition_style": "动作匹配/眨眼黑屏/跟拍穿越转场"
+  },
+
+  "prompt_rules": {
+    "language": "zh",
+    "structure_template": "【运镜类型】+【角色动作与情绪强度】+【台词节奏标注】+【衔接提示】",
+    "mandatory_elements": [
+      "运镜类型明确（≥4种/片）",
+      "情绪强度等级标注",
+      "台词停顿与运镜同步",
+      "景别变化链"
+    ],
+    "forbidden_phrases": [
+      "固定镜头",
+      "静止机位",
+      "Static",
+      "相同景别"
+    ]
+  },
+
+  "pipeline_config": {
+    "preferred_model": "seedance_2",
+    "resolution": "720p",
+    "clip_duration_sec": 15,
+    "handoff_mode": "last_frame"
+  },
+
+  "audio_direction": {
+    "bgm_style": "无BGM（默认），可选开启",
+    "voice_character": "台词情绪强度与运镜联动，停顿点运镜变速锚点",
+    "ambient_sound": "环境音嵌入视频，SFX自然融入"
+  }
+}

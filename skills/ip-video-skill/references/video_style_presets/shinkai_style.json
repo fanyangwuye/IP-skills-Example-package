@@ -1,0 +1,96 @@
+{
+  "_meta": {
+    "name": "shinkai_style",
+    "display_name": "新海诚风格",
+    "category": "director-style",
+    "source_file": "source/director-style/新海诚风格.txt"
+  },
+
+  "style_direction": "新海诚电影动画美学：天气驱动氛围系统（雨/晴/黄昏/夜）为核心，唯美写实背景与青春成长叙事交织，体积光与光晕营造诗意视觉，成长遗憾与重逢主题贯穿全片。",
+
+  "primary_palette": "天空蓝+云层白+阳光金（晴空系）；橙金+紫红+深蓝（黄昏系）；青灰蓝+雨雾白+暖色霓虹（雨天系）；深蓝+月光白+城市灯光橙（夜景系）",
+
+  "positive_prompt_fragments": [
+    "Makoto Shinkai Animated Film唯美画风",
+    "Volumetric Light体积光与镜头光晕",
+    "Ultra Detailed Background高精度写实背景",
+    "天气驱动氛围（雨滴/云层/光束）",
+    "逆光体积光穿透效果",
+    "角色与天空/云层的诗意关系",
+    "城市街道与自然场景的唯美交织",
+    "Cinematic Anime电影级光影"
+  ],
+
+  "realism_constraints": [
+    "保持动画电影质感，非真人实拍",
+    "背景必须超写实高精度",
+    "光影必须有物理逻辑（夕阳/月光/路灯/阳光）",
+    "天气效果必须自然真实"
+  ],
+
+  "forbidden_elements": [
+    "CG塑料感",
+    "扁平无层次背景",
+    "无光影的平面画面",
+    "过于暗沉压抑",
+    "缺乏天气氛围渲染"
+  ],
+
+  "negative_prompt_fragments": [
+    "CG塑料感",
+    "扁平背景",
+    "无光影",
+    "压抑暗沉",
+    "缺乏氛围",
+    "低质量背景",
+    "不自然天气"
+  ],
+
+  "camera_language": {
+    "movement_preference": "风吹镜头（头发飘动/树叶摇晃）、仰望天空强调光线、雨滴与积水波纹、缓慢行走进景",
+    "framing_preference": "角色与天空/云层关系构图、强调天空占比、逆光剪影、诗意空镜",
+    "lens_bias": "标准至长焦（35-85mm），强调天空与背景细节，体积光效果",
+    "shot_type_distribution": {
+      "close_up": 0.35,
+      "medium": 0.35,
+      "wide": 0.3
+    }
+  },
+
+  "rhythm": {
+    "cuts_per_15s": 4,
+    "avg_shot_duration_sec": 4,
+    "pacing_description": "舒缓诗意节奏，镜头时长偏长；情绪在静默中积累；高潮奔跑追逐戏",
+    "transition_style": "缓慢叠化、静默过渡、情绪留白转场"
+  },
+
+  "prompt_rules": {
+    "language": "zh",
+    "structure_template": "【场景+天气】+【角色动作与情绪细节】+【体积光/环境变化】+【镜头运动】+【音效/台词标注】",
+    "mandatory_elements": [
+      "天气系统（S/A/B级必选）",
+      "光影层次（主光/次光/环境光）",
+      "天空占比与云层细节",
+      "体积光效果"
+    ],
+    "forbidden_phrases": [
+      "CG塑料感",
+      "扁平背景",
+      "无光影",
+      "压抑暗沉"
+    ]
+  },
+
+  "pipeline_config": {
+    "preferred_model": "seedance_2",
+    "resolution": "720p",
+    "clip_duration_sec": 15,
+    "handoff_mode": "last_frame"
+  },
+
+  "audio_direction": {
+    "bgm_style": "新海诚配乐风格：钢琴独奏/钢琴+弦乐/钢琴+环境音/钢琴+电子；秒速五厘米-言叶之庭-你的名字-天气之子-铃芽之旅风格",
+    "voice_character": "第一人称、青春文学、克制表达、轻微伤感独白",
+    "ambient_sound": "雨声、电车声、脚步声、风声、城市白噪音"
+  }
+}

@@ -2,7 +2,9 @@
   "pack_id": "underworld_supernatural",
   "version": "copy-genre-example-pack-v1",
   "display_name": "Underworld Supernatural / Strange Business",
-  "applies_to": ["underworld_supernatural"],
+  "applies_to": [
+    "underworld_supernatural"
+  ],
   "purpose": "Craft examples for underworld, ghost-service, strange inn, supernatural business, and rule-bound liminal-space stories.",
   "source_priority_rules": [
     "The source decides what the underworld rules are; this pack must not invent judge systems, punishments, creatures, or rituals.",
@@ -20,14 +22,20 @@
       "voiceover": "The first rule is not spoken by a person; it appears in the business record.",
       "duration_sec": 10,
       "emotional_turn": "routine control -> rule pressure",
-      "asset_goal": {"type": "underworld business key frame", "purpose": "counter, rule object, protagonist reaction, service character posture"}
+      "asset_goal": {
+        "type": "underworld business key frame",
+        "purpose": "counter, rule object, protagonist reaction, service character posture"
+      }
     },
     {
       "visual": "A threshold shot shows the safe interior and the unsafe outside existing in the same frame, with characters holding their exact locked positions.",
       "voiceover": "The door is not an exit anymore; it is a boundary with a price.",
       "duration_sec": 12,
       "emotional_turn": "escape impulse -> trapped realization",
-      "asset_goal": {"type": "threshold continuity frame", "purpose": "spatial rule and character blocking"}
+      "asset_goal": {
+        "type": "threshold continuity frame",
+        "purpose": "spatial rule and character blocking"
+      }
     }
   ],
   "script_scene_examples": [
@@ -35,8 +43,14 @@
       "visual": "The protagonist checks a source-grounded object at the counter; the service character confirms only what the source allows.",
       "voiceover": "He realizes the shop is operating before the first customer even appears.",
       "dialogue": [
-        {"speaker": "protagonist", "line": "Who changed this entry?"},
-        {"speaker": "service character", "line": "It changed when the guest was counted."}
+        {
+          "speaker": "protagonist",
+          "line": "Who changed this entry?"
+        },
+        {
+          "speaker": "service character",
+          "line": "It changed when the guest was counted."
+        }
       ],
       "action_result": "The rule object proves a guest or debt is already active."
     }
@@ -59,10 +73,15 @@
   "forbidden_drift": [
     "Do not add new underworld officials, monsters, punishments, contracts, or ritual tools unless source-grounded.",
     "Do not change a service worker into a combat role unless the source supports it.",
-    "Do not move a threat across a door, counter, or threshold without a visible transition or rule reason."
+    "Do not move a threat across a door, counter, or threshold without a visible transition or rule reason.",
+    "Do not rewrite relationship status, worker identity, public/private knowledge state, or ownership of the room's rules without source support."
   ],
   "handoff_notes": {
-    "image": ["Lock counter, ledger/menu, service posture, threshold, and lighting as continuity anchors."],
-    "video": ["Use doors, trays, ledgers, bells, table settings, and empty hall shots as bridge cutaways only when source-grounded."]
+    "image": [
+      "Lock counter, ledger/menu, service posture, threshold, and lighting as continuity anchors."
+    ],
+    "video": [
+      "Use doors, trays, ledgers, bells, table settings, and empty hall shots as bridge cutaways only when source-grounded."
+    ]
   }
 }

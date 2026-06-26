@@ -2,7 +2,9 @@
   "pack_id": "murder_mystery",
   "version": "copy-genre-example-pack-v1",
   "display_name": "Murder Mystery / Case Game",
-  "applies_to": ["murder_mystery"],
+  "applies_to": [
+    "murder_mystery"
+  ],
   "purpose": "Craft examples for fair-play case structure, clue chains, hidden POV packets, alibi pressure, and host-facing mystery content.",
   "source_priority_rules": [
     "Victim, suspects, clues, timelines, rooms, host script phases, and solution logic must come from source or locked payload.",
@@ -20,14 +22,20 @@
       "voiceover": "The new clue does not solve the case; it breaks the strongest alibi in the room.",
       "duration_sec": 12,
       "emotional_turn": "confidence -> doubt",
-      "asset_goal": {"type": "case clue frame", "purpose": "host posture, public clue object, suspect reactions"}
+      "asset_goal": {
+        "type": "case clue frame",
+        "purpose": "host posture, public clue object, suspect reactions"
+      }
     },
     {
       "visual": "A private POV packet beat shows a character recognizing a clue detail that means more to them than to the room.",
       "voiceover": "The clue is public now, but its real meaning is not.",
       "duration_sec": 10,
       "emotional_turn": "public calm -> private alarm",
-      "asset_goal": {"type": "private knowledge frame", "purpose": "POV reaction and clue detail"}
+      "asset_goal": {
+        "type": "private knowledge frame",
+        "purpose": "POV reaction and clue detail"
+      }
     }
   ],
   "script_scene_examples": [
@@ -35,7 +43,10 @@
       "visual": "The host pushes the room back to timeline logic instead of allowing random accusation drift.",
       "voiceover": "A good case turns on what can be proven, not who speaks loudest.",
       "dialogue": [
-        {"speaker": "host", "line": "If the timeline stands, the accusation does not."}
+        {
+          "speaker": "host",
+          "line": "If the timeline stands, the accusation does not."
+        }
       ],
       "action_result": "The scene narrows the case to a verifiable contradiction."
     }
@@ -56,7 +67,11 @@
     "Do not let a red herring remain random; it must be reversible into logic if it exists in source."
   ],
   "handoff_notes": {
-    "image": ["Lock clue objects, seating/room layout, host position, and suspect sightlines."],
-    "video": ["Keep public clue reveals and private reaction beats separable for phase editing."]
+    "image": [
+      "Lock clue objects, seating/room layout, host position, and suspect sightlines."
+    ],
+    "video": [
+      "Keep public clue reveals and private reaction beats separable for phase editing, with continuity across each transition and readable blocking/state shifts."
+    ]
   }
 }

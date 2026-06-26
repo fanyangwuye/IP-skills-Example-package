@@ -1,0 +1,87 @@
+{
+  "_meta": {
+    "name": "food_documentary",
+    "display_name": "舌尖上的美味（美食纪录片）",
+    "category": "genre",
+    "source_file": "source/genre/舌尖上的美味.txt"
+  },
+
+  "style_direction": "舌尖上的中国视听风格：极致食欲感的微距美食摄影，烟火气与环境交互，人文暖调色彩，厚重磁性旁白叙事。光影层次丰富，阴影处细节饱满，高光处有湿润光泽感。",
+  "primary_palette": "暖色温主导——食材本色（红/绿/金）+ 环境灰木色 + 光源暖黄色强调色",
+  "positive_prompt_fragments": [
+    "逆光热气蒸腾效果",
+    "肉类次表面散射光泽",
+    "高亮油脂质感与酥脆纹理",
+    "有机微观细节（纤维、气泡、水珠）",
+    "烟火气：雾气、溅射液体、明火光影折射",
+    "暖色温人文色调，深邃有机",
+    "电影级自然光源，阴影处细节丰富",
+    "食材物理形变真实（爆浆、拉丝、沸腾）"
+  ],
+  "realism_constraints": [
+    "食材状态变化必须符合物理规律（生→熟的色泽变化）",
+    "光影必须有层次（高光湿润感、阴影细节饱满）",
+    "禁止塑料感或人工光感",
+    "色彩控制铁律：温暖、深邃、有机"
+  ],
+  "forbidden_elements": [
+    "塑料感的食物质地",
+    "人工打光的影棚感",
+    "任何文字、logo、水印",
+    "过度后期调色失真",
+    "破裂、爆破等暴力意象（自然切片除外）"
+  ],
+  "negative_prompt_fragments": [
+    "plastic look",
+    "artificial light",
+    "text",
+    "logo",
+    "overly saturated",
+    "cold blue tones",
+    "clinical sterile look"
+  ],
+
+  "camera_language": {
+    "movement_preference": "微距缓推、慢动作特写、摇臂全景扫过盛宴；镜头运动与食材动态同步",
+    "framing_preference": "微距特写为主（食材横截面、油脂纹理）；中景（烹饪过程互动）；远景摇臂（丰收/盛宴全景）",
+    "lens_bias": "微距镜头为主（100mm macro），配合中长焦烹饪场景",
+    "shot_type_distribution": {
+      "close_up": 0.55,
+      "medium": 0.3,
+      "wide": 0.15
+    }
+  },
+  "rhythm": {
+    "cuts_per_15s": 5,
+    "avg_shot_duration_sec": 3,
+    "pacing_description": "前3秒视觉重点（微距特写/热气升腾）→ 后7秒叙事高潮（油脂迸发/慢动作入水/摇臂全景）",
+    "transition_style": "动势匹配（勺子搅动旋转衔接盘子摆动）或物理遮挡（升腾烟雾遮镜头）；严禁黑白场/叠化"
+  },
+  "prompt_rules": {
+    "language": "zh",
+    "structure_template": "【镜头景别】+【运镜术语】+【食材动态细节/物理反馈】+【烟火气/环境交互】+【视听节奏点】",
+    "mandatory_elements": [
+      "逆光热气效果",
+      "食材物理质感（油脂/纤维/水分）",
+      "烟火气环境交互"
+    ],
+    "forbidden_phrases": [
+      "破裂",
+      "分割",
+      "破碎",
+      "爆破",
+      "碎片"
+    ]
+  },
+  "pipeline_config": {
+    "preferred_model": "seedance_2",
+    "resolution": "720p",
+    "clip_duration_sec": 15,
+    "handoff_mode": "sequential"
+  },
+  "audio_direction": {
+    "bgm_style": "温暖人文轻音乐，古筝/琵琶点缀（如有中式场景）；或极简钢琴+弦乐",
+    "voice_character": "厚重、缓慢、磁性男声旁白，人文叙事语调",
+    "ambient_sound": "滋滋煎炸声、清脆切菜声、咕嘟沸腾声、碗碟轻碰声、柴火噼啪声"
+  }
+}

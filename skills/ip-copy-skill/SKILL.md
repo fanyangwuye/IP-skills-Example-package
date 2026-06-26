@@ -18,6 +18,7 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 - Build viral short-video explainer scripts from source text or script drafts without confusing them with scene cards
 - Build a minimal content brain layer before image generation
 - Route scene-card, script-draft, and polish flows through the guarded CreativeEngine interface when configured
+- Accept reviewed provider responses back into the guarded CreativeEngine path for scene cards, script scenes, and polished scenes when explicitly configured
 - Attach `generation_source` and `quality_report` fields so downstream agents know whether an output is fallback scaffold, mock engine output, or future live output
 - Apply the `vertical_short_drama` FormatAdapter V1 for 9:16 short-drama structure, rhythm rules, and downstream handoff requirements
 - Apply the `overseas_short_drama` FormatAdapter V1 for overseas short-drama structure, localization rules, translation-ready dialogue, and culture-safe handoff requirements
@@ -28,7 +29,10 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 - Build CreativeEngine prompt packs, provider request dry-run JSON, and provider boundary metadata for review without making live calls
 - Include creative diagnostics in prompt packs: genre profile, genre example pack, character voice contract, causality contract, rhythm contract, forbidden drift, quality gate, format-specific writing templates, and few-shot output shapes
 - Include deterministic creative-quality checks in `quality_report`: unsupported details, character consistency, dialogue voice, causality, hook density, emotion curve, and format-specific checks for branch/case structures
-- Attach `copy-creative-engine-review-v1` review reports to CreativeEngine mock outputs and future live-provider responses before downstream normalization`r`n- Parse provider response envelopes locally with `copy-provider-response-parse-v1` before any future live response is accepted
+- Attach `copy-creative-engine-review-v1` review reports to CreativeEngine mock outputs and future live-provider responses before downstream normalization
+- Parse provider response envelopes locally with `copy-provider-response-parse-v1` before any future live response is accepted
+- Prepare guarded provider execution manifests, offline response intake packets, and double-confirm execution tickets before any future live provider is trusted
+- Normalize reviewed provider responses back into `CreativeEngineResult` offline before any future live output is accepted into production flows
 
 ## Tool Boundaries
 
@@ -40,6 +44,7 @@ description: "Build structured IP adaptation outputs for downstream agent skills
   - Use offline/mock CreativeEngine modes for tests and structured handoff validation
   - Return quality reports for scene cards, script drafts, and polished scripts
   - Build `build_creative_prompt_pack` dry-run artifacts with `network_call_allowed=false`
+  - Prepare `prepare_live_provider_execution` dry-run manifests, `intake_provider_response` offline review packets, and `normalize_provider_response` offline CreativeEngineResult handoff packets without making network calls
 - Forbidden:
   - Bypass the license gate
   - Claim full AI prose adaptation when only deterministic planning or mock output is implemented
@@ -67,7 +72,37 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 2. Build a `copy-creative-prompt-pack-v1` prompt pack with source material, format constraints, creative diagnostics, selected genre example pack, format-specific writing template, few-shot output shape, response contract, safety constraints, task instructions, and quality targets.
 3. Build a `copy-live-provider-request-v1` provider request wrapper with `network_call_allowed=false` and `copy-provider-boundary-v1` metadata for provider/model/key/budget/live-guard review.
 4. Write `creative_prompt_pack.json` and return `live_call_made=false`.
-5. Use this mode for review, testing, and handoff before any explicit live provider integration.
+5. Expose `transport_request`, `transport_request_summary`, `response_intake_handoff`, and `execution_manifest` so the next operator can see the exact guarded handoff state.
+6. Use this mode for review, testing, and handoff before any explicit live provider integration.
+
+### Flow B0.1: Guarded Provider Execution Manifest
+
+1. Accept the same task inputs as `build_creative_prompt_pack`, plus optional provider/model/budget/approval flags.
+2. Prepare a `copy-provider-execution-v1` manifest with `prepared_but_not_executed` state, provider blockers, transport summary, and post-response review plan.
+3. Keep `network_call_allowed=false` even when live approvals are present; this flow is still a handoff shell, not an executor.
+4. Return the manifest for operator review or future external execution tooling.
+
+### Flow B0.2: Provider Response Intake
+
+1. Accept a raw provider response plus the same locked source/format context used to build the request.
+2. Parse common response envelopes locally with `copy-provider-response-parse-v1`.
+3. Attach deterministic schema/drift review and produce a `copy-provider-response-review-v1` acceptance packet.
+4. Only allow downstream normalization when the intake result is `accepted` or `accepted_with_warnings`.
+
+### Flow B0.3: Provider Response Normalization
+
+1. Accept a raw provider response plus the same locked source/format context used to build the request.
+2. Reuse local response parsing and review so only accepted or accepted-with-warning outputs continue.
+3. Normalize the reviewed payload into a standard `CreativeEngineResult` shape offline.
+4. The normalized result can now be routed back into scene-card, script-scene, and polished-scene CreativeEngine flows when explicitly configured.
+5. Keep `live_call_made=false`; this flow validates and packages results, it does not execute the provider.
+
+### Flow B0.4: Double-Confirm Live Ticket
+
+1. Accept the same request context plus two explicit operator confirmations.
+2. Reuse the prepared manifest and show whether the request would be ready for a future external executor.
+3. Keep `network_call_allowed=false` inside the skill layer.
+4. Return only a ticket, not a network call.
 
 ### Flow B1: Interactive Adaptation State
 
@@ -127,8 +162,8 @@ description: "Build structured IP adaptation outputs for downstream agent skills
 
 - `scripts/license_gate.py`: deterministic license validation
 - `scripts/blueprint_validate.py`: deterministic blueprint validation
-- `scripts/copy_skill.py`: task entrypoint, interactive adaptation state, scene card builder, script draft builder, viral explainer builder, script polish helper, blueprint builder, handoff builder, and IP asset pack builder
-- `scripts/creative_engine/`: CreativeEngine base types, offline engine, mock engine, live guard placeholder, schema checks, prompt packs, genre example loading, provider boundary metadata, provider response parsing, and deterministic output review
+- `scripts/copy_skill.py`: task entrypoint, interactive adaptation state, prompt-pack builder, guarded provider execution manifest builder, provider response intake reviewer, provider response normalizer, scene card builder, script draft builder, viral explainer builder, script polish helper, blueprint builder, handoff builder, and IP asset pack builder
+- `scripts/creative_engine/`: CreativeEngine base types, offline engine, mock engine, live guard placeholder, schema checks, prompt packs, genre example loading, provider boundary metadata, provider transport/execution manifests, provider response parsing, and deterministic output review
 - `scripts/format_adapters/`: FormatAdapter base, `vertical_short_drama` V1 adapter, `overseas_short_drama` V1 adapter, `feature_film` V1 adapter, `long_series` V1 adapter, `murder_mystery` V1 adapter, and `interactive_film_game` V1 adapter
 - `scripts/quality_evaluator/`: structure, scaffold, deterministic creative-quality checks, and format-specific branch/case checks for scene cards and scripts
 

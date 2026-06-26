@@ -1,0 +1,99 @@
+{
+  "_meta": {
+    "name": "million_dollar_one_take",
+    "display_name": "百万运镜一镜到底",
+    "category": "one-take",
+    "source_file": "source/one-take/百万运镜一镜到底.txt"
+  },
+
+  "style_direction": "百万级运镜一镜到底美学：顶级运动摄影机系统与情绪叙事完美融合。无固定机位禁令，运镜服从情绪，情绪强度等级决定运镜类型，台词节奏与运镜速率精确同步，对话段落运镜多样化。",
+
+  "primary_palette": "写实电影色调、环境光源标注、色温明确、情绪适配色调（悲伤阴冷/温情暖调/紧张单侧光）",
+
+  "positive_prompt_fragments": [
+    "百万级运镜质感：手持跟拍+FPV肩后跟拍",
+    "情绪强度映射运镜：弱-呼吸式微晃/中-手持跟拍/强-快速甩镜+急推",
+    "台词节奏同步运变速率：极慢-慢速推进/正常-中速/极快-急推甩镜",
+    "对话运镜多样化：正反打/过肩/环绕/推近/双人同框",
+    "物理真实动作：加速→匀速→减速惯性节奏",
+    "群众背景自然融入（非道具化）",
+    "场景情绪适配：阴天雨夜/阳光路灯/单侧光走廊",
+    "每片≥4种运镜类型"
+  ],
+
+  "realism_constraints": [
+    "禁止固定镜头/静止机位/Static",
+    "禁止无动机抽搐/违反物理悬浮/穿模现象",
+    "禁止关节反向弯折/身体穿透场景物体",
+    "动作必须符合人体工学"
+  ],
+
+  "forbidden_elements": [
+    "固定镜头",
+    "静止机位",
+    "Static",
+    "无动机动作",
+    "穿模现象",
+    "单一机位对话全程",
+    "相同景别连续镜头"
+  ],
+
+  "negative_prompt_fragments": [
+    "固定机位",
+    "静止画面",
+    "Static",
+    "穿模",
+    "无动机动作",
+    "单一机位"
+  ],
+
+  "camera_language": {
+    "movement_preference": "手持跟拍/缓慢推近/快速甩镜Whip Pan/环绕推移Orbital/急推Crash Zoom/惯性过冲/FPV肩后跟拍（≥4种/片）",
+    "framing_preference": "景别变化链（远→全→中→近→特写，禁止连续相同），对话多样化运镜",
+    "lens_bias": "标准至中焦，运动感优先于虚化",
+    "shot_type_distribution": {
+      "close_up": 0.3,
+      "medium": 0.4,
+      "wide": 0.3
+    }
+  },
+
+  "rhythm": {
+    "cuts_per_15s": 2,
+    "avg_shot_duration_sec": 8,
+    "pacing_description": "建立段（10-12s）→发展段（运镜频率提升）→爆发/收束段（急推甩镜13-15s）；运镜≤3种/镜，切换由情绪节点驱动",
+    "transition_style": "动作匹配转场/眨眼黑屏/跟拍穿越转场"
+  },
+
+  "prompt_rules": {
+    "language": "zh",
+    "structure_template": "【运镜类型+速率】+【角色动作与情绪强度】+【台词停顿标注】+【群众背景】+【衔接提示】",
+    "mandatory_elements": [
+      "运镜类型与速率明确",
+      "情绪强度等级标注",
+      "台词节奏与运镜同步",
+      "群众自然行为",
+      "物理真实动作"
+    ],
+    "forbidden_phrases": [
+      "固定镜头",
+      "静止机位",
+      "Static",
+      "穿模",
+      "单一机位"
+    ]
+  },
+
+  "pipeline_config": {
+    "preferred_model": "seedance_2",
+    "resolution": "720p",
+    "clip_duration_sec": 15,
+    "handoff_mode": "last_frame"
+  },
+
+  "audio_direction": {
+    "bgm_style": "无BGM（默认），可选开启",
+    "voice_character": "台词情绪强度映射运变速率，停顿=运镜变速锚点",
+    "ambient_sound": "场景适配环境音，群众行为自然融入"
+  }
+}

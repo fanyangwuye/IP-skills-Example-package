@@ -1,0 +1,86 @@
+{
+  "_meta": {
+    "name": "one_take_cinematic",
+    "display_name": "一镜到底（电影级）",
+    "category": "one-take",
+    "source_file": "source/one-take/一镜到底短片.txt"
+  },
+
+  "style_direction": "一镜到底电影级短片：不允许跳切、不允许镜头重置、不允许瞬移。相机沿预设路线连续穿行所有人物与空间，每人至少被镜头清晰经过一次。空间真实可信，运镜路线自然流畅。",
+  "primary_palette": "根据场景风格自适应——默认自然电影色调，日光暖调或阴天冷灰",
+  "positive_prompt_fragments": [
+    "连续不中断的长镜头运动",
+    "真实可信的空间透视与光影",
+    "前景-中景-背景清晰层次",
+    "人物站位为运镜让路，通道畅通",
+    "自然的环境光交互（窗户光、灯具、反射）",
+    "角色被镜头经过时有自然的表演反应"
+  ],
+  "realism_constraints": [
+    "空间必须可穿行（家具间留有通道）",
+    "人物站位不能堵死运镜路径",
+    "镜头必须从画面真实起点起镜，不得切入新视角",
+    "禁止中途换机位或镜头重置"
+  ],
+  "forbidden_elements": [
+    "跳切",
+    "镜头重置",
+    "瞬移",
+    "中途换机位",
+    "红色辅助线或箭头残留",
+    "文字标签或规划标注"
+  ],
+  "negative_prompt_fragments": [
+    "red lines",
+    "red arrows",
+    "planning overlays",
+    "jump cuts",
+    "camera reset",
+    "teleportation",
+    "text labels"
+  ],
+
+  "camera_language": {
+    "movement_preference": "连续不间断的穿行运动；缓行或中速穿梭或激烈贴身跟拍（根据用户选择的成片节奏）；相机沿红色辅助路线自然起镜",
+    "framing_preference": "wide master shot 起始 → 途经各角色时推近互动 → 最终回到全景或停在关键角色处",
+    "lens_bias": "广角为主（24-35mm等效）以容纳空间纵深感，途经角色时自然过渡到中焦",
+    "shot_type_distribution": {
+      "close_up": 0.15,
+      "medium": 0.35,
+      "wide": 0.5
+    }
+  },
+  "rhythm": {
+    "cuts_per_15s": 1,
+    "avg_shot_duration_sec": 15,
+    "pacing_description": "一镜到底无剪切——单个15秒片段即为一个连续运镜；节奏由运镜速度控制（慢滑行/中速穿梭/激烈贴身）",
+    "transition_style": "无转场（一镜到底不允许剪切）；片段间通过首帧衔接保持连续感"
+  },
+  "prompt_rules": {
+    "language": "en",
+    "structure_template": "视角类型(one continuous take) + 运镜起点(Start exactly from first frame) + 路线遵循(Strictly follow camera path) + 画面推进(Continuously push forward) + 参考一致性(Respect exact room layout) + 负向约束(No red lines/arrows/jump cuts)",
+    "mandatory_elements": [
+      "one continuous take",
+      "start exactly from first frame",
+      "strictly follow camera path",
+      "no red lines or arrows in final video"
+    ],
+    "forbidden_phrases": [
+      "red lines",
+      "red arrows",
+      "planning overlays",
+      "jump cuts"
+    ]
+  },
+  "pipeline_config": {
+    "preferred_model": "seedance_2",
+    "resolution": "720p",
+    "clip_duration_sec": 15,
+    "handoff_mode": "last_frame_strict"
+  },
+  "audio_direction": {
+    "bgm_style": "根据剧情自适应——默认环境音为主，低存在感配乐",
+    "voice_character": "根据剧本设定",
+    "ambient_sound": "脚步回响、空间环境音（室内混响/室外风声/城市噪音）"
+  }
+}
